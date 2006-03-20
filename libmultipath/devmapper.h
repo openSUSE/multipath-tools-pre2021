@@ -1,7 +1,7 @@
 int dm_prereq (char *, int, int, int);
 int dm_simplecmd (int, const char *);
 int dm_addmap (int, const char *, const char *, const char *,
-	       unsigned long long);
+	       unsigned long long, const char *);
 int dm_map_present (char *);
 int dm_get_map(char *, unsigned long long *, char *);
 int dm_get_status(char *, char *);
@@ -18,6 +18,7 @@ int dm_geteventnr (char *name);
 int dm_get_minor (char *name);
 char * dm_mapname(int major, int minor);
 int dm_remove_partmaps (char * mapname);
+int dm_get_uuid(char *name, char *uuid);
 
 #if 0
 int dm_rename (char * old, char * new);

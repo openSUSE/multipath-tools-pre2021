@@ -1,21 +1,21 @@
-EXEC		= mpath_prio_emc
+EXEC		= mpath_prio_tpc
 BUILD		= glibc
-OBJS		= pp_emc.o
+OBJS		= pp_tpc.o
 
 TOPDIR		= ../..
 include $(TOPDIR)/Makefile.inc
 
-CFLAGS += -pipe -Wall -Wunused -Wstrict-prototypes
+CFLAGS = -pipe -g -O2 -Wall -Wunused -Wstrict-prototypes
 
 all: $(BUILD)
 
 glibc:	$(OBJS)
 	$(CC) -o $(EXEC) $(OBJS) $(LDFLAGS)
-#	$(STRIP) $(EXEC)
+	$(STRIP) $(EXEC)
 
 klibc:	$(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
-#	$(STRIP) $(EXEC)
+	$(STRIP) $(EXEC)
 
 install: $(EXEC)
 	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)

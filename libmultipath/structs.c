@@ -20,6 +20,7 @@ alloc_path (void)
 		pp->sg_id.channel = -1;
 		pp->sg_id.scsi_id = -1;
 		pp->sg_id.lun = -1;
+		pp->fd = -1;
 	}
 	return pp;
 }
@@ -33,7 +34,7 @@ free_path (struct path * pp)
 	if (pp->checker_context)
 		free(pp->checker_context);
 
-	if (pp->fd > 0)
+	if (pp->fd >=  0)
 		close(pp->fd);
 
 	FREE(pp);
@@ -141,6 +142,24 @@ free_multipath (struct multipath * mpp, int free_paths)
 	free_pathvec(mpp->paths, free_paths);
 	free_pgvec(mpp->pg, free_paths);
 	FREE(mpp);
+}
+
+void
+drop_multipath (vector mpvec, char * wwid, int free_paths)
+{
+	int i;
+	struct multipath * mpp;
+
+	if (!mpvec)
+		return;
+
+	vector_foreach_slot (mpvec, mpp, i) {
+		if (!strncmp(mpp->wwid, wwid, WWID_SIZE)) {
+			free_multipath(mpp, free_paths);
+			vector_del_slot(mpvec, i);
+			return;
+		}
+	}
 }
 
 void

@@ -44,6 +44,7 @@
 #include "pidfile.h"
 #include "uxlsnr.h"
 #include "uxclnt.h"
+#include "util.h"
 #include "cli.h"
 #include "cli_handlers.h"
 
@@ -204,6 +205,18 @@ set_multipath_wwid (struct multipath * mpp)
 		strncpy(mpp->wwid, mpp->alias, WWID_SIZE);
 }
 
+static struct hwentry *
+extract_hwe_from_path(struct multipath * mpp)
+{
+        struct path * pp;
+        struct pathgroup * pgp;
+
+	pgp = VECTOR_SLOT(mpp->pg, 0);
+        pp = VECTOR_SLOT(pgp->paths, 0);
+
+	return pp->hwe;
+}
+
 static int
 setup_multipath (struct paths * allpaths, struct multipath * mpp)
 {
@@ -217,6 +230,7 @@ setup_multipath (struct paths * allpaths, struct multipath * mpp)
 		goto out;
 
 	set_paths_owner(allpaths, mpp);
+	mpp->hwe = extract_hwe_from_path(mpp);
 	select_pgfailback(mpp);
 
 	return 0;
@@ -857,25 +871,31 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	char devname[32];
 	struct paths * allpaths;
 
+	condlog(3, "uev_trigger checking\n");
+		
 	allpaths = (struct paths *)trigger_data;
 	pthread_cleanup_push(cleanup_lock, allpaths->lock);
 	lock(allpaths->lock);
 
-	if (strncmp(uev->devpath, "/block", 6))
+	if (strncmp(uev->devpath, "/block", 6)) {
+		condlog(3, "%s is not a block device", uev->devpath);
 		goto out;
+	}
 
-	basename(uev->devpath, devname);
+	mpath_basename(uev->devpath, devname);
 
 	/*
 	 * device map add/remove event
 	 */
 	if (!strncmp(devname, "dm-", 3)) {
 		if (!strncmp(uev->action, "add", 3)) {
+			condlog(3, "adding map");
 			r = uev_add_map(devname, allpaths);
 			goto out;
 		}
 #if 0
 		if (!strncmp(uev->action, "remove", 6)) {
+			condlog(3, "removing map");
 			r = uev_remove_map(devname, allpaths);
 			goto out;
 		}
@@ -886,20 +906,23 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	/*
 	 * path add/remove event
 	 */
-	if (blacklist(conf->blist, devname))
+	if (blacklist(conf->blist, devname)) {
+		condlog(3, "device '%s' blacklisted, ignoring", devname);
 		goto out;
+	}
 
 	if (!strncmp(uev->action, "add", 3)) {
+		condlog(3, "adding path");
 		r = uev_add_path(devname, allpaths);
 		goto out;
 	}
 	if (!strncmp(uev->action, "remove", 6)) {
+		condlog(3, "removing path");
 		r = uev_remove_path(devname, allpaths);
 		goto out;
 	}
 
 out:
-	FREE(uev);
 	pthread_cleanup_pop(1);
 	return r;
 }
@@ -907,7 +930,7 @@ out:
 static void *
 ueventloop (void * ap)
 {
-	uevent_listen(&uev_trigger, ap);
+	mpathevent_listen(&uev_trigger, ap);
 
 	return NULL;
 }
@@ -1050,6 +1073,13 @@ checkerloop (void *ap)
 
 	condlog(2, "path checkers start up");
 
+	/*
+	 * init the path check interval
+	 */
+	vector_foreach_slot (allpaths->pathvec, pp, i) {
+		pp->checkint = conf->checkint;
+	}
+
 	while (1) {
 		pthread_cleanup_push(cleanup_lock, allpaths->lock);
 		lock(allpaths->lock);
@@ -1072,7 +1102,7 @@ checkerloop (void *ap)
 			 * in case we exit abnormaly from here
 			 */
 			pp->tick = conf->checkint;
-			
+
 			if (!pp->checkfn) {
 				pathinfo(pp, conf->hwtable, DI_SYSFS);
 				select_checkfn(pp);
@@ -1082,9 +1112,22 @@ checkerloop (void *ap)
 				condlog(0, "%s: checkfn is void", pp->dev);
 				continue;
 			}
+
+			/*
+			 * Set the device online for checkers
+			 * to run successfully
+			 */
+			online_device(pp);
+
 			newstate = pp->checkfn(pp->fd, checker_msg,
 					       &pp->checker_context);
 			
+			if (newstate < 0) {
+				condlog(2, "%s: unusable path", pp->dev);
+				pathinfo(pp, conf->hwtable, 0);
+				continue;
+			}
+
 			if (newstate != pp->state) {
 				pp->state = newstate;
 				LOG_MSG(1, checker_msg);
@@ -1336,7 +1379,7 @@ child (void * param)
 	}
 	signal_init();
 	setscheduler();
-	set_oom_adj(-17);
+	set_oom_adj(-16);
 	allpaths = init_paths();
 
 	if (!allpaths)
@@ -1352,7 +1395,7 @@ child (void * param)
 	 * no paths and/or no multipaths are valid scenarii
 	 * vectors maintenance will be driven by events
 	 */
-	path_discovery(allpaths->pathvec, conf, DI_SYSFS | DI_WWID);
+	path_discovery(allpaths->pathvec, conf, DI_SYSFS | DI_WWID | DI_CHECKER);
 	get_dm_mpvec(allpaths);
 
 	/*

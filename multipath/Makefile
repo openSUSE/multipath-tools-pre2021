@@ -7,13 +7,14 @@ include ../Makefile.inc
 
 OBJS = main.o $(MULTIPATHLIB)-$(BUILD).a $(CHECKERSLIB)-$(BUILD).a
 
-CFLAGS = -pipe -g -Wall -Wunused -Wstrict-prototypes \
+CFLAGS += -pipe -Wall -Wunused -Wstrict-prototypes \
 	 -I$(multipathdir) -I$(checkersdir)
 
 ifeq ($(strip $(BUILD)),klibc)
 	OBJS += $(libdm) $(libsysfs)
 else
 	LDFLAGS += -ldevmapper -lsysfs
+	CFLAGS += -D_GNU_SOURCE
 endif
 
 EXEC = multipath
@@ -26,12 +27,12 @@ prepare:
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(STRIP) $(EXEC)
+#	$(STRIP) $(EXEC)
 	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
-	
+
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(CRT0) $(OBJS) $(KLIBC) $(LIBGCC)
-	$(STRIP) $(EXEC)
+#	$(STRIP) $(EXEC)
 	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 $(CHECKERSLIB)-$(BUILD).a:

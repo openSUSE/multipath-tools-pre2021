@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/file.h>
+#include <errno.h>
 
 #include <parser.h>
 #include <vector.h>
@@ -62,7 +64,7 @@ get_refwwid (vector pathvec)
 
 	if (conf->dev_type == DEV_DEVNODE) {
 		condlog(3, "limited scope = %s", conf->dev);
-		basename(conf->dev, buff);
+		mpath_basename(conf->dev, buff);
 		pp = find_path_by_dev(pathvec, buff);
 		
 		if (!pp) {
@@ -81,14 +83,8 @@ get_refwwid (vector pathvec)
 				return NULL;
 			}
 		}
-
-		refwwid = MALLOC(WWID_SIZE);
-
-		if (!refwwid)
-			return NULL;
-
-		memcpy(refwwid, pp->wwid, WWID_SIZE);
-		return refwwid;
+		refwwid = pp->wwid;
+		goto out;
 	}
 
 	if (conf->dev_type == DEV_DEVT) {
@@ -96,17 +92,15 @@ get_refwwid (vector pathvec)
 		pp = find_path_by_devt(pathvec, conf->dev);
 		
 		if (!pp) {
+			if (devt2devname(buff, conf->dev))
+				return NULL;
+
 			pp = alloc_path();
 
 			if (!pp)
 				return NULL;
 
-			devt2devname(conf->dev, buff);
-
-			if(safe_sprintf(pp->dev, "%s", buff)) {
-				fprintf(stderr, "pp->dev too small\n");
-				exit(1);
-			}
+			strncpy(pp->dev, buff, FILE_NAME_SIZE);
 			if (pathinfo(pp, conf->hwtable, DI_SYSFS | DI_WWID))
 				return NULL;
 			
@@ -116,13 +110,8 @@ get_refwwid (vector pathvec)
 			}
 		}
 
-		refwwid = MALLOC(WWID_SIZE);
-
-		if (!refwwid)
-			return NULL;
-		
-		memcpy(refwwid, pp->wwid, WWID_SIZE);
-		return refwwid;
+		refwwid = pp->wwid;
+		goto out;
 	}
 	if (conf->dev_type == DEV_DEVMAP) {
 		condlog(3, "limited scope = %s", conf->dev);
@@ -137,24 +126,24 @@ get_refwwid (vector pathvec)
 		/*
 		 * or directly a wwid
 		 */
-		refwwid = MALLOC(WWID_SIZE);
-
 		if (!refwwid)
-			return NULL;
+			refwwid = conf->dev;
 
-		strncpy(refwwid, conf->dev, WWID_SIZE);
-		return refwwid;
 	}
+ out:
+	if (refwwid && strlen(refwwid))
+		return STRDUP(refwwid);
+
 	return NULL;
 }
 
 static void
 print_path (struct path * pp, char * style)
 {
-	char buff[MAX_LINE_LEN];
+	char line[MAX_LINE_LEN];
 
-	snprint_path(&buff[0], MAX_LINE_LEN, style, pp, &pl);
-	printf("%s", buff);
+	snprint_path(&line[0], MAX_LINE_LEN, style, pp, &pl);
+	printf("%s", line);
 }
 
 static void
@@ -183,7 +172,7 @@ print_mp (struct multipath * mpp)
 	struct path * pp = NULL;
 	struct pathgroup * pgp = NULL;
 
-	if (mpp->action == ACT_NOTHING || conf->verbosity == 0)
+	if (mpp->action == ACT_NOTHING || !conf->verbosity || !mpp->size)
 		return;
 
 	if (conf->verbosity > 1) {
@@ -283,7 +272,7 @@ filter_pathvec (vector pathvec, char * refwwid)
 		return 0;
 
 	vector_foreach_slot (pathvec, pp, i) {
-		if (memcmp(pp->wwid, refwwid, WWID_SIZE) != 0) {
+		if (strncmp(pp->wwid, refwwid, WWID_SIZE) != 0) {
 			condlog(3, "skip path %s : out of scope", pp->dev);
 			free_path(pp);
 			vector_del_slot(pathvec, i);
@@ -362,26 +351,12 @@ assemble_map (struct multipath * mp)
 static int
 setup_map (struct multipath * mpp)
 {
-	struct path * pp;
-	int i;
-
 	/*
 	 * don't bother if devmap size is unknown
 	 */
 	if (mpp->size <= 0) {
 		condlog(3, "%s devmap size is unknown", mpp->alias);
 		return 1;
-	}
-
-	/*
-	 * don't bother if a constituant path is claimed
-	 * (not by the device mapper driver)
-	 */
-	vector_foreach_slot (mpp->paths, pp, i) {
-		if (pp->claimed && pp->dmstate == PSTATE_UNDEF) {
-			condlog(3, "%s claimed", pp->dev);
-			return 1;
-		}
 	}
 
 	/*
@@ -503,52 +478,65 @@ select_action (struct multipath * mpp, vector curmp)
 			dm_flush_map(cmpp->alias, DEFAULT_TARGET);
 		}
 		mpp->action = ACT_CREATE;
+		condlog(3, "set ACT_CREATE: map does not exists");
 		return;
 	}
+
+	if (!find_mp_by_wwid(curmp, mpp->wwid)) {
+		condlog(2, "remove: %s (wwid changed)", cmpp->alias);
+		dm_flush_map(mpp->alias, NULL);
+		strncat(cmpp->wwid, mpp->wwid, WWID_SIZE);
+		drop_multipath(curmp, cmpp->wwid, KEEP_PATHS);
+		mpp->action = ACT_CREATE;
+		condlog(3, "set ACT_CREATE: map wwid change");
+		return;
+	}
+		
 	if (pathcount(mpp, PATH_UP) == 0) {
-		condlog(3, "no good path");
 		mpp->action = ACT_NOTHING;
+		condlog(3, "set ACT_NOTHING: no usable path");
 		return;
 	}
 	if (cmpp->size != mpp->size) {
-		condlog(3, "size different than current");
 		mpp->action = ACT_RELOAD;
+		condlog(3, "set ACT_RELOAD: size change");
 		return;
 	}
 	if (strncmp(cmpp->features, mpp->features,
 		    strlen(mpp->features))) {
-		condlog(3, "features different than current");
 		mpp->action =  ACT_RELOAD;
+		condlog(3, "set ACT_RELOAD: features change");
 		return;
 	}
 	if (strncmp(cmpp->hwhandler, mpp->hwhandler,
 		    strlen(mpp->hwhandler))) {
-		condlog(3, "hwhandler different than current");
 		mpp->action = ACT_RELOAD;
+		condlog(3, "set ACT_RELOAD: hwhandler change");
 		return;
 	}
 	if (strncmp(cmpp->selector, mpp->selector,
 		    strlen(mpp->selector))) {
-		condlog(3, "selector different than current");
 		mpp->action = ACT_RELOAD;
+		condlog(3, "set ACT_RELOAD: selector change");
 		return;
 	}
 	if (VECTOR_SIZE(cmpp->pg) != VECTOR_SIZE(mpp->pg)) {
-		condlog(3, "different number of PG");
 		mpp->action = ACT_RELOAD;
+		condlog(3, "set ACT_RELOAD: number of path group change");
 		return;
 	}
 	if (pgcmp(mpp, cmpp)) {
-		condlog(3, "different path group topology");
 		mpp->action = ACT_RELOAD;
+		condlog(3, "set ACT_RELOAD: path group topology change");
 		return;
 	}
 	if (cmpp->nextpg != mpp->nextpg) {
-		condlog(3, "nextpg different than current");
 		mpp->action = ACT_SWITCHPG;
+		condlog(3, "set ACT_SWITCHPG: next path group change");
 		return;
 	}
 	mpp->action = ACT_NOTHING;
+	condlog(3, "set ACT_NOTHING: map unchanged");
 	return;
 }
 
@@ -559,7 +547,13 @@ reinstate_paths (struct multipath * mpp)
 	struct pathgroup * pgp;
 	struct path * pp;
 
+	if (!mpp->pg)
+		return 0;
+
 	vector_foreach_slot (mpp->pg, pgp, i) {
+		if (!pgp->paths)
+			continue;
+
 		vector_foreach_slot (pgp->paths, pp, j) {
 			if (pp->state != PATH_UP &&
 			    (pgp->status == PGSTATE_DISABLED ||
@@ -576,23 +570,52 @@ reinstate_paths (struct multipath * mpp)
 	return 0;
 }
 
+int lock_multipath (struct multipath * mpp, int lock)
+{
+	struct pathgroup * pgp;
+	struct path * pp;
+	int i, j;
+
+	if (!mpp || !mpp->pg)
+		return 0;
+	
+	vector_foreach_slot (mpp->pg, pgp, i) {
+		if (!pgp->paths)
+			continue;
+		vector_foreach_slot(pgp->paths, pp, j) {
+			if (lock && flock(pp->fd, LOCK_EX | LOCK_NB) &&
+			    errno == EWOULDBLOCK)
+				return 1;
+			else if (!lock)
+				flock(pp->fd, LOCK_UN);
+		}
+	}
+	return 0;
+}
+
+/*
+ * Return value:
+ *  -1: Retry
+ *   0: DM_DEVICE_CREATE or DM_DEVICE_RELOAD failed, or dry_run mode.
+ *   1: DM_DEVICE_CREATE or DM_DEVICE_RELOAD succeeded.
+ *   2: Map is already existing.
+ */
 static int
 domap (struct multipath * mpp)
 {
-	int op = ACT_NOTHING;
 	int r = 0;
-
-	print_mp(mpp);
 
 	/*
 	 * last chance to quit before touching the devmaps
 	 */
-	if (conf->dry_run)
+	if (conf->dry_run) {
+		print_mp(mpp);
 		return 0;
+	}
 
 	switch (mpp->action) {
 	case ACT_NOTHING:
-		return 0;
+		return 2;
 
 	case ACT_SWITCHPG:
 		dm_switchgroup(mpp->alias, mpp->nextpg);
@@ -602,49 +625,89 @@ domap (struct multipath * mpp)
 		 * retry.
 		 */
 		reinstate_paths(mpp);
-		return 0;
+		return 2;
 
 	case ACT_CREATE:
-		op = DM_DEVICE_CREATE;
+		if (lock_multipath(mpp, 1)) {
+			condlog(3, "%s: in use", mpp->alias);
+			return -1;
+		}
+
+		if (dm_map_present(mpp->alias))
+			break;
+
+		r = dm_addmap(DM_DEVICE_CREATE, mpp->alias, DEFAULT_TARGET,
+			      mpp->params, mpp->size, mpp->wwid);
+
+		/*
+		 * DM_DEVICE_CREATE is actually DM_DEV_CREATE plus
+		 * DM_TABLE_LOAD. Failing the second part leaves an
+		 * empty map. Clean it up.
+		 */
+		if (!r && dm_map_present(mpp->alias)) {
+			condlog(3, "%s: failed to load map "
+				   "(a path might be in use)",
+				   mpp->alias);
+			dm_flush_map(mpp->alias, NULL);
+		}
+
+		lock_multipath(mpp, 0);
 		break;
 
 	case ACT_RELOAD:
-		op = DM_DEVICE_RELOAD;
+		if (lock_multipath(mpp, 1)) {
+			condlog(3, "%s: in use", mpp->alias);
+			return -1;
+		}
+
+		r = (dm_addmap(DM_DEVICE_RELOAD, mpp->alias, DEFAULT_TARGET,
+			      mpp->params, mpp->size, NULL) &&
+		     dm_simplecmd(DM_DEVICE_RESUME, mpp->alias));
+
+		lock_multipath(mpp, 0);
 		break;
 
 	default:
 		break;
 	}
 
-		
-	/*
-	 * device mapper creation or updating
-	 * here we know we'll have garbage on stderr from
-	 * libdevmapper. so shut it down temporarily.
-	 */
-	dm_log_init_verbose(0);
-
-	r = dm_addmap(op, mpp->alias, DEFAULT_TARGET, mpp->params, mpp->size);
-
-	if (r == 0)
-		dm_simplecmd(DM_DEVICE_REMOVE, mpp->alias);
-	else if (op == DM_DEVICE_RELOAD)
-		dm_simplecmd(DM_DEVICE_RESUME, mpp->alias);
-
-	/*
-	 * PG order is random, so we need to set the primary one
-	 * upon create or reload
-	 */
-	dm_switchgroup(mpp->alias, mpp->nextpg);
-
-	dm_log_init_verbose(1);
+	if (r) {
+		/*
+		 * DM_DEVICE_CREATE or DM_DEVICE_RELOAD succeeded
+		 */
+		dm_switchgroup(mpp->alias, mpp->nextpg);
+		print_mp(mpp);
+	}
 
 	return r;
 }
 
 static int
+deadmap (struct multipath * mpp)
+{
+	int i, j;
+	struct pathgroup * pgp;
+	struct path * pp;
+
+	if (!mpp->pg)
+		return 1;
+
+	vector_foreach_slot (mpp->pg, pgp, i) {
+		if (!pgp->paths)
+			continue;
+
+		vector_foreach_slot (pgp->paths, pp, j)
+			if (strlen(pp->dev))
+				return 0; /* alive */
+	}
+	
+	return 1; /* dead */
+}
+
+static int
 coalesce_paths (vector curmp, vector pathvec)
 {
+	int r = 1;
 	int k, i;
 	char empty_buff[WWID_SIZE];
 	struct multipath * mpp;
@@ -675,21 +738,25 @@ coalesce_paths (vector curmp, vector pathvec)
 
 		mpp->mpe = find_mpe(pp1->wwid);
 		mpp->hwe = pp1->hwe;
+		strcpy(mpp->wwid, pp1->wwid);
 		select_alias(mpp);
 
 		pp1->mpp = mpp;
-		strcpy(mpp->wwid, pp1->wwid);
 		mpp->size = pp1->size;
 		mpp->paths = vector_alloc();
 
 		if (pp1->priority < 0)
 			mpp->action = ACT_NOTHING;
 
-		if (!mpp->paths)
+		if (!mpp->paths) {
+			free_multipath(mpp, KEEP_PATHS);
 			return 1;
+		}
 		
-		if (store_path(mpp->paths, pp1))
+		if (store_path(mpp->paths, pp1)) {
+			free_multipath(mpp, KEEP_PATHS);
 			return 1;
+		}
 
 		for (i = k + 1; i < VECTOR_SIZE(pathvec); i++) {
 			pp2 = VECTOR_SLOT(pathvec, i);
@@ -713,19 +780,34 @@ coalesce_paths (vector curmp, vector pathvec)
 			if (store_path(mpp->paths, pp2))
 				return 1;
 		}
-		if (setup_map(mpp)) {
-			free_multipath(mpp, KEEP_PATHS);
-			continue;
-		}
-		condlog(3, "action preset to %i", mpp->action);
+		if (setup_map(mpp))
+			goto next;
 
 		if (mpp->action == ACT_UNDEF)
 			select_action(mpp, curmp);
 
-		condlog(3, "action set to %i", mpp->action);
+		r = domap(mpp);
 
-		domap(mpp);
+		if (r < 0)
+			return r;
+
+next:
+		drop_multipath(curmp, mpp->wwid, KEEP_PATHS);
 		free_multipath(mpp, KEEP_PATHS);
+	}
+	/*
+	 * Flush maps with only dead paths (ie not in sysfs)
+	 * Keep maps with only failed paths
+	 */
+	vector_foreach_slot (curmp, mpp, i) {
+		if (!deadmap(mpp))
+			continue;
+
+		if (dm_flush_map(mpp->alias, DEFAULT_TARGET))
+			condlog(2, "remove: %s (dead) failed!",
+				mpp->alias);
+		else
+			condlog(2, "remove: %s (dead)", mpp->alias);
 	}
 	return 0;
 }
@@ -740,15 +822,16 @@ usage (char * progname)
 		"\t\t\t[-p failover|multibus|group_by_serial|group_by_prio]\n" \
 		"\t\t\t[device]\n" \
 		"\n" \
-		"\t-v level\tverbosty level\n" \
+		"\t-v level\tverbosity level\n" \
 		"\t   0\t\t\tno output\n" \
 		"\t   1\t\t\tprint created devmap names only\n" \
 		"\t   2\t\t\tdefault verbosity\n" \
 		"\t   3\t\t\tprint debug information\n" \
+		"\t-b file\t\tbindings file location\n" \
 		"\t-d\t\tdry run, do not create or update devmaps\n" \
 		"\t-l\t\tshow multipath topology (sysfs and DM info)\n" \
 		"\t-ll\t\tshow multipath topology (maximum info)\n" \
-		"\t-F\t\tflush a multipath device map\n" \
+		"\t-f\t\tflush a multipath device map\n" \
 		"\t-F\t\tflush all multipath device maps\n" \
 		"\t-p policy\tforce all maps to specified policy :\n" \
 		"\t   failover\t\t1 path per priority group\n" \
@@ -772,10 +855,22 @@ update_paths (struct multipath * mpp)
 	struct pathgroup * pgp;
 	struct path * pp;
 
+	if (!mpp->pg)
+		return 0;
+
 	vector_foreach_slot (mpp->pg, pgp, i) {
+		if (!pgp->paths)
+			continue;
+
 		vector_foreach_slot (pgp->paths, pp, j) {
 			if (!strlen(pp->dev)) {
-				devt2devname(pp->dev, pp->dev_t);
+				if (devt2devname(pp->dev, pp->dev_t)) {
+					/*
+					 * path is not in sysfs anymore
+					 */
+					pp->state = PATH_DOWN;
+					continue;
+				}
 				pathinfo(pp, conf->hwtable,
 					 DI_SYSFS | DI_CHECKER | \
 					 DI_SERIAL | DI_PRIO);
@@ -796,29 +891,33 @@ get_dm_mpvec (vector curmp, vector pathvec, char * refwwid)
 {
 	int i;
 	struct multipath * mpp;
-	char * wwid;
 
 	if (dm_get_maps(curmp, DEFAULT_TARGET))
 		return 1;
+	
+	condlog(3, "get_dm_mpvec for %s", refwwid);
 
 	vector_foreach_slot (curmp, mpp, i) {
-		wwid = get_mpe_wwid(mpp->alias);
-
-		if (wwid) {
-			/* out of specified scope */
-			if (refwwid && strncmp(wwid, refwwid, WWID_SIZE))
-				continue;
-			wwid = NULL;
+		/*
+		 * discard out of scope maps
+		 */
+		if (mpp->wwid && refwwid &&
+		    strncmp(mpp->wwid, refwwid, WWID_SIZE)) {
+			condlog(3, "skip map %s (%s): out of scope",
+				mpp->alias, mpp->wwid);
+			free_multipath(mpp, KEEP_PATHS);
+			vector_del_slot(curmp, i);
+			i--;
+			continue;
 		}
 
 		condlog(3, "params = %s", mpp->params);
 		condlog(3, "status = %s", mpp->status);
 
-		/* will set mpp->wwid */
 		disassemble_map(pathvec, mpp->params, mpp);
 
 		/*
-		 * disassemble_map may have added new paths to pathvec.
+		 * disassemble_map() can add new paths to pathvec.
 		 * If not in "fast list mode", we need to fetch information
 		 * about them
 		 */
@@ -839,17 +938,122 @@ get_dm_mpvec (vector curmp, vector pathvec, char * refwwid)
 	return 0;
 }
 
-int
-main (int argc, char *argv[])
+
+/*
+ * Return value:
+ *  -1: Retry
+ *   0: Success
+ *   1: Failure
+ */
+static int
+configure (void)
 {
 	vector curmp = NULL;
 	vector pathvec = NULL;
-	int i;
+	int r = 1;
 	int di_flag = 0;
+	char * refwwid = NULL;
+	char * dev = NULL;
+
+	/*
+	 * allocate core vectors to store paths and multipaths
+	 */
+	curmp = vector_alloc();
+	pathvec = vector_alloc();
+
+	if (!curmp || !pathvec) {
+		condlog(0, "can not allocate memory");
+		goto out;
+	}
+
+	/*
+	 * if we have a blacklisted device parameter, exit early
+	 */
+	if (conf->dev) {
+		if (!strncmp(conf->dev, "/dev/", 5) &&
+		    strlen(conf->dev) > 5)
+			dev = conf->dev + 5;
+		else
+			dev = conf->dev;
+	}
+	
+	if (dev && blacklist(conf->blist, dev))
+		goto out;
+	
+	condlog(3, "load path identifiers cache");
+	cache_load(pathvec);
+
+	if (conf->verbosity > 2)
+		print_all_paths(pathvec);
+
+	/*
+	 * scope limiting must be translated into a wwid
+	 * failing the translation is fatal (by policy)
+	 */
+	if (conf->dev) {
+		refwwid = get_refwwid(pathvec);
+
+		if (!refwwid) {
+			condlog(3, "scope is nul");
+			goto out;
+		}
+		condlog(3, "scope limited to %s", refwwid);
+	}
+
+	/*
+	 * get a path list
+	 */
+	if (conf->dev)
+		di_flag = DI_WWID;
+
+	if (conf->list > 1)
+		/* extended path info '-ll' */
+		di_flag |= DI_SYSFS | DI_CHECKER;
+	else if (conf->list)
+		/* minimum path info '-l' */
+		di_flag |= DI_SYSFS;
+	else
+		/* maximum info */
+		di_flag = DI_ALL;
+
+	if (path_discovery(pathvec, conf, di_flag))
+		goto out;
+
+	if (conf->verbosity > 2)
+		print_all_paths(pathvec);
+
+	get_path_layout(&pl, pathvec);
+
+	if (get_dm_mpvec(curmp, pathvec, refwwid))
+		goto out;
+
+	filter_pathvec(pathvec, refwwid);
+
+	if (conf->list)
+		goto out;
+
+	/*
+	 * core logic entry point
+	 */
+	r = coalesce_paths(curmp, pathvec);
+
+out:
+	if (refwwid)
+		FREE(refwwid);
+
+	free_multipathvec(curmp, KEEP_PATHS);
+	free_pathvec(pathvec, FREE_PATHS);
+
+	return r;
+}
+
+int
+main (int argc, char *argv[])
+{
 	int arg;
 	extern char *optarg;
 	extern int optind;
-	char * refwwid = NULL;
+	int i, r;
 
 	if (getuid() != 0) {
 		fprintf(stderr, "need to be root\n");
@@ -866,7 +1070,7 @@ main (int argc, char *argv[])
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":qdl::Ffi:M:v:p:")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":qdl::Ffi:M:v:p:b:")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -881,10 +1085,10 @@ main (int argc, char *argv[])
 			conf->dry_run = 1;
 			break;
 		case 'f':
-			conf->remove = 1;
+			conf->remove = FLUSH_ONE;
 			break;
 		case 'F':
-			conf->remove = 2;
+			conf->remove = FLUSH_ALL;
 			break;
 		case 'l':
 			conf->list = 1;
@@ -945,83 +1149,15 @@ main (int argc, char *argv[])
 		dm_flush_maps(DEFAULT_TARGET);
 		goto out;
 	}
-
-	/*
-	 * allocate core vectors to store paths and multipaths
-	 */
-	curmp = vector_alloc();
-	pathvec = vector_alloc();
-
-	if (!curmp || !pathvec) {
-		condlog(0, "can not allocate memory");
-		goto out;
-	}
-
-	/*
-	 * if we have a blacklisted device parameter, exit early
-	 */
-	if (conf->dev && blacklist(conf->blist, conf->dev))
-		goto out;
+	while ((r = configure()) < 0)
+		condlog(3, "restart multipath configuration process");
 	
-	condlog(3, "load path identifiers cache");
-	cache_load(pathvec);
-
-	if (conf->verbosity > 2) {
-		fprintf(stdout, "#\n# all paths in cache :\n#\n");
-		print_all_paths(pathvec);
-	}
-
-	/*
-	 * get a path list
-	 */
-	if (conf->dev)
-		di_flag = DI_WWID;
-
-	if (conf->list > 1)
-		/* extended path info '-ll' */
-		di_flag |= DI_SYSFS | DI_CHECKER;
-	else if (conf->list)
-		/* minimum path info '-l' */
-		di_flag |= DI_SYSFS;
-	else
-		/* maximum info */
-		di_flag = DI_ALL;
-
-	if (path_discovery(pathvec, conf, di_flag) || VECTOR_SIZE(pathvec) == 0)
-		goto out;
-
-	if (conf->verbosity > 2) {
-		fprintf(stdout, "#\n# all paths :\n#\n");
-		print_all_paths(pathvec);
-	}
-
-	refwwid = get_refwwid(pathvec);
-	get_path_layout(&pl, pathvec);
-
-	if (get_dm_mpvec(curmp, pathvec, refwwid))
-		goto out;
-
-	filter_pathvec(pathvec, refwwid);
-
-	if (conf->list)
-		goto out;
-
-	/*
-	 * core logic entry point
-	 */
-	coalesce_paths(curmp, pathvec);
-
 out:
-	if (refwwid)
-		FREE(refwwid);
-
-	free_multipathvec(curmp, KEEP_PATHS);
-	free_pathvec(pathvec, FREE_PATHS);
 	free_config(conf);
 	dm_lib_release();
 	dm_lib_exit();
 #ifdef _DEBUG_
 	dbg_free_final(NULL);
 #endif
-	exit(0);
+	return r;
 }

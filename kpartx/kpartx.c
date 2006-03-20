@@ -68,19 +68,21 @@ initpts(void)
 	addpts("bsd", read_bsd_pt);
 	addpts("solaris", read_solaris_pt);
 	addpts("unixware", read_unixware_pt);
+	addpts("dasd", read_dasd_pt);
 }
 
-static char short_opts[] = "ladgvnp:t:";
+static char short_opts[] = "ladgvmnp:t:";
 
 /* Used in gpt.c */
 int force_gpt=0;
 
 static int
 usage(void) {
-	printf("usage : kpartx [-a|-d|-l] [-v] wholedisk\n");
+	printf("usage : kpartx [-a|-d|-l] [-m] [-v] wholedisk\n");
 	printf("\t-a add partition devmappings\n");
 	printf("\t-d del partition devmappings\n");
 	printf("\t-l list partitions devmappings that would be added by -a\n");
+	printf("\t-m use target name as device name\n");
 	printf("\t-p set device name-partition number delimiter\n");
 	printf("\t-v verbose\n");
 	return 1;
@@ -127,12 +129,8 @@ find_devname_offset (char * device)
 static char *
 get_hotplug_device(void)
 {
-	unsigned int major, minor, off, len;
-	const char *mapname;
 	char *devname = NULL;
-	char *device = NULL;
 	char *var = NULL;
-	struct stat buf;
 
 	var = getenv("ACTION");
 
@@ -143,13 +141,21 @@ get_hotplug_device(void)
 	if (!(devname = getenv("DEVNAME")))
 		return NULL;
 
+	return devname;
+}
+
+static char *
+get_devmap_name(char *devname)
+{
+	unsigned int off, len;
+	char *mapname;
+	char *device = NULL;
+	struct stat buf;
+
 	if (stat(devname, &buf))
 		return NULL;
 
-	major = (unsigned int)MAJOR(buf.st_rdev);
-	minor = (unsigned int)MINOR(buf.st_rdev);
-
-	if (!(mapname = dm_mapname(major, minor))) /* Not dm device. */
+	if (!(mapname = dm_mapname(buf.st_rdev))) /* Not dm device. */
 		return NULL;
 
 	off = find_devname_offset(devname);
@@ -165,6 +171,8 @@ get_hotplug_device(void)
 
 	if (strlen(device) != (off + len))
 		return NULL;
+
+	free(mapname);
 
 	return device;
 }
@@ -205,10 +213,10 @@ main(int argc, char **argv){
 		hotplug = 1;
 
 		/* Setup for original kpartx variables */
-		if (!(device = get_hotplug_device()))
+		diskdevice = get_hotplug_device();
+		if (!(device = get_devmap_name(diskdevice)))
 			exit(1);
 
-		diskdevice = device;
 		what = ADD;
 	} else if (argc < 2) {
 		usage();
@@ -224,6 +232,9 @@ main(int argc, char **argv){
 			break;
 		case 'v':
 			verbose = 1;
+			break;
+		case 'm':
+			hotplug = 1;
 			break;
 		case 'n':
 			p = optarg;
@@ -255,20 +266,26 @@ main(int argc, char **argv){
 		exit(1);
 	}
 
-	if (hotplug) {
+	if (diskdevice && device) {
 		/* already got [disk]device */
 	} else if (optind == argc-2) {
 		device = argv[optind];
 		diskdevice = argv[optind+1];
 	} else if (optind == argc-1) {
-		diskdevice = device = argv[optind];
+		diskdevice = argv[optind];
+		if (hotplug) {
+			device = get_devmap_name(diskdevice);
+		}
+		if (!device) {
+			device = diskdevice;
+		}
 	} else {
 		usage();
 		exit(1);
 	}
 
-	if (stat(device, &buf)) {
-		printf("failed to stat() %s\n", device);
+	if (stat(diskdevice, &buf)) {
+		printf("failed to stat() %s\n", diskdevice);
 		exit (1);
 	}
 
@@ -302,10 +319,10 @@ main(int argc, char **argv){
 	}
 	
 	off = find_devname_offset(device);
-	fd = open(device, O_RDONLY);
+	fd = open(diskdevice, O_RDONLY);
 
 	if (fd == -1) {
-		perror(device);
+		perror(diskdevice);
 		exit(1);
 	}
 	if (!lower)
@@ -352,7 +369,8 @@ main(int argc, char **argv){
 
 				printf("%s%s%d : 0 %lu %s %lu\n",
 					device + off, delim, j+1,
-					(unsigned long) slices[j].size, device,
+					(unsigned long) slices[j].size, 
+				        diskdevice,
 				        (unsigned long) slices[j].start);
 			}
 			break;
@@ -399,7 +417,7 @@ main(int argc, char **argv){
 				}
 				strip_slash(partname);
 				
-				if (safe_sprintf(params, "%s %lu", device,
+				if (safe_sprintf(params, "%s %lu", diskdevice,
 					     (unsigned long)slices[j].start)) {
 					fprintf(stderr, "params too small\n");
 					exit(1);
@@ -455,27 +473,14 @@ xmalloc (size_t size) {
 /*
  * sseek: seek to specified sector
  */
-#if !defined (__alpha__) && !defined (__ia64__) && !defined (__x86_64__) \
-	&& !defined (__s390x__)
-#include <linux/unistd.h>       /* _syscall */
-static
-_syscall5(int,  _llseek,  uint,  fd, ulong, hi, ulong, lo,
-	  long long *, res, uint, wh);
-#endif
 
 static int
 sseek(int fd, unsigned int secnr) {
-	long long in, out;
-	in = ((long long) secnr << 9);
+	off64_t in, out;
+	in = ((off64_t) secnr << 9);
 	out = 1;
 
-#if !defined (__alpha__) && !defined (__ia64__) && !defined (__x86_64__) \
-	&& !defined (__s390x__)
-	if (_llseek (fd, in>>32, in & 0xffffffff, &out, SEEK_SET) != 0
-	    || out != in)
-#else
-	if ((out = lseek(fd, in, SEEK_SET)) != in)
-#endif
+	if ((out = lseek64(fd, in, SEEK_SET)) != in)
 	{
 		fprintf(stderr, "llseek error\n");
 		return -1;

@@ -27,21 +27,21 @@ else
 STRIP		= strip --strip-all -R .comment -R .note
 endif
 
-CFLAGS = -pipe -g -O2 -Wall -Wunused -Wstrict-prototypes -DDEBUG=$(DEBUG)
+CFLAGS += -pipe -Wall -Wunused -Wstrict-prototypes -DDEBUG=$(DEBUG)
 
 all: $(BUILD)
 
 glibc:	$(OBJS)
 	$(CC) -o $(EXEC) $(OBJS) $(LDFLAGS)
-	$(STRIP) $(EXEC)
+#	$(STRIP) $(EXEC)
 
 klibc:	$(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
-	$(STRIP) $(EXEC)
+#	$(STRIP) $(EXEC)
 
-install: $(BUILD) $(EXEC).8.gz
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
-	install -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+install: $(BUILD) $(EXEC).8
+	install -D -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
+	install -D -m 644 $(EXEC).8 $(DESTDIR)$(mandir)/$(EXEC).8
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)

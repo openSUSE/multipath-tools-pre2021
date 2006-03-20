@@ -12,7 +12,46 @@ static void usage(char * progname) {
 	exit(1);
 }
 
-int dm_target_type(int major, int minor, char *type)
+char *
+dm_mapname(int major, int minor)
+{
+	struct dm_task *dmt;
+        struct dm_names *names;
+        long next = 0;
+	char *mapname = NULL;
+
+	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
+		return NULL;
+
+	dm_task_no_open_count(dmt);
+
+	if (!dm_task_run(dmt))
+		goto out;
+
+        if (!(names = dm_task_get_names(dmt)))
+                goto out;
+                                                                                
+        if (!names->dev) {
+                printf("No devices found\n");
+                goto out;
+        }
+                                                                                
+        do {
+                names = (void *) names + next;
+		if ((int) MAJOR(names->dev) == major &&
+		    (int) MINOR(names->dev) == minor) {
+		    mapname = strdup (names->name);
+		    goto out;
+		}
+                next = names->next;
+        } while (next);
+
+out:
+	dm_task_destroy(dmt);
+	return mapname;
+}
+
+int dm_target_type(char *mapname, char *type)
 {
 	struct dm_task *dmt;
 	void *next = NULL;
@@ -24,8 +63,7 @@ int dm_target_type(int major, int minor, char *type)
 	if (!(dmt = dm_task_create(DM_DEVICE_STATUS)))
 		return 1;
 
-	if (!dm_task_set_major(dmt, major) ||
-	    !dm_task_set_minor(dmt, minor))
+	if (!dm_task_set_name(dmt, mapname))
 		goto bad;
 
 	dm_task_no_open_count(dmt);
@@ -44,7 +82,7 @@ int dm_target_type(int major, int minor, char *type)
 	} while (next);
 
 good:
-	printf("%s\n", dm_task_get_name(dmt));
+	printf("%s", dm_task_get_name(dmt));
 	r = 0;
 bad:
 	dm_task_destroy(dmt);
@@ -53,9 +91,10 @@ bad:
 
 int main(int argc, char **argv)
 {
-	int c;
+	int c, retval = 0;
 	int major, minor;
 	char *target_type = NULL;
+	char *mapname;
 
 	while ((c = getopt(argc, argv, "t:")) != -1) {
 		switch (c) {
@@ -74,12 +113,22 @@ int main(int argc, char **argv)
 		major = atoi(argv[argc - 2]);
 		minor = atoi(argv[argc - 1]);
 	} else if (optind != argc - 1 ||
-		   2 != sscanf(argv[argc - 1], "%i:%i", &major, &minor))
+		   2 != sscanf(argv[argc - 1], "%i:%i", &major, &minor)) {
 		usage(argv[0]);
-
-	if (dm_target_type(major, minor, target_type))
 		return 1;
-                                                                                
-	return 0;
+	}
+
+	mapname = dm_mapname(major,minor);
+	if (!mapname)
+		return 1;
+
+	if (target_type)
+		retval = dm_target_type(mapname, target_type);
+	else
+		printf("%s", mapname);
+	
+	free(mapname);
+
+	return retval;
 }
 

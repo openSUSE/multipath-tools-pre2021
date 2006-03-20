@@ -34,7 +34,8 @@ enum failback_mode {
 enum sysfs_buses {
 	SYSFS_BUS_UNDEF,
 	SYSFS_BUS_SCSI,
-	SYSFS_BUS_IDE
+	SYSFS_BUS_IDE,
+	SYSFS_BUS_CCW
 };
 
 enum pathstates {
@@ -148,6 +149,7 @@ void free_pathvec (vector vec, int free_paths);
 void free_pathgroup (struct pathgroup * pgp, int free_paths);
 void free_pgvec (vector pgvec, int free_paths);
 void free_multipath (struct multipath *, int free_paths);
+void drop_multipath (vector mpvec, char * wwid, int free_paths);
 void free_multipathvec (vector mpvec, int free_paths);
 
 int store_path (vector pathvec, struct path * pp);

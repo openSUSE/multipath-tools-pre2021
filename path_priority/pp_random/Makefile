@@ -1,29 +1,22 @@
-EXEC		= mpath_prio_emc
+EXEC		= mpath_prio_random
 BUILD		= glibc
-OBJS		= pp_emc.o
+OBJS		= pp_random.o
 
 TOPDIR		= ../..
 include $(TOPDIR)/Makefile.inc
-
-CFLAGS += -pipe -Wall -Wunused -Wstrict-prototypes
 
 all: $(BUILD)
 
 glibc:	$(OBJS)
 	$(CC) -o $(EXEC) $(OBJS) $(LDFLAGS)
-#	$(STRIP) $(EXEC)
 
 klibc:	$(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
-#	$(STRIP) $(EXEC)
 
 install: $(EXEC)
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
+	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)
 clean:	
 	rm -f *.o $(EXEC)
-
-%.o:	%.c
-	$(CC) $(CFLAGS) -c -o $@ $<

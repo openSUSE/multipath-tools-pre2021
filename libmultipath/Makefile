@@ -12,10 +12,14 @@ OBJS = memory.o parser.o vector.o devmapper.o callout.o \
        pgpolicies.o debug.o regex.o defaults.o uevent.o \
        switchgroup.o uxsock.o print.o
 
-CFLAGS = -pipe -g -Wall -Wunused -Wstrict-prototypes
+CFLAGS += -pipe -Wall -Wunused -Wstrict-prototypes
 
 ifeq ($(strip $(DAEMON)),1)
 	CFLAGS += -DDAEMON
+endif
+
+ifeq ($(strip $(BUILD)),glibc)
+	CFLAGS += -D_GNU_SOURCE
 endif
 
 all: $(BUILD)

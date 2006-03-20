@@ -26,10 +26,10 @@ int sysfs_get_model (char * sysfs_path, char * dev, char * buff, int len);
 int sysfs_get_rev (char * sysfs_path, char * dev, char * buff, int len);
 int sysfs_get_dev (char * sysfs_path, char * dev, char * buff, int len);
 
-unsigned long long sysfs_get_size (char * sysfs_path, char * dev);
+long long sysfs_get_size (char * sysfs_path, char * dev);
 int path_discovery (vector pathvec, struct config * conf, int flag);
+int online_device(struct path *curpath);
 
-void basename (char *, char *);
 int get_serial (char * buff, int fd);
 int do_tur (char *);
 int devt2devname (char *, char *);

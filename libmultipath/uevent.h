@@ -15,3 +15,5 @@ struct uevent {
 
 int uevent_listen(int (*store_uev)(struct uevent *, void * trigger_data),
 		  void * trigger_data);
+int mpathevent_listen(int (*store_uev)(struct uevent *, void * trigger_data),
+		  void * trigger_data);

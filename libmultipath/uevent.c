@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/user.h>
 #include <asm/types.h>
 #include <linux/netlink.h>
@@ -58,7 +59,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	sock = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
 	if (sock == -1) {
 		condlog(0, "error getting socket, exit\n");
-		exit(1);
+		return 1;
 	}
 
 	retval = bind(sock, (struct sockaddr *) &snl,
@@ -126,6 +127,110 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 
 		if (uev_trigger && uev_trigger(uev, trigger_data))
 			condlog(0, "uevent trigger error");
+
+		FREE(uev);
+	}
+
+exit:
+	close(sock);
+	return 1;
+}
+
+#ifndef MPATH_SOCKNAME
+#define MPATH_SOCKNAME "/org/kernel/udev/mpathevent"
+#endif
+
+int mpathevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
+		  void * trigger_data)
+{
+	int sock;
+	struct sockaddr_un saddr;
+	socklen_t addrlen;
+	const int feature_on = 1;
+	int retval;
+
+	memset(&saddr, 0x00, sizeof(saddr));
+	saddr.sun_family = AF_LOCAL;
+	/* use abstract namespace for socket path */
+	strcpy(&saddr.sun_path[1], MPATH_SOCKNAME);
+	addrlen = offsetof(struct sockaddr_un, sun_path) + strlen(saddr.sun_path+1) + 1;
+
+	sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
+	if (sock == -1) {
+		condlog(0, "error getting socket, exit\n");
+		return 1;
+	}
+
+	/* the bind takes care of ensuring only one copy running */
+	retval = bind(sock, (struct sockaddr *) &saddr, addrlen);
+	if (retval < 0) {
+		condlog(0, "bind failed, exit\n");
+		goto exit;
+	}
+
+	/* enable receiving of the sender credentials */
+	setsockopt(sock, SOL_SOCKET, SO_PASSCRED, &feature_on, sizeof(feature_on));
+
+	while (1) {
+		static char buffer[HOTPLUG_BUFFER_SIZE + OBJECT_SIZE];
+		int i;
+		char *pos;
+		size_t bufpos;
+		ssize_t buflen;
+		struct uevent *uev;
+
+		buflen = recv(sock, &buffer, sizeof(buffer), 0);
+		if (buflen <  0) {
+			condlog(0, "error receiving message\n");
+			continue;
+		}
+
+		if ((size_t)buflen > sizeof(buffer)-1)
+			buflen = sizeof(buffer)-1;
+
+		buffer[buflen] = '\0';
+		uev = alloc_uevent();
+
+		if (!uev) {
+			condlog(1, "lost uevent, oom");
+			continue;
+		}
+
+		/* save start of payload */
+		bufpos = strlen(buffer) + 1;
+
+		/* action string */
+		uev->action = buffer;
+		pos = strchr(buffer, '@');
+		if (!pos)
+			continue;
+		pos[0] = '\0';
+
+		/* sysfs path */
+		uev->devpath = &pos[1];
+
+		/* hotplug events have the environment attached - reconstruct envp[] */
+		for (i = 0; (bufpos < (size_t)buflen) && (i < HOTPLUG_NUM_ENVP-1); i++) {
+			int keylen;
+			char *key;
+
+			key = &buffer[bufpos];
+			keylen = strlen(key);
+			uev->envp[i] = key;
+			bufpos += keylen + 1;
+		}
+		uev->envp[i] = NULL;
+
+		condlog(3, "uevent '%s' from '%s'\n", uev->action, uev->devpath);
+
+		/* print payload environment */
+		for (i = 0; uev->envp[i] != NULL; i++)
+			condlog(3, "%s\n", uev->envp[i]);
+
+		if (uev_trigger && uev_trigger(uev, trigger_data))
+			condlog(0, "uevent trigger error");
+
+		FREE(uev);
 	}
 
 exit:

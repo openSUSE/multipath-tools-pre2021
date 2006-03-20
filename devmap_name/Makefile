@@ -6,7 +6,7 @@ BUILD = glibc
 include ../Makefile.inc
 
 OBJS = devmap_name.o
-CFLAGS = -pipe -g -Wall -Wunused -Wstrict-prototypes
+CFLAGS += -pipe -Wall -Wunused -Wstrict-prototypes
 
 ifeq ($(strip $(BUILD)),klibc)
 	OBJS += $(libdm)
@@ -23,12 +23,12 @@ prepare:
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(STRIP) $(EXEC)
+#	$(STRIP) $(EXEC)
 	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 	
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
-	$(STRIP) $(EXEC)
+#	$(STRIP) $(EXEC)
 	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 install:

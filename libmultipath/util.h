@@ -2,7 +2,8 @@
 #define _UTIL_H
 
 int strcmp_chomp(char *, char *);
-void basename (char * src, char * dst);
+
+void mpath_basename (char * src, char * dst);
 int filepresent (char * run);
 int get_word (char * sentence, char ** word);
 

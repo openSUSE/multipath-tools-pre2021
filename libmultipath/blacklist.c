@@ -83,8 +83,10 @@ free_blacklist (vector blist)
 		return;
 
 	vector_foreach_slot (blist, ble, i)
-		if (ble)
+		if (ble) {
+			regfree(ble);
 			FREE(ble);
+		}
 
 	vector_free(blist);
 }

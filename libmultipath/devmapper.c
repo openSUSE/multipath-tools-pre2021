@@ -84,7 +84,7 @@ dm_simplecmd (int task, const char *name) {
 
 extern int
 dm_addmap (int task, const char *name, const char *target,
-	   const char *params, unsigned long long size) {
+	   const char *params, unsigned long long size, const char *uuid) {
 	int r = 0;
 	struct dm_task *dmt;
 
@@ -95,6 +95,9 @@ dm_addmap (int task, const char *name, const char *target,
 		goto addout;
 
 	if (!dm_task_add_target (dmt, 0, size, target, params))
+		goto addout;
+
+	if (uuid && !dm_task_set_uuid(dmt, uuid))
 		goto addout;
 
 	dm_task_no_open_count(dmt);
@@ -170,6 +173,34 @@ out:
 }
 
 extern int
+dm_get_uuid(char *name, char *uuid)
+{
+	struct dm_task *dmt;
+	const char *uuidtmp;
+
+	dmt = dm_task_create(DM_DEVICE_INFO);
+	if (!dmt)
+		return 1;
+
+        if (!dm_task_set_name (dmt, name))
+                goto uuidout;
+
+	if (!dm_task_run(dmt))
+                goto uuidout;
+
+	uuidtmp = dm_task_get_uuid(dmt);
+	if (uuidtmp)
+		strcpy(uuid, uuidtmp);
+	else
+		uuid[0] = '\0';
+
+uuidout:
+	dm_task_destroy(dmt);
+
+	return 0;
+}
+
+extern int
 dm_get_status(char * name, char * outstatus)
 {
 	int r = 1;
@@ -204,6 +235,12 @@ out:
 	return r;
 }
 
+/*
+ * returns:
+ *    1 : match
+ *    0 : no match
+ *   -1 : empty map
+ */
 extern int
 dm_type(char * name, char * type)
 {
@@ -229,7 +266,9 @@ dm_type(char * name, char * type)
 	next = dm_get_next_target(dmt, next, &start, &length,
 				  &target_type, &params);
 
-	if (0 == strcmp(target_type, type))
+	if (!target_type)
+		r = -1;
+	else if (!strcmp(target_type, type))
 		r = 1;
 
 out:
@@ -502,6 +541,7 @@ dm_get_maps (vector mp, char * type)
 {
 	struct multipath * mpp;
 	int r = 1;
+	int info;
 	struct dm_task *dmt;
 	struct dm_names *names;
 	unsigned next = 0;
@@ -526,31 +566,39 @@ dm_get_maps (vector mp, char * type)
 	}
 
 	do {
-		if (dm_type(names->name, type)) {
-			mpp = alloc_multipath();
+		info = dm_type(names->name, type);
 
-			if (!mpp)
-				goto out;
+		if (!info)
+			goto next;
 
+		mpp = alloc_multipath();
+
+		if (!mpp)
+			goto out;
+
+		mpp->alias = STRDUP(names->name);
+
+		if (!mpp->alias)
+			goto out1;
+
+		if (info > 0) {
 			if (dm_get_map(names->name, &mpp->size, mpp->params))
 				goto out1;
 
 			if (dm_get_status(names->name, mpp->status))
 				goto out1;
 
-			mpp->alias = MALLOC(strlen(names->name) + 1);
-
-			if (!mpp->alias)
-				goto out1;
-
-			strncat(mpp->alias, names->name, strlen(names->name));
-
-			if (!vector_alloc_slot(mp))
-				goto out1;
-			
-			vector_set_slot(mp, mpp);
-			mpp = NULL;
+			dm_get_uuid(names->name, mpp->wwid);
+			if (mpp->wwid[0] == '\0')
+				strcpy(mpp->wwid, mpp->alias);
 		}
+
+		if (!vector_alloc_slot(mp))
+			goto out1;
+
+		vector_set_slot(mp, mpp);
+		mpp = NULL;
+next:
                 next = names->next;
                 names = (void *) names + next;
 	} while (next);

@@ -29,9 +29,12 @@ strcmp_chomp(char *str1, char *str2)
 	return(strcmp(s1,s2));
 }
 
-void
-basename (char * str1, char * str2)
+extern void
+mpath_basename (char * str1, char * str2)
 {
+#ifdef _GNU_SOURCE
+	char *p = basename(str1);
+#else
 	char *p = str1 + (strlen(str1) - 1);
 
 	while (*--p != '/' && p != str1)
@@ -39,7 +42,7 @@ basename (char * str1, char * str2)
 
 	if (p != str1)
 		p++;
-
+#endif
 	strcpy(str2, p);
 }
 
