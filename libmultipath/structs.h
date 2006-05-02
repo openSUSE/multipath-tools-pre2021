@@ -1,8 +1,8 @@
 #ifndef _STRUCTS_H
 #define _STRUCTS_H
 
-#define WWID_SIZE		64
-#define SERIAL_SIZE		17
+#define WWID_SIZE		128
+#define SERIAL_SIZE		64
 #define NODE_NAME_SIZE		19
 #define PATH_STR_SIZE  		16
 #define PARAMS_SIZE		1024
@@ -142,7 +142,7 @@ struct multipath {
 	struct mpentry * mpe;
 	struct hwentry * hwe;
 
-	/* daemon store a data blob for DM event waiter threads */
+	/* threads */
 	void * waiter;
 
 	/* stats */
@@ -189,4 +189,4 @@ int pathcount (struct multipath *, int);
 
 char sysfs_path[FILE_NAME_SIZE];
 
-#endif
+#endif /* _STRUCTS_H */
