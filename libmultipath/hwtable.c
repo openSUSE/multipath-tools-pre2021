@@ -254,7 +254,7 @@ static struct hwentry default_hw[] = {
 	{
 		/* IBM ESS F20 aka Shark */
 		.vendor        = "IBM",
-		.product       = "2105{800,F20}",
+		.product       = "2105(800|F20)",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = "1 queue_if_no_path",
@@ -268,9 +268,9 @@ static struct hwentry default_hw[] = {
 		.checker_name  = TUR,
 	},
 	{
-		/* IBM DS6000 / SAN Volume Controller */
+		/* IBM DS6000 */
 		.vendor        = "IBM",
-		.product       = "{1750500,2145}",
+		.product       = "1750500",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
 		.features      = "1 queue_if_no_path",
@@ -294,6 +294,22 @@ static struct hwentry default_hw[] = {
 		.selector      = DEFAULT_SELECTOR,
 		.pgpolicy      = GROUP_BY_SERIAL,
 		.pgfailback    = FAILBACK_UNDEF,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+	},
+	{
+		/* IBM SAN Volume Controller */
+		.vendor        = "IBM",
+		.product       = "2145",
+		.getuid        = DEFAULT_GETUID,
+		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.features      = "1 queue_if_no_path",
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
