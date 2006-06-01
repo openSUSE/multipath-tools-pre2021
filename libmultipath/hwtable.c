@@ -75,14 +75,14 @@ static struct hwentry default_hw[] = {
 		.checker_name  = HP_SW,
 	},
 	{
-		.vendor        = "{COMPAQ,HP}",
-		.product       = "{MSA,HSV}1*",
+		.vendor        = "(COMPAQ|HP)",
+		.product       = "(MSA|HSV)1.*",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = "1 hp_sw",
 		.selector      = DEFAULT_SELECTOR,
-		.pgpolicy      = GROUP_BY_SERIAL,
+		.pgpolicy      = MULTIBUS,
 		.pgfailback    = FAILBACK_UNDEF,
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
@@ -91,7 +91,7 @@ static struct hwentry default_hw[] = {
 	},
 	{
 		.vendor        = "HP",
-		.product       = "HSV2*",
+		.product       = "HSV2.*",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
@@ -163,7 +163,7 @@ static struct hwentry default_hw[] = {
 	},
 	{
 		.vendor        = "DGC",
-		.product       = "*",
+		.product       = ".*",
 		.bl_product    = "LUNZ",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = "/sbin/mpath_prio_emc /dev/%n",
@@ -206,7 +206,7 @@ static struct hwentry default_hw[] = {
 	 */
 	{
 		.vendor        = "HITACHI",
-		.product       = "{A6189A,OPEN-}",
+		.product       = "(A6189A|OPEN-).*",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
@@ -496,7 +496,7 @@ static struct hwentry default_hw[] = {
 	 */
 	{
 		.vendor        = "SUN",
-		.product       = "{StorEdge 3510,T4}",
+		.product       = "(StorEdge 3510|T4)",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
