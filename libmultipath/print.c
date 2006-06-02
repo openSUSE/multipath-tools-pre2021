@@ -53,13 +53,13 @@ static int
 snprint_size (char * buff, size_t len, unsigned long long size)
 {
 	if (size < (1 << 11))
-		return snprintf(buff, len, "%llu kB", size >> 1);
+		return snprintf(buff, len, "%lluK", size >> 1);
 	else if (size < (1 << 21))
-		return snprintf(buff, len, "%llu MB", size >> 11);
+		return snprintf(buff, len, "%lluM", size >> 11);
 	else if (size < (1 << 31))
-		return snprintf(buff, len, "%llu GB", size >> 21);
+		return snprintf(buff, len, "%lluG", size >> 21);
 	else
-		return snprintf(buff, len, "%llu TB", size >> 31);
+		return snprintf(buff, len, "%lluT", size >> 31);
 }
 
 static int
@@ -292,8 +292,8 @@ snprint_dm_path_state (char * buff, size_t len, struct path * pp)
 static int
 snprint_vpr (char * buff, size_t len, struct path * pp)
 {
-	return snprintf(buff, len, "%s/%s/%s",
-		        pp->vendor_id, pp->product_id, pp->rev);
+	return snprintf(buff, len, "%s,%s",
+		        pp->vendor_id, pp->product_id);
 }
 
 static int
@@ -662,7 +662,9 @@ snprint_multipath_topology (char * buff, int len, struct multipath * mpp,
 	c += sprintf(c, "%%n");
 	
 	if (strncmp(mpp->alias, mpp->wwid, WWID_SIZE))
-		c += sprintf(c, " (%%w)");
+		c += sprintf(c, " (%%w) ");
+
+	c += snprint_vpr(c, 24, first_path(mpp));
 
 	fwd += snprint_multipath(buff + fwd, len - fwd, style, mpp);
 	if (fwd > len)
