@@ -356,6 +356,7 @@ static struct hwentry default_hw[] = {
 		/* IBM S/390 ECKD DASD */
 		.vendor        = "IBM",
 		.product       = "S/390 DASD ECKD",
+		.bl_product       = "S/390.*",
 		.getuid        = "/sbin/dasd_id /dev/%n",
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
