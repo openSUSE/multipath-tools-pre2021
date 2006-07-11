@@ -19,7 +19,6 @@
 #define INQUIRY_CMDLEN		6
 #define INQUIRY_CMD		0x12
 #define SENSE_BUFF_LEN		32
-#define DEF_TIMEOUT		60000
 #define SCSI_CHECK_CONDITION	0x2
 #define SCSI_COMMAND_TERMINATED	0x22
 #define SG_ERR_DRIVER_SENSE	0x08
@@ -111,7 +110,7 @@ do_tur (int fd)
         io_hdr.dxfer_direction = SG_DXFER_NONE;
         io_hdr.cmdp = turCmdBlk;
         io_hdr.sbp = sense_buffer;
-        io_hdr.timeout = 20000;
+        io_hdr.timeout = DEF_TIMEOUT;
         io_hdr.pack_id = 0;
 
         if (ioctl(fd, SG_IO, &io_hdr) < 0)
