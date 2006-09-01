@@ -12,13 +12,13 @@
  * Tuning suggestions on these parameters should go to
  * dm-devel@redhat.com
  * 
- * You are welcome to claim maintainership over a controler
+ * You are welcome to claim maintainership over a controller
  * family. Please mail the currently enlisted maintainer and
  * the upstream package maintainer.
  */
 static struct hwentry default_hw[] = {
 	/*
-	 * Apple controler family
+	 * Apple controller family
 	 *
 	 * Maintainer : Shyam Sundar
 	 * Mail : g.shyamsundar@yahoo.co.in
@@ -39,7 +39,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DEFAULT_CHECKER,
 	},
 	/*
-	 * StorageWorks controler family
+	 * StorageWorks controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -105,7 +105,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * DDN controler family
+	 * DDN controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -126,7 +126,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * EMC / Clariion controler family
+	 * EMC / Clariion controller family
 	 *
 	 * Maintainer : Edward Goggin, EMC
 	 * Mail : egoggin@emc.com
@@ -151,7 +151,7 @@ static struct hwentry default_hw[] = {
 		.product       = ".*",
 		.bl_product    = "LUNZ",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_emc /dev/%n",
+		.getprio       = "mpath_prio_emc /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = "1 emc",
 		.selector      = DEFAULT_SELECTOR,
@@ -163,7 +163,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = EMC_CLARIION,
 	},
 	/*
-	 * Fujitsu controler family
+	 * Fujitsu controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -184,7 +184,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * Hitachi controler family
+	 * Hitachi controller family
 	 *
 	 * Maintainer : Matthias Rudolph
 	 * Mail : matthias.rudolph@hds.com
@@ -208,7 +208,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "HITACHI",
 		.product       = "DF.*",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_pp_hds_modular %d",
+		.getprio       = "/sbin/mpath_prio_hds_modular %d",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -220,7 +220,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * IBM controler family
+	 * IBM controller family
 	 *
 	 * Maintainer : Hannes Reinecke, SuSE
 	 * Mail : hare@suse.de
@@ -245,7 +245,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "1742",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_tpc /dev/%n",
+		.getprio       = "mpath_prio_tpc /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -309,7 +309,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "1750500",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.getprio       = "mpath_prio_alua /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -341,7 +341,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "2145",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.getprio       = "mpath_prio_alua /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -370,7 +370,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DIRECTIO,
 	},
  	/*
-	 * NETAPP controler family
+	 * NETAPP controller family
 	 *
 	 * Maintainer : Dave Wysochanski
 	 * Mail : davidw@netapp.com
@@ -379,7 +379,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "NETAPP",
 		.product       = "LUN.*",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_netapp /dev/%n",
+		.getprio       = "mpath_prio_netapp /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -391,7 +391,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
  	/*
-	 * IBM NSeries (NETAPP) controler family
+	 * IBM NSeries (NETAPP) controller family
 	 *
 	 * Maintainer : Dave Wysochanski
 	 * Mail : davidw@netapp.com
@@ -400,7 +400,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "Nseries.*",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_netapp /dev/%n",
+		.getprio       = "mpath_prio_netapp /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -412,7 +412,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * Pillar Data controler family
+	 * Pillar Data controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -421,7 +421,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "Pillar",
 		.product       = "Axiom 500",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_alua %d",
+		.getprio       = "mpath_prio_alua %d",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -457,7 +457,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "SGI",
 		.product       = "TP9[45]00",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_tpc /dev/%n",
+		.getprio       = "mpath_prio_tpc /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -478,7 +478,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "STK",
 		.product       = "OPENstorage D280",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_tpc /dev/%n",
+		.getprio       = "mpath_prio_tpc /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
