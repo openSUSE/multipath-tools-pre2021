@@ -27,11 +27,9 @@ prepare:
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
-	
+
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(CRT0) $(OBJS) $(KLIBC) $(LIBGCC)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 $(MULTIPATHLIB)-$(BUILD).a:
 	make -C $(multipathdir) BUILD=$(BUILD)
@@ -40,7 +38,7 @@ install:
 	install -d $(DESTDIR)$(bindir)
 	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(mandir)
-	install -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)

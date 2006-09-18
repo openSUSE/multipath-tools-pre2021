@@ -25,11 +25,9 @@ prepare:
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(CRT0) $(OBJS) $(KLIBC) $(LIBGCC)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 $(CHECKERSLIB)-$(BUILD).a:
 	make -C $(checkersdir) BUILD=$(BUILD) $(BUILD)
@@ -43,12 +41,12 @@ install:
 	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/
 	install -d $(DESTDIR)$(mandir)
-	install -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules
 	rm $(DESTDIR)$(bindir)/$(EXEC)
-	rm $(DESTDIR)$(mandir)/$(EXEC).8.gz
+	rm $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
 	rm -f core *.o $(EXEC) *.gz

@@ -22,21 +22,19 @@ prepare:
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 install:
 	install -d $(DESTDIR)$(bindir)
 	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 	install -d $(DESTDIR)$(mandir)
-	install -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)
-	rm $(DESTDIR)$(mandir)/$(EXEC).8.gz
+	rm $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
 	rm -f core *.o $(EXEC) *.gz

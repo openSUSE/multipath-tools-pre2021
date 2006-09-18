@@ -35,7 +35,6 @@ klibc:
 
 $(EXEC): clean $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 $(CHECKERSLIB)-glibc.a:
 	$(MAKE) -C $(checkersdir) BUILD=glibc glibc
@@ -48,12 +47,12 @@ install:
 	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(rcdir)
 	install -d $(DESTDIR)$(mandir)
-	install -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
 	rm -f $(DESTDIR)$(rcdir)/$(EXEC)
-	rm -f $(DESTDIR)$(mandir)/$(EXEC).8.gz
+	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
 	$(MAKE) -C $(multipathdir) prepare DAEMON=1
