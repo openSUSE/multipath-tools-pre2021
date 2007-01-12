@@ -31,6 +31,7 @@ alloc_path (void)
 		pp->sg_id.scsi_id = -1;
 		pp->sg_id.lun = -1;
 		pp->fd = -1;
+		pp->priority = PRIO_UNDEF;
 	}
 	return pp;
 }
@@ -116,9 +117,10 @@ alloc_multipath (void)
 
 	mpp = (struct multipath *)MALLOC(sizeof(struct multipath));
 
-	if (mpp)
+	if (mpp) {
 		mpp->bestpg = 1;
-
+		mpp->mpcontext = NULL;
+	}
 	return mpp;
 }
 
@@ -179,6 +181,7 @@ free_multipath (struct multipath * mpp, int free_paths)
 
 	free_pathvec(mpp->paths, free_paths);
 	free_pgvec(mpp->pg, free_paths);
+	FREE_PTR(mpp->mpcontext);
 	FREE(mpp);
 }
 

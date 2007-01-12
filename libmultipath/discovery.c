@@ -611,12 +611,15 @@ get_state (struct path * pp)
 {
 	struct checker * c = &pp->checker;
 
+	if (!pp->mpp)
+		return 0;
+
 	if (!checker_selected(c)) {
 		select_checker(pp);
 		if (!checker_selected(c))
 			return 1;
 		checker_set_fd(c, pp->fd);
-		if (checker_init(c))
+		if (checker_init(c, &pp->mpp->mpcontext))
 			return 1;
 	}
 	pp->state = checker_check(c);
@@ -638,14 +641,14 @@ get_prio (struct path * pp)
 		pp->getprio_selected = 1;
 	}
 	if (!pp->getprio) {
-		pp->priority = 1;
+		pp->priority = PRIO_DEFAULT;
 	} else if (apply_format(pp->getprio, &buff[0], pp)) {
 		condlog(0, "error formatting prio callout command");
-		pp->priority = -1;
+		pp->priority = PRIO_UNDEF;
 		return 1;
 	} else if (execute_program(buff, prio, 16)) {
 		condlog(0, "error calling out %s", buff);
-		pp->priority = -1;
+		pp->priority = PRIO_UNDEF;
 		return 1;
 	} else
 		pp->priority = atoi(prio);
@@ -701,7 +704,12 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	if (mask & DI_CHECKER && get_state(pp))
 		goto blank;
 	
-	if (mask & DI_PRIO && pp->state != PATH_DOWN)
+	 /*
+	  * Retrieve path priority for even PATH_DOWN paths if it has never
+	  * been successfully obtained before.
+	  */
+	if (mask & DI_PRIO &&
+	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF))
 		get_prio(pp);
 
 	if (mask & DI_WWID && !strlen(pp->wwid))
