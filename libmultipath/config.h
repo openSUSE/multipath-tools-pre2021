@@ -1,6 +1,9 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
+#define ORIGIN_DEFAULT 0
+#define ORIGIN_CONFIG  1
+
 enum devtypes {
 	DEV_NONE,
 	DEV_DEVT,
@@ -11,6 +14,7 @@ enum devtypes {
 struct hwentry {
 	char * vendor;
 	char * product;
+	char * revision;
 	char * getuid;
 	char * getprio;
 	char * features;
@@ -74,11 +78,14 @@ struct config {
 	vector blist_devnode;
 	vector blist_wwid;
 	vector blist_device;
+	vector elist_devnode;
+	vector elist_wwid;
+	vector elist_device;
 };
 
 struct config * conf;
 
-struct hwentry * find_hwe (vector hwtable, char * vendor, char * product);
+struct hwentry * find_hwe (vector hwtable, char * vendor, char * product, char *revision);
 struct mpentry * find_mpe (char * wwid);
 char * get_mpe_wwid (char * alias);
 

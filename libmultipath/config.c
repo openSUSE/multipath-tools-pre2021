@@ -20,12 +20,34 @@
 #include "blacklist.h"
 #include "defaults.h"
 
-struct hwentry *
-find_hwe (vector hwtable, char * vendor, char * product)
+static struct hwentry *
+find_hwe_strmatch (vector hwtable, char * vendor, char * product, char * revision)
 {
 	int i;
 	struct hwentry *hwe, *ret = NULL;
-	regex_t vre, pre;
+
+	vector_foreach_slot (hwtable, hwe, i) {
+		if (hwe->vendor && vendor && strcmp(hwe->vendor, vendor))
+			continue;
+
+		if (hwe->product && product && strcmp(hwe->product, product))
+			continue;
+
+		if (hwe->revision && revision && strcmp(hwe->revision, revision))
+			continue;
+
+		ret = hwe;
+		break;
+	}
+	return ret;
+}
+
+struct hwentry *
+find_hwe (vector hwtable, char * vendor, char * product, char * revision)
+{
+	int i;
+	struct hwentry *hwe, *ret = NULL;
+	regex_t vre, pre, rre;
 
 	vector_foreach_slot (hwtable, hwe, i) {
 		if (hwe->vendor &&
@@ -36,12 +58,23 @@ find_hwe (vector hwtable, char * vendor, char * product)
 			regfree(&vre);
 			break;
 		}
+		if (hwe->revision &&
+		    regcomp(&rre, hwe->revision, REG_EXTENDED|REG_NOSUB)) {
+			regfree(&vre);
+			regfree(&pre);
+			break;
+		}
 		if ((!hwe->vendor || !regexec(&vre, vendor, 0, NULL, 0)) &&
-		    (!hwe->product || !regexec(&pre, product, 0, NULL, 0)))
+		    (!hwe->product || !regexec(&pre, product, 0, NULL, 0)) &&
+		    (!hwe->revision || !regexec(&rre, revision, 0, NULL, 0)))
 			ret = hwe;
-		
-		regfree(&pre);
-		regfree(&vre);
+
+		if (hwe->revision)
+			regfree(&rre);
+		if (hwe->product)
+			regfree(&pre);
+		if (hwe->vendor)
+			regfree(&vre);
 
 		if (ret)
 			break;
@@ -92,6 +125,9 @@ free_hwe (struct hwentry * hwe)
 
 	if (hwe->product)
 		FREE(hwe->product);
+
+	if (hwe->revision)
+		FREE(hwe->revision);
 
 	if (hwe->selector)
 		FREE(hwe->selector);
@@ -206,23 +242,12 @@ set_param_str(char * str)
 	return dst;
 }
 
-static int
-dup_hwe (vector hwtable, char * vendor, char * product)
-{
-	struct hwentry * hwe = find_hwe(hwtable, vendor, product);
-
-	if (hwe)
-		return 1;
-
-	return 0;
-}
-
 int
 store_hwe (vector hwtable, struct hwentry * dhwe)
 {
 	struct hwentry * hwe;
 
-	if (dup_hwe(hwtable, dhwe->vendor, dhwe->product))
+	if (find_hwe_strmatch(hwtable, dhwe->vendor, dhwe->product, dhwe->revision))
 		return 0;
 	
 	if (!(hwe = alloc_hwe()))
@@ -232,6 +257,9 @@ store_hwe (vector hwtable, struct hwentry * dhwe)
 		goto out;
 	
 	if (!dhwe->product || !(hwe->product = set_param_str(dhwe->product)))
+		goto out;
+	
+	if (dhwe->revision && !(hwe->revision = set_param_str(dhwe->revision)))
 		goto out;
 	
 	if (dhwe->getuid && !(hwe->getuid = set_param_str(dhwe->getuid)))
@@ -305,6 +333,11 @@ free_config (struct config * conf)
 	free_blacklist(conf->blist_devnode);
 	free_blacklist(conf->blist_wwid);
 	free_blacklist_device(conf->blist_device);
+
+	free_blacklist(conf->elist_devnode);
+	free_blacklist(conf->elist_wwid);
+	free_blacklist_device(conf->elist_device);
+
 	free_mptable(conf->mptable);
 	free_hwtable(conf->hwtable);
 	free_keywords(conf->keywords);
@@ -374,6 +407,26 @@ load_config (char * file)
 	}
 	if (setup_default_blist(conf))
 		goto out;
+
+	if (conf->elist_devnode == NULL) {
+                conf->elist_devnode = vector_alloc();
+
+                if (!conf->elist_devnode)
+			goto out;
+	}
+	if (conf->elist_wwid == NULL) {
+		conf->elist_wwid = vector_alloc();
+
+                if (!conf->elist_wwid)
+			goto out;
+	}
+
+	if (conf->elist_device == NULL) {
+		conf->elist_device = vector_alloc();
+		
+		if (!conf->elist_device)
+			goto out;
+	}
 
 	if (conf->mptable == NULL) {
 		conf->mptable = vector_alloc();

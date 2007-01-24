@@ -61,7 +61,7 @@ path_discover (vector pathvec, struct config * conf, char * devname, int flag)
 	if (!devname)
 		return 0;
 
-	if (blacklist(conf->blist_devnode, devname))
+	if (blacklist(conf->blist_devnode, conf->elist_devnode, devname))
 		return 0;
 
 	if(safe_sprintf(path, "%s/block/%s/device", sysfs_path,
@@ -295,7 +295,7 @@ do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
             { INQUIRY_CMD, 0, 0, 0, 0, 0 };
         unsigned char sense_b[SENSE_BUFF_LEN];
         struct sg_io_hdr io_hdr;
-                                                                                                                 
+
         if (cmddt)
                 inqCmdBlk[1] |= 2;
         if (evpd)
@@ -313,10 +313,10 @@ do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
         io_hdr.cmdp = inqCmdBlk;
         io_hdr.sbp = sense_b;
         io_hdr.timeout = DEF_TIMEOUT;
- 
+
         if (ioctl(sg_fd, SG_IO, &io_hdr) < 0)
                 return -1;
- 
+
         /* treat SG_ERR here to get rid of sg_err.[ch] */
         io_hdr.status &= 0x7e;
         if ((0 == io_hdr.status) && (0 == io_hdr.host_status) &&
@@ -442,7 +442,7 @@ scsi_sysfs_pathinfo (struct path * pp)
 	/*
 	 * set the hwe configlet pointer
 	 */
-	pp->hwe = find_hwe(conf->hwtable, pp->vendor_id, pp->product_id);
+	pp->hwe = find_hwe(conf->hwtable, pp->vendor_id, pp->product_id, pp->rev);
 
 	/*
 	 * host / bus / target / lun
@@ -526,7 +526,7 @@ ccw_sysfs_pathinfo (struct path * pp)
 	/*
 	 * set the hwe configlet pointer
 	 */
-	pp->hwe = find_hwe(conf->hwtable, pp->vendor_id, pp->product_id);
+	pp->hwe = find_hwe(conf->hwtable, pp->vendor_id, pp->product_id, NULL);
 
 	/*
 	 * host / bus / target / lun
@@ -611,12 +611,15 @@ get_state (struct path * pp)
 {
 	struct checker * c = &pp->checker;
 
+	if (!pp->mpp)
+		return 0;
+
 	if (!checker_selected(c)) {
 		select_checker(pp);
 		if (!checker_selected(c))
 			return 1;
 		checker_set_fd(c, pp->fd);
-		if (checker_init(c))
+		if (checker_init(c, &pp->mpp->mpcontext))
 			return 1;
 	}
 	pp->state = checker_check(c);
@@ -638,14 +641,14 @@ get_prio (struct path * pp)
 		pp->getprio_selected = 1;
 	}
 	if (!pp->getprio) {
-		pp->priority = 1;
+		pp->priority = PRIO_DEFAULT;
 	} else if (apply_format(pp->getprio, &buff[0], pp)) {
 		condlog(0, "error formatting prio callout command");
-		pp->priority = -1;
+		pp->priority = PRIO_UNDEF;
 		return 1;
 	} else if (execute_program(buff, prio, 16)) {
 		condlog(0, "error calling out %s", buff);
-		pp->priority = -1;
+		pp->priority = PRIO_UNDEF;
 		return 1;
 	} else
 		pp->priority = atoi(prio);
@@ -701,7 +704,12 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	if (mask & DI_CHECKER && get_state(pp))
 		goto blank;
 	
-	if (mask & DI_PRIO && pp->state != PATH_DOWN)
+	 /*
+	  * Retrieve path priority for even PATH_DOWN paths if it has never
+	  * been successfully obtained before.
+	  */
+	if (mask & DI_PRIO &&
+	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF))
 		get_prio(pp);
 
 	if (mask & DI_WWID && !strlen(pp->wwid))
