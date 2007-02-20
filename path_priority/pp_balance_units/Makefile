@@ -22,7 +22,7 @@ EXEC = mpath_prio_balance_units
 all: $(BUILD)
 
 prepare:
-	rm -f core *.o *.gz
+	rm -f core *.o
 
 glibc: prepare $(OBJS)
 	$(CC) -o $(EXEC) $(OBJS) $(LDFLAGS)
@@ -35,10 +35,10 @@ $(MULTIPATHLIB)-$(BUILD).a:
 
 install:
 	install -d $(DESTDIR)$(bindir)
-	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)/
+	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)
 
 clean:
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)

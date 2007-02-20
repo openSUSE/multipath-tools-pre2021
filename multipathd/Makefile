@@ -44,7 +44,7 @@ $(MULTIPATHLIB)-glibc.a:
 
 install:
 	install -d $(DESTDIR)$(bindir)
-	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(rcdir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
@@ -56,5 +56,5 @@ uninstall:
 
 clean:
 	$(MAKE) -C $(multipathdir) prepare DAEMON=1
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)
 

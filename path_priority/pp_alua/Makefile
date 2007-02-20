@@ -35,8 +35,8 @@ glibc:	$(OBJS)
 klibc:	$(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
 
-install: $(BUILD) $(EXEC).8
-	$(INSTALL) -s -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
+install: $(EXEC) $(EXEC).8
+	$(INSTALL) -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
 	$(INSTALL) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)/$(EXEC).8
 
 uninstall:
@@ -44,7 +44,7 @@ uninstall:
 	rm $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:	
-	rm -f *.o *.gz $(EXEC)
+	rm -f *.o $(EXEC)
 
 main.o:	main.c rtpg.h spc3.h
 

@@ -23,7 +23,7 @@ EXEC = kpartx
 all: $(BUILD)
 
 prepare:
-	rm -f core *.o *.gz
+	rm -f core *.o
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
@@ -36,13 +36,13 @@ $(MULTIPATHLIB)-$(BUILD).a:
 
 install:
 	install -d $(DESTDIR)$(bindir)
-	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
-	rm -f $(DESTDIR)$(mandir)/$(EXEC).8.gz
+	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)
