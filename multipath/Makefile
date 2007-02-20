@@ -42,6 +42,8 @@ install:
 	install -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	install -d $(DESTDIR)$(man5dir)
+	install -m 644 $(EXEC).conf.5 $(DESTDIR)$(man5dir)
 
 uninstall:
 	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules

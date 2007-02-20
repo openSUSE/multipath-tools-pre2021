@@ -25,6 +25,7 @@ exec_prefix = $(prefix)
 bindir      = $(exec_prefix)/sbin
 checkersdir = $(TOPDIR)/libcheckers
 multipathdir = $(TOPDIR)/libmultipath
+man5dir     = $(prefix)/usr/share/man/man5
 mandir      = $(prefix)/usr/share/man/man8
 rcdir	    = $(prefix)/etc/init.d
 
