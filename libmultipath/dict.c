@@ -238,6 +238,19 @@ blacklist_handler(vector strvec)
 }
 
 static int
+blacklist_exceptions_handler(vector strvec)
+{
+        conf->elist_devnode = vector_alloc();
+        conf->elist_wwid = vector_alloc();
+	conf->elist_device = vector_alloc();
+
+        if (!conf->elist_devnode || !conf->elist_wwid || !conf->blist_device)
+                return 1;
+
+        return 0;
+}
+
+static int
 ble_devnode_handler(vector strvec)
 {
 	char * buff;
@@ -247,7 +260,20 @@ ble_devnode_handler(vector strvec)
 	if (!buff)
 		return 1;
 
-	return store_ble(conf->blist_devnode, buff);
+	return store_ble(conf->blist_devnode, buff, ORIGIN_CONFIG);
+}
+
+static int
+ble_except_devnode_handler(vector strvec)
+{
+        char * buff;
+
+        buff = set_value(strvec);
+
+        if (!buff)
+                return 1;
+
+	return store_ble(conf->elist_devnode, buff, ORIGIN_CONFIG);
 }
 
 static int
@@ -260,13 +286,32 @@ ble_wwid_handler(vector strvec)
 	if (!buff)
 		return 1;
 
-	return store_ble(conf->blist_wwid, buff);
+	return store_ble(conf->blist_wwid, buff, ORIGIN_CONFIG);
+}
+
+static int
+ble_except_wwid_handler(vector strvec)
+{
+        char * buff;
+
+        buff = set_value(strvec);
+
+        if (!buff)
+                return 1;
+
+	return store_ble(conf->elist_wwid, buff, ORIGIN_CONFIG);
 }
 
 static int
 ble_device_handler(vector strvec)
 {
 	return alloc_ble_device(conf->blist_device);
+}
+
+static int
+ble_except_device_handler(vector strvec)
+{
+	return alloc_ble_device(conf->elist_device);
 }
 
 static int
@@ -279,7 +324,21 @@ ble_vendor_handler(vector strvec)
 	if (!buff)
 		return 1;
 
-	return set_ble_device(conf->blist_device, buff, NULL);
+	return set_ble_device(conf->blist_device, buff, NULL, ORIGIN_CONFIG);
+}
+
+static int
+ble_except_vendor_handler(vector strvec)
+{
+	char * buff;
+	int r;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	return set_ble_device(conf->elist_device, buff, NULL, ORIGIN_CONFIG);
 }
 
 static int
@@ -292,7 +351,20 @@ ble_product_handler(vector strvec)
 	if (!buff)
 		return 1;
 
-	return set_ble_device(conf->blist_device, NULL, buff);
+	return set_ble_device(conf->blist_device, NULL, buff, ORIGIN_CONFIG);
+}
+
+static int
+ble_except_product_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	return set_ble_device(conf->elist_device, NULL, buff, ORIGIN_CONFIG);
 }
 
 /*
@@ -1335,6 +1407,14 @@ init_keywords(void)
 	install_sublevel();
 	install_keyword("vendor", &ble_vendor_handler, &snprint_bled_vendor);
 	install_keyword("product", &ble_product_handler, &snprint_bled_product);
+	install_sublevel_end();
+	install_keyword_root("blacklist_exceptions", &blacklist_exceptions_handler);
+	install_keyword("devnode", &ble_except_devnode_handler, &snprint_ble_simple);
+	install_keyword("wwid", &ble_except_wwid_handler, &snprint_ble_simple);
+	install_keyword("device", &ble_except_device_handler, NULL);
+	install_sublevel();
+	install_keyword("vendor", &ble_except_vendor_handler, &snprint_bled_vendor);
+	install_keyword("product", &ble_except_product_handler, &snprint_bled_product);
 	install_sublevel_end();
 
 #if 0

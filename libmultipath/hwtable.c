@@ -12,19 +12,19 @@
  * Tuning suggestions on these parameters should go to
  * dm-devel@redhat.com
  * 
- * You are welcome to claim maintainership over a controler
+ * You are welcome to claim maintainership over a controller
  * family. Please mail the currently enlisted maintainer and
  * the upstream package maintainer.
  */
 static struct hwentry default_hw[] = {
 	/*
-	 * Apple controler family
+	 * Apple controller family
 	 *
 	 * Maintainer : Shyam Sundar
 	 * Mail : g.shyamsundar@yahoo.co.in
 	 */
 	{
-		.vendor        = "APPLE ",
+		.vendor        = "APPLE*",
 		.product       = "Xserve RAID ",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
@@ -39,7 +39,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DEFAULT_CHECKER,
 	},
 	/*
-	 * StorageWorks controler family
+	 * StorageWorks controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -91,7 +91,7 @@ static struct hwentry default_hw[] = {
 	},
 	{
 		.vendor        = "HP",
-		.product       = "(HSV2.*|A6189A)",
+		.product       = "A6189A",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
@@ -104,8 +104,55 @@ static struct hwentry default_hw[] = {
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = READSECTOR0,
 	},
+	{
+		.vendor        = "HP",
+		.product       = "HSV20.*",
+		.revision      = "[123].*",
+		.getuid        = DEFAULT_GETUID,
+		.getprio       = NULL,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = MULTIBUS,
+		.pgfailback    = FAILBACK_UNDEF,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = HP_SW,
+	},
+	{
+		.vendor        = "HP",
+		.product       = "HSV20.*",
+		.revision      = "[^123].*",
+		.getuid        = DEFAULT_GETUID,
+		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = MULTIBUS,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+	},
+	{
+		.vendor        = "HP",
+		.product       = "HSV21.*",
+		.getuid        = DEFAULT_GETUID,
+		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = FAILBACK_UNDEF,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+	},
 	/*
-	 * DDN controler family
+	 * DDN controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -123,10 +170,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = READSECTOR0,
+		.checker_name  = DIRECTIO,
 	},
 	/*
-	 * EMC / Clariion controler family
+	 * EMC / Clariion controller family
 	 *
 	 * Maintainer : Edward Goggin, EMC
 	 * Mail : egoggin@emc.com
@@ -134,7 +181,7 @@ static struct hwentry default_hw[] = {
 	{
 		.vendor        = "EMC",
 		.product       = "SYMMETRIX",
-		.getuid        = "/sbin/scsi_id -g -u -ppre-spc3-83 -s /block/%n",
+		.getuid        = "scsi_id -g -u -ppre-spc3-83 -s /block/%n",
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
@@ -151,7 +198,7 @@ static struct hwentry default_hw[] = {
 		.product       = ".*",
 		.bl_product    = "LUNZ",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_emc /dev/%n",
+		.getprio       = "mpath_prio_emc /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = "1 emc",
 		.selector      = DEFAULT_SELECTOR,
@@ -163,7 +210,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = EMC_CLARIION,
 	},
 	/*
-	 * Fujitsu controler family
+	 * Fujitsu controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -184,14 +231,14 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DIRECTIO,
 	},
 	/*
-	 * Hitachi controler family
+	 * Hitachi controller family
 	 *
 	 * Maintainer : Matthias Rudolph
 	 * Mail : matthias.rudolph@hds.com
 	 */
 	{
 		.vendor        = "(HITACHI|HP)",
-		.product       = "OPEN-",
+		.product       = "OPEN-.*",
 		.getuid        = DEFAULT_GETUID,
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
@@ -208,7 +255,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "HITACHI",
 		.product       = "DF.*",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_hds_modular %d",
+		.getprio       = "mpath_prio_hds_modular %d",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -220,7 +267,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * IBM controler family
+	 * IBM controller family
 	 *
 	 * Maintainer : Hannes Reinecke, SuSE
 	 * Mail : hare@suse.de
@@ -245,7 +292,23 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "1742",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_tpc /dev/%n",
+		.getprio       = "mpath_prio_tpc /dev/%n",
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+	},
+	{
+		/* IBM Netfinity Fibre Channel RAID Controller Unit */
+		.vendor        = "IBM",
+		.product       = "3526",
+		.getuid        = DEFAULT_GETUID,
+		.getprio       = "mpath_prio_tpc /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -309,7 +372,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "1750500",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.getprio       = "mpath_prio_alua /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -341,7 +404,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "2145",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_alua /dev/%n",
+		.getprio       = "mpath_prio_alua /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -357,7 +420,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "S/390 DASD ECKD",
 		.bl_product       = "S/390.*",
-		.getuid        = "/sbin/dasd_id /dev/%n",
+		.getuid        = "dasd_id /dev/%n",
 		.getprio       = NULL,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
@@ -370,7 +433,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DIRECTIO,
 	},
  	/*
-	 * NETAPP controler family
+	 * NETAPP controller family
 	 *
 	 * Maintainer : Dave Wysochanski
 	 * Mail : davidw@netapp.com
@@ -379,7 +442,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "NETAPP",
 		.product       = "LUN.*",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_netapp /dev/%n",
+		.getprio       = "mpath_prio_netapp /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -391,7 +454,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
  	/*
-	 * IBM NSeries (NETAPP) controler family
+	 * IBM NSeries (NETAPP) controller family
 	 *
 	 * Maintainer : Dave Wysochanski
 	 * Mail : davidw@netapp.com
@@ -400,7 +463,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "Nseries.*",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_netapp /dev/%n",
+		.getprio       = "mpath_prio_netapp /dev/%n",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -412,7 +475,7 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	/*
-	 * Pillar Data controler family
+	 * Pillar Data controller family
 	 *
 	 * Maintainer : Christophe Varoqui
 	 * Mail : christophe.varoqui@free.fr
@@ -421,7 +484,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "Pillar",
 		.product       = "Axiom 500",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_alua %d",
+		.getprio       = "mpath_prio_alua %d",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -457,7 +520,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "SGI",
 		.product       = "TP9[45]00",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_tpc /dev/%n",
+		.getprio       = "mpath_prio_tpc /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -478,7 +541,7 @@ static struct hwentry default_hw[] = {
 		.vendor        = "STK",
 		.product       = "OPENstorage D280",
 		.getuid        = DEFAULT_GETUID,
-		.getprio       = "/sbin/mpath_prio_tpc /dev/%n",
+		.getprio       = "mpath_prio_tpc /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,

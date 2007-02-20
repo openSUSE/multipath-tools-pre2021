@@ -86,7 +86,7 @@ assemble_map (struct multipath * mp)
 		vector_foreach_slot (pgp->paths, pp, j) {
 			int tmp_minio = minio;
 
-			if (mp->rr_weight == RR_WEIGHT_PRIO 
+			if (mp->rr_weight == RR_WEIGHT_PRIO
 			    && pp->priority > 0)
 				tmp_minio = minio * pp->priority;
 
@@ -311,7 +311,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 					p += get_word(p, &word);
 					def_minio = atoi(word);
 
-					if (mpp->rr_weight == RR_WEIGHT_PRIO 
+					if (mpp->rr_weight == RR_WEIGHT_PRIO
 					    && pp->priority > 0)
 						def_minio /= pp->priority;
 

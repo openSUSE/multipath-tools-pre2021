@@ -5,6 +5,8 @@
 #include <string.h>
 #include <libdevmapper.h>
 #include <stdarg.h>
+#include <sysfs/dlist.h>
+#include <sysfs/libsysfs.h>
 
 #include <checkers.h>
 
@@ -18,6 +20,7 @@
 #include "pgpolicies.h"
 #include "defaults.h"
 #include "parser.h"
+#include "blacklist.h"
 
 #define MAX(x,y) (x > y) ? x : y
 #define TAIL     (line + len - 1 - c)
@@ -52,16 +55,26 @@ snprint_uint (char * buff, size_t len, unsigned int val)
 static int
 snprint_size (char * buff, size_t len, unsigned long long size)
 {
-	if (size < (1 << 11))
-		return snprintf(buff, len, "%lluK", size >> 1);
-	else if (size < (1 << 21))
-		return snprintf(buff, len, "%lluM", size >> 11);
-	else if (size < (1 << 31))
-		return snprintf(buff, len, "%lluG", size >> 21);
+	float s = (float)(size >> 1); /* start with KB */
+	char fmt[6] = {};
+	char units[] = {'K','M','G','T','P'};
+	char *u = units;
+	
+	while (s >= 1024 && *u != 'P') {
+		s = s / 1024;
+		u++;
+	}
+	if (s < 10)
+		snprintf(fmt, 6, "%%.1f%c", *u);
 	else
-		return snprintf(buff, len, "%lluT", size >> 31);
+		snprintf(fmt, 6, "%%.0f%c", *u);
+
+	return snprintf(buff, len, fmt, s);
 }
 
+/*
+ * multipath info printing functions
+ */
 static int
 snprint_name (char * buff, size_t len, struct multipath * mpp)
 {
@@ -226,6 +239,9 @@ snprint_action (char * buff, size_t len, struct multipath * mpp)
 	}
 }
 
+/*
+ * path info printing functions
+ */
 static int
 snprint_path_uuid (char * buff, size_t len, struct path * pp)
 {
@@ -500,7 +516,7 @@ snprint_multipath (char * line, int len, char * format,
 	char * f = format; /* format string cursor */
 	int fwd;
 	struct multipath_data * data;
-	char buff[MAX_FIELD_LEN];
+	char buff[MAX_FIELD_LEN] = {};
 
 	do {
 		if (!TAIL)
@@ -519,6 +535,7 @@ snprint_multipath (char * line, int len, char * format,
 		data->snprint(buff, MAX_FIELD_LEN, mpp);
 		PRINT(c, TAIL, buff);
 		PAD(data->width);
+		buff[0] = '\0';
 	} while (*f++);
 
 	line[c - line - 1] = '\n';
@@ -668,6 +685,7 @@ snprint_multipath_topology (char * buff, int len, struct multipath * mpp,
 	if (strncmp(mpp->alias, mpp->wwid, WWID_SIZE))
 		c += sprintf(c, " (%%w) ");
 
+	c += sprintf(c, "%%d ");
 	c += snprint_vpr(c, 24, first_path(mpp));
 
 	fwd += snprint_multipath(buff + fwd, len - fwd, style, mpp);
@@ -839,6 +857,110 @@ snprint_defaults (char * buff, int len)
 	
 }
 
+static int
+snprint_blacklist_group (char *buff, int len, int *fwd, vector *vec)
+{
+	int threshold = MAX_LINE_LEN;
+	struct blentry * ble;
+	int pos;
+	int i;
+
+	pos = *fwd;
+	if (!VECTOR_SIZE(*vec)) {
+		if ((len - pos - threshold) <= 0)
+			return 0;
+		pos += snprintf(buff + pos, len - pos, "        <empty>\n");
+	} else vector_foreach_slot (*vec, ble, i) {
+		if ((len - pos - threshold) <= 0)
+			return 0;
+		if (ble->origin == ORIGIN_CONFIG)
+			pos += snprintf(buff + pos, len - pos, "        (config file rule) ");
+		else if (ble->origin == ORIGIN_DEFAULT)
+			pos += snprintf(buff + pos, len - pos, "        (default rule)     ");
+		pos += snprintf(buff + pos, len - pos, "%s\n", ble->str);
+	}
+
+	*fwd = pos;
+	return pos;
+}
+
+static int
+snprint_blacklist_devgroup (char *buff, int len, int *fwd, vector *vec)
+{
+	int threshold = MAX_LINE_LEN;
+	struct blentry_device * bled;
+	int pos;
+	int i;
+
+	pos = *fwd;
+	if (!VECTOR_SIZE(*vec)) {
+		if ((len - pos - threshold) <= 0)
+			return 0;
+		pos += snprintf(buff + pos, len - pos, "        <empty>\n");
+	} else vector_foreach_slot (*vec, bled, i) {
+		if ((len - pos - threshold) <= 0)
+			return 0;
+		if (bled->origin == ORIGIN_CONFIG)
+			pos += snprintf(buff + pos, len - pos, "        (config file rule) ");
+		else if (bled->origin == ORIGIN_DEFAULT)
+			pos += snprintf(buff + pos, len - pos, "        (default rule)     ");
+		pos += snprintf(buff + pos, len - pos, "%s:%s\n", bled->vendor, bled->product);
+	}
+
+	*fwd = pos;
+	return pos;
+}
+
+extern int
+snprint_blacklist_report (char * buff, int len)
+{
+	int threshold = MAX_LINE_LEN;
+	int fwd = 0;
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "device node rules:\n"
+			                       "- blacklist:\n");
+	if (!snprint_blacklist_group(buff, len, &fwd, &conf->blist_devnode))
+		return len;
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "- exceptions:\n");
+	if (snprint_blacklist_group(buff, len, &fwd, &conf->elist_devnode) == 0)
+		return len;
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "wwid rules:\n"
+			                       "- blacklist:\n");
+	if (snprint_blacklist_group(buff, len, &fwd, &conf->blist_wwid) == 0)
+		return len;
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "- exceptions:\n");
+	if (snprint_blacklist_group(buff, len, &fwd, &conf->elist_wwid) == 0)
+		return len;
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "device rules:\n"
+			                       "- blacklist:\n");
+	if (snprint_blacklist_devgroup(buff, len, &fwd, &conf->blist_device) == 0)
+		return len;
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "- exceptions:\n");
+	if (snprint_blacklist_devgroup(buff, len, &fwd, &conf->elist_device) == 0)
+		return len;
+
+	if (fwd > len)
+		return len;
+	return fwd;
+}
+
 extern int
 snprint_blacklist (char * buff, int len)
 {
@@ -901,12 +1023,123 @@ snprint_blacklist (char * buff, int len)
 		if (fwd > len)
 			return len;
 	}
-
 	fwd += snprintf(buff + fwd, len - fwd, "}\n");
 	if (fwd > len)
 		return len;
 	return fwd;
-	
+}
+
+extern int
+snprint_blacklist_except (char * buff, int len)
+{
+	int i;
+	struct blentry * ele;
+	struct blentry_device * eled;
+	int fwd = 0;
+	struct keyword *rootkw;
+	struct keyword *kw;
+
+	rootkw = find_keyword(NULL, "blacklist_exceptions");
+	if (!rootkw)
+		return 0;
+
+	fwd += snprintf(buff + fwd, len - fwd, "blacklist_exceptions {\n");
+	if (fwd > len)
+		return len;
+
+	vector_foreach_slot (conf->elist_devnode, ele, i) {
+		kw = find_keyword(rootkw->sub, "devnode");
+		if (!kw)
+			return 0;
+		fwd += snprint_keyword(buff + fwd, len - fwd, "\t%k %v\n",
+				       kw, ele);
+		if (fwd > len)
+			return len;
+	}
+	vector_foreach_slot (conf->elist_wwid, ele, i) {
+		kw = find_keyword(rootkw->sub, "wwid");
+		if (!kw)
+			return 0;
+		fwd += snprint_keyword(buff + fwd, len - fwd, "\t%k %v\n",
+				       kw, ele);
+		if (fwd > len)
+			return len;
+	}
+	rootkw = find_keyword(rootkw->sub, "device");
+	if (!rootkw)
+		return 0;
+
+	vector_foreach_slot (conf->elist_device, eled, i) {
+		fwd += snprintf(buff + fwd, len - fwd, "\tdevice {\n");
+		if (fwd > len)
+			return len;
+		kw = find_keyword(rootkw->sub, "vendor");
+		if (!kw)
+			return 0;
+		fwd += snprint_keyword(buff + fwd, len - fwd, "\t\t%k %v\n",
+				       kw, eled);
+		if (fwd > len)
+			return len;
+		kw = find_keyword(rootkw->sub, "product");
+		if (!kw)
+			return 0;
+		fwd += snprint_keyword(buff + fwd, len - fwd, "\t\t%k %v\n",
+				       kw, eled);
+		if (fwd > len)
+			return len;
+		fwd += snprintf(buff + fwd, len - fwd, "\t}\n");
+		if (fwd > len)
+			return len;
+	}
+	fwd += snprintf(buff + fwd, len - fwd, "}\n");
+	if (fwd > len)
+		return len;
+	return fwd;
+}
+
+extern int
+snprint_devices (char * buff, int len, struct vectors *vecs)
+{
+        struct dlist * ls;
+        struct sysfs_class * class;
+        struct sysfs_class_device * dev;
+	int threshold = MAX_LINE_LEN;
+	int fwd = 0;
+
+
+	struct path * pp;
+
+
+
+        if (!(class = sysfs_open_class("block")))
+                return 0;
+
+        if (!(ls = sysfs_get_class_devices(class))) {
+                sysfs_close_class(class);
+                return 0;
+        }
+
+	if ((len - fwd - threshold) <= 0)
+		return len;
+	fwd += snprintf(buff + fwd, len - fwd, "available block devices:\n");
+
+        dlist_for_each_data(ls, dev, struct sysfs_class_device) {
+		if ((len - fwd - threshold)  <= 0)
+			return len;
+		fwd += snprintf(buff + fwd, len - fwd, "    %s ", dev->name);
+		pp = find_path_by_dev(vecs->pathvec, dev->name);
+		if (blacklist(conf->blist_devnode, conf->elist_devnode,
+			      dev->name) || pp == NULL)
+			fwd += snprintf(buff + fwd, len - fwd,
+					"(blacklisted)\n");
+                else
+			fwd += snprintf(buff + fwd, len - fwd, "\n");
+        }
+        sysfs_close_class(class);
+
+	if (fwd > len)
+		return len;
+	return fwd;
 }
 
 extern int

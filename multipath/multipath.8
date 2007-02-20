@@ -1,4 +1,4 @@
-.TH MULTIPATH 8 "February 2004" "" "Linux Administrator's Manual"
+.TH MULTIPATH 8 "July 2006" "" "Linux Administrator's Manual"
 .SH NAME
 multipath \- Device mapper target autoconfig
 .SH SYNOPSIS
@@ -6,7 +6,7 @@ multipath \- Device mapper target autoconfig
 .RB [\| \-v\ \c
 .IR verbosity \|]
 .RB [\| \-d \|]
-.RB [\| \-l | \-ll | \-f | \-F \|]
+.RB [\| \-h | \-l | \-ll | \-f | \-F \|]
 .RB [\| \-p\ \c
 .BR failover | multibus | group_by_serial | group_by_prio | group_by_node_name \|]
 .RB [\| device \|]
@@ -28,6 +28,9 @@ print the created or updated multipath names only, for use to feed other tools l
 .B 2 +
 print all info : detected paths, coalesced paths (ie multipaths) and device maps
 .RE
+.TP
+.B \-h
+print usage text
 .TP
 .B \-d
 dry run, do not create or update devmaps
@@ -58,7 +61,7 @@ all paths in 1 priority group
 1 priority group per serial
 .TP
 .B group_by_prio
-1 priority group per priority value. Priorities are determined by callout programs specified as a global, per-controler or per-multipath option in the configuration file
+1 priority group per priority value. Priorities are determined by callout programs specified as a global, per-controller or per-multipath option in the configuration file
 .TP
 .B group_by_node_name
 1 priority group per target node name. Target node names are fetched in /sys/class/fc_transport/target*/node_name.

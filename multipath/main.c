@@ -72,7 +72,7 @@ static void
 usage (char * progname)
 {
 	fprintf (stderr, VERSION_STRING);
-	fprintf (stderr, "Usage: %s\t[-v level] [-d] [-l|-ll|-f|-F]\n",
+	fprintf (stderr, "Usage: %s\t[-v level] [-d] [-h|-l|-ll|-f|-F]\n",
 		progname);
 	fprintf (stderr,
 		"\t\t\t[-p failover|multibus|group_by_serial|group_by_prio]\n" \
@@ -83,6 +83,7 @@ usage (char * progname)
 		"\t   1\t\t\tprint created devmap names only\n" \
 		"\t   2\t\t\tdefault verbosity\n" \
 		"\t   3\t\t\tprint debug information\n" \
+		"\t-h\t\tprint this usage text\n" \
 		"\t-b file\t\tbindings file location\n" \
 		"\t-d\t\tdry run, do not create or update devmaps\n" \
 		"\t-l\t\tshow multipath topology (sysfs and DM info)\n" \
@@ -233,7 +234,7 @@ configure (void)
 			dev = conf->dev;
 	}
 	
-	if (dev && blacklist(conf->blist_devnode, dev))
+	if (dev && blacklist(conf->blist_devnode, conf->elist_devnode, dev))
 		goto out;
 	
 	/*
@@ -249,7 +250,7 @@ configure (void)
 		}
 		condlog(3, "scope limited to %s", refwwid);
 
-		if (blacklist(conf->blist_wwid, refwwid))
+		if (blacklist(conf->blist_wwid, conf->elist_wwid, refwwid))
 			goto out;
 	}
 
@@ -282,8 +283,10 @@ configure (void)
 
 	filter_pathvec(pathvec, refwwid);
 
-	if (conf->list)
+	if (conf->list) {
+		r = 0;
 		goto out;
+	}
 
 	/*
 	 * core logic entry point
@@ -313,7 +316,7 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
-	if (dm_prereq(DEFAULT_TARGET, 1, 0, 3))
+	if (dm_prereq(DEFAULT_TARGET))
 		exit(1);
 
 	if (sysfs_get_mnt_path(sysfs_path, FILE_NAME_SIZE)) {
@@ -323,7 +326,7 @@ main (int argc, char *argv[])
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":qdl::Ffi:M:v:p:b:")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -366,6 +369,8 @@ main (int argc, char *argv[])
 				usage(argv[0]);
 			}                
 			break;
+		case 'h':
+			usage(argv[0]);
 		case ':':
 			fprintf(stderr, "Missing option arguement\n");
 			usage(argv[0]);        

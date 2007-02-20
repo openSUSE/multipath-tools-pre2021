@@ -77,7 +77,7 @@ need_switch_pathgroup (struct multipath * mpp, int refresh)
 {
 	struct pathgroup * pgp;
 	struct path * pp;
-	int i, j;
+	unsigned int i, j;
 
 	if (!mpp || mpp->pgfailback == -FAILBACK_MANUAL)
 		return 0;
@@ -112,7 +112,8 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 {
 	struct multipath * ompp;
 	vector ompv = vecs->mpvec;
-	int i, j;
+	unsigned int i;
+	int j;
 
 	vector_foreach_slot (ompv, ompp, i) {
 		if (!find_mp_by_wwid(nmpv, ompp->wwid)) {
@@ -149,9 +150,9 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 static void
 sync_map_state(struct multipath *mpp)
 {
-	int i, j;
 	struct pathgroup *pgp;
         struct path *pp;
+	unsigned int i, j;
 
 	vector_foreach_slot (mpp->pg, pgp, i){
 		vector_foreach_slot (pgp->paths, pp, j){
@@ -173,7 +174,7 @@ sync_map_state(struct multipath *mpp)
 static void
 sync_maps_state(vector mpvec)
 {
-	int i;
+	unsigned int i;
 	struct multipath *mpp;
 
 	vector_foreach_slot (mpvec, mpp, i) 
@@ -569,8 +570,8 @@ out:
 static int
 map_discovery (struct vectors * vecs)
 {
-	int i;
 	struct multipath * mpp;
+	unsigned int i;
 
 	if (dm_get_maps(vecs->mpvec, "multipath"))
 		return 1;
@@ -666,7 +667,7 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	/*
 	 * path add/remove event
 	 */
-	if (blacklist(conf->blist_devnode, devname))
+	if (blacklist(conf->blist_devnode, conf->elist_devnode, devname))
 		goto out;
 
 	if (!strncmp(uev->action, "add", 3)) {
@@ -709,6 +710,8 @@ uxlsnrloop (void * ap)
 	add_handler(LIST+TOPOLOGY, cli_list_maps_topology);
 	add_handler(LIST+MAP+TOPOLOGY, cli_list_map_topology);
 	add_handler(LIST+CONFIG, cli_list_config);
+	add_handler(LIST+BLACKLIST, cli_list_blacklist);
+	add_handler(LIST+DEVICES, cli_list_devices);
 	add_handler(ADD+PATH, cli_add_path);
 	add_handler(DEL+PATH, cli_del_path);
 	add_handler(ADD+MAP, cli_add_map);
@@ -800,7 +803,7 @@ static void
 mpvec_garbage_collector (struct vectors * vecs)
 {
 	struct multipath * mpp;
-	int i;
+	unsigned int i;
 
 	vector_foreach_slot (vecs->mpvec, mpp, i) {
 		if (mpp && mpp->alias && !dm_map_present(mpp->alias)) {
@@ -815,7 +818,7 @@ static void
 defered_failback_tick (vector mpvec)
 {
 	struct multipath * mpp;
-	int i;
+	unsigned int i;
 
 	vector_foreach_slot (mpvec, mpp, i) {
 		/*
@@ -834,7 +837,7 @@ static void
 retry_count_tick(vector mpvec)
 {
 	struct multipath *mpp;
-	int i;
+	unsigned int i;
 
 	vector_foreach_slot (mpvec, mpp, i) {
 		if (mpp->retry_tick) {
@@ -853,8 +856,9 @@ checkerloop (void *ap)
 {
 	struct vectors *vecs;
 	struct path *pp;
-	int i, count = 0;
+	int count = 0;
 	int newstate;
+	unsigned int i;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 	vecs = (struct vectors *)ap;
@@ -1210,7 +1214,7 @@ setscheduler (void)
 {
         int res;
 	static struct sched_param sched_param = {
-		sched_priority: 99
+		.sched_priority = 99
 	};
 
         res = sched_setscheduler (0, SCHED_RR, &sched_param);
