@@ -18,7 +18,7 @@ EXEC = devmap_name
 all: $(BUILD)
 
 prepare:
-	rm -f core *.o
+	rm -f core *.o 
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
@@ -26,7 +26,7 @@ glibc: prepare $(OBJS)
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
 
-install:
+install: $(EXEC) $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
 	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 	install -d $(DESTDIR)$(mandir)
