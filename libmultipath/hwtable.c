@@ -303,7 +303,7 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
+		.checker_name  = RDAC,
 	},
 	{
 		/* IBM Netfinity Fibre Channel RAID Controller Unit */
@@ -319,7 +319,7 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
+		.checker_name  = RDAC,
 	},
 	{
 		/* IBM DS4200 / FAStT200 */
@@ -515,7 +515,7 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
+		.checker_name  = RDAC,
 	},
 	{
 		.vendor        = "SGI",
@@ -530,7 +530,7 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
+		.checker_name  = RDAC,
 	},
 	/*
 	 * STK arrays
@@ -551,7 +551,7 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
+		.checker_name  = RDAC,
 	},
 	/*
 	 * SUN arrays
