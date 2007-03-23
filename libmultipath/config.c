@@ -366,12 +366,15 @@ load_config (char * file)
 	/*
 	 * read the config file
 	 */
+	set_current_keywords(&conf->keywords);
+	alloc_keywords();
 	if (filepresent(file)) {
-		set_current_keywords(&conf->keywords);
 		if (init_data(file, init_keywords)) {
 			condlog(0, "error parsing config file");
 			goto out;
 		}
+	} else {
+	    init_keywords();
 	}
 	
 	/*
