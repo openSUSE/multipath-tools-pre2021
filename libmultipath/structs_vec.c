@@ -16,7 +16,6 @@
 #include "discovery.h"
 #include "waiter.h"
 
-
 /*
  * creates or updates mpp->paths reading mpp->pg
  */
@@ -282,7 +281,11 @@ retry:
 	return 0;
 out:
 	condlog(0, "%s: failed to setup multipath", mpp->alias);
+#if DAEMON
+	remove_map(mpp, vecs, stop_waiter_thread, 1);
+#else
 	remove_map(mpp, vecs, NULL, 1);
+#endif
 	return 1;
 }
 
