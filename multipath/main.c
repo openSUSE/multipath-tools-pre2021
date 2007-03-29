@@ -365,6 +365,7 @@ main (int argc, char *argv[])
 		fprintf(stderr, "need to be root\n");
 		exit(1);
 	}
+	dm_init();
 
 	if (dm_prereq(DEFAULT_TARGET, 1, 0, 3))
 		exit(1);

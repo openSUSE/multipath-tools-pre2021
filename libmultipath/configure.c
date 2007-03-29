@@ -322,7 +322,6 @@ domap (struct multipath * mpp)
 				mpp->alias);
 			return DOMAP_RETRY;
 		}
-		dm_shut_log();
 
 		if (dm_map_present(mpp->alias))
 			break;
@@ -343,7 +342,6 @@ domap (struct multipath * mpp)
 		}
 
 		lock_multipath(mpp, 0);
-		dm_restore_log();
 		break;
 
 	case ACT_RELOAD:
