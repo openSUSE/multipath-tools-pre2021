@@ -112,7 +112,7 @@ out:
  * not multipath(8), ran by udev
  */
 #if DAEMON
-#define WAIT_MAX_SECONDS 5
+#define WAIT_MAX_SECONDS 60
 #define WAIT_LOOP_PER_SECOND 5
 
 static int
@@ -709,7 +709,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	  * been successfully obtained before.
 	  */
 	if (mask & DI_PRIO &&
-	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF))
+	    (pp->state == PATH_UP || pp->priority == PRIO_UNDEF))
 		get_prio(pp);
 
 	if (mask & DI_WWID && !strlen(pp->wwid))
