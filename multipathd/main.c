@@ -648,17 +648,16 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	lock(vecs->lock);
 
 	/*
-	 * Device map online/offline event.
+	 * Device map events.
 	 * Add/Remove events are ignored here as they
 	 * lead to races with device-mapper.
+	 * Offline events are ignored, too.
+	 * Device-mapper generated tons of them and
+	 * they don't carry additional information.
 	 */
 	if (!strncmp(devname, "dm-", 3)) {
 		if (!strncmp(uev->action, "online", 6)) {
 			r = uev_add_map(devname, vecs);
-			goto out;
-		}
-		if (!strncmp(uev->action, "offline", 7)) {
-			r = uev_remove_map(devname, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "remove", 6)) {
