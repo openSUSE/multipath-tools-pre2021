@@ -117,7 +117,7 @@ remove_map (struct multipath * mpp, struct vectors * vecs,
 {
 	int i;
 
-	condlog(2, "%s: remove multipath map", mpp->alias);
+	condlog(4, "%s: remove multipath map", mpp->alias);
 
 	/*
 	 * stop the DM event waiter thread
