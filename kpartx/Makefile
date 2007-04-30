@@ -23,7 +23,7 @@ EXEC = kpartx
 all: $(BUILD)
 
 prepare:
-	rm -f core *.o *.gz
+	rm -f core *.o
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
@@ -42,7 +42,6 @@ install: $(EXEC) $(EXEC).8
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
-	rm -f $(DESTDIR)$(mandir)/$(EXEC).8.gz
 
 clean:
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)

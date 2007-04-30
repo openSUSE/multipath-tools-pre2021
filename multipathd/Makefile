@@ -52,9 +52,8 @@ install:
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
 	rm -f $(DESTDIR)$(rcdir)/$(EXEC)
-	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
 	$(MAKE) -C $(multipathdir) prepare DAEMON=1
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)
 

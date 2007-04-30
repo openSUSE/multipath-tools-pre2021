@@ -28,7 +28,7 @@ endif
 all: $(BUILD)
 
 prepare: $(CLEAN)
-	@file *-$(BUILD).a >/dev/null 2>&1 || rm -f core *.o *.gz
+	@file *-$(BUILD).a >/dev/null 2>&1 || rm -f core *.o
 	@rm -f *-$(BUILD).a
 
 klibc: $(OBJS)
@@ -42,4 +42,4 @@ install:
 uninstall:
 
 clean:
-	rm -f core *.a *.o *.gz
+	rm -f core *.a *.o

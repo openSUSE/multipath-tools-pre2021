@@ -41,10 +41,9 @@ install: $(EXEC) $(EXEC).8
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)
-	rm $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:	
-	rm -f *.o *.gz $(EXEC)
+	rm -f *.o $(EXEC)
 
 main.o:	main.c rtpg.h spc3.h
 

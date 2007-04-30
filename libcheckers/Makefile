@@ -11,7 +11,7 @@ OBJS = libsg.o checkers.o readsector0.o tur.o directio.o emc_clariion.o hp_sw.o 
 all: $(BUILD)
 
 prepare:
-	@file *-$(BUILD).a >/dev/null 2>&1 || rm -f core *.o *.gz
+	@file *-$(BUILD).a >/dev/null 2>&1 || rm -f core *.o
 
 klibc: prepare $(OBJS)
 	ar rs libcheckers-klibc.a *.o
@@ -24,4 +24,4 @@ install:
 uninstall:
 
 clean:
-	rm -f core *.a *.o *.gz
+	rm -f core *.a *.o

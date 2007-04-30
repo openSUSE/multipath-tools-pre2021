@@ -18,7 +18,7 @@ EXEC = devmap_name
 all: $(BUILD)
 
 prepare:
-	rm -f core *.o *.gz
+	rm -f core *.o
 
 glibc: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
@@ -34,7 +34,6 @@ install: $(EXEC) $(EXEC).8
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)
-	rm $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)
