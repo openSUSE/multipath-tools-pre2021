@@ -72,7 +72,7 @@ static void
 usage (char * progname)
 {
 	fprintf (stderr, VERSION_STRING);
-	fprintf (stderr, "Usage: %s\t[-v level] [-d] [-h|-l|-ll|-f|-F]\n",
+	fprintf (stderr, "Usage: %s\t[-v level] [-d] [-h|-l|-ll|-f|-F|-t]\n",
 		progname);
 	fprintf (stderr,
 		"\t\t\t[-p failover|multibus|group_by_serial|group_by_prio]\n" \
@@ -90,6 +90,7 @@ usage (char * progname)
 		"\t-ll\t\tshow multipath topology (maximum info)\n" \
 		"\t-f\t\tflush a multipath device map\n" \
 		"\t-F\t\tflush all multipath device maps\n" \
+		"\t-t\t\tprint internal hardware table\n" \
 		"\t-p policy\tforce all maps to specified policy :\n" \
 		"\t   failover\t\t1 path per priority group\n" \
 		"\t   multibus\t\tall paths in 1 priority group\n" \
@@ -307,6 +308,55 @@ out:
 	return r;
 }
 
+static int
+dump_config (void)
+{
+	char * c;
+	char * reply;
+	unsigned int maxlen = 256;
+	int again = 1;
+
+	reply = MALLOC(maxlen);
+
+	while (again) {
+		if (!reply)
+			return 1;
+		c = reply;
+		c += snprint_defaults(c, reply + maxlen - c);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_blacklist(c, reply + maxlen - c);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_blacklist_except(c, reply + maxlen - c);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_hwtable(c, reply + maxlen - c, conf->hwtable);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_mptable(c, reply + maxlen - c, conf->mptable);
+		again = ((c - reply) == maxlen);
+		if (again)
+			reply = REALLOC(reply, maxlen *= 2);
+	}
+
+	printf("%s", reply);
+	FREE(reply);
+	return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -330,7 +380,7 @@ main (int argc, char *argv[])
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:t")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -373,6 +423,9 @@ main (int argc, char *argv[])
 				usage(argv[0]);
 			}                
 			break;
+		case 't':
+			dump_config();
+			goto out;
 		case 'h':
 			usage(argv[0]);
 		case ':':
