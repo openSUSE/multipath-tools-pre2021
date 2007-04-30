@@ -240,14 +240,14 @@ blacklist_handler(vector strvec)
 static int
 blacklist_exceptions_handler(vector strvec)
 {
-        conf->elist_devnode = vector_alloc();
-        conf->elist_wwid = vector_alloc();
+	conf->elist_devnode = vector_alloc();
+	conf->elist_wwid = vector_alloc();
 	conf->elist_device = vector_alloc();
 
-        if (!conf->elist_devnode || !conf->elist_wwid || !conf->blist_device)
-                return 1;
+	if (!conf->elist_devnode || !conf->elist_wwid || !conf->elist_device)
+		return 1;
 
-        return 0;
+	return 0;
 }
 
 static int
