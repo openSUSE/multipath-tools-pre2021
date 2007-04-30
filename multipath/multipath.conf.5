@@ -46,6 +46,12 @@ whenever no specific setting is given.
 This section defines which devices should be excluded from the
 multipath topology discovery.
 .TP
+.B blacklist_exceptions
+This section defines which devices should be included in the
+multipath topology discovery, despite being listed in the
+.I blacklist
+section.
+.TP
 .B multipaths
 This section defines the multipath topologies. They are indexed by a
 \fIWorld Wide Identifier\fR(wwid), which is the result of the
@@ -60,13 +66,13 @@ The
 .B defaults
 section recognizes the following keywords:
 .TP 17
-.B udev_dir
-directory where udev creates its device nodes; default is
-.I /dev
-.TP
 .B polling_interval
 interval between two path checks in seconds; default is
 .I 5
+.TP
+.B udev_dir
+directory where udev creates its device nodes; default is
+.I /dev
 .TP
 .B selector
 The default path selector algorithm to use; they are offered by the
@@ -107,9 +113,46 @@ is
 .TP
 .B prio_callout
 The default program and args to callout to obtain a path priority
-value. The ALUA bits in SPC-3 provide an exploitable prio value for
-example. "none" is a valid value. Default value is
-.I none
+value. The specified program will be executed and should return a
+numeric value specifying the relative priority of this path. Higher
+number have a higher priority. A '%n' in the command line will be expanded
+to the device name, a '%b' will be expanded to the device number in
+.I major:minor
+format.
+.I "none"
+is a valid value. Currently the following path priority programs are
+implemented:
+.RS
+.TP 12
+.B mpath_prio_emc /dev/%n
+Generate the path priority for EMC arrays
+.TP
+.B mpath_prio_alua /dev/%n
+Generate the path priority based on the SCSI-3 ALUA settings.
+.TP
+.B mpath_prio_netapp /dev/%n
+Generate the path priority for NetApp arrays.
+.TP
+.B mpath_prio_tpc /dev/%n
+Generate the path priority for LSI/Engenio RDAC controller.
+.TP
+.B mpath_prio_hp_sw /dev/%n
+Generate the path priority for Compaq/HP controller in
+active/standby mode.
+.TP
+.B mpath_prio_hds_modular %b
+Generate the path priority for Hitachi HDS Modular storage arrays.
+.TP
+Default value is \fBnone\fR.
+.RE
+.TP
+.B features
+Specify any device-mapper features to be used. The most common of
+these features is
+.I "1 queue_if_no_path" 
+Note that this can also be set via the
+.I no_path_retry
+keyword.
 .TP
 .B path_checker
 The default method used to determine the paths' state. Possible values
@@ -129,13 +172,25 @@ Query the EMC Clariion specific EVPD page 0xC0 to determine the path
 state.
 .TP
 .B hp_sw
-Check the path state for older HP storage arrays.
+Check the path state for HP storage arrays with Active/Standby firmware.
+.TP
+.B rdac
+Check the path state for LSI/Engenio RDAC storage controller.
 .TP
 .B directio
 Read the first sector with direct I/O.
 .TP
 Default value is \fIreadsector0\fR.
 .RE
+.TP
+.B failback
+Tell the daemon to manage path group failback, or not to. 0 or
+.I immediate
+means immediate failback, values >0 means deferred failback (in
+seconds).
+.I manual
+means no failback. Default value is
+.I manual
 .TP
 .B  rr_min_io
 The number of IO to route to a path before switching to the next in
@@ -150,15 +205,6 @@ or
 .I uniform
 . Default is
 .I uniform
-.TP
-.B failback
-Tell the daemon to manage path group failback, or not to. 0 or
-.I immediate
-means immediate failback, values >0 means deferred failback (in
-seconds).
-.I manual
-means no failback. Default value is
-.I manual
 .TP
 .B no_path_retry
 Specify the number of retries until disable queueing, or
@@ -176,7 +222,7 @@ to assign a persistent and unique alias to the multipath, in the form of mpath<n
 If set to 
 .I no
 use the WWID as the alias. In either case this be will
-be overriden by any specific aliases in the \fImultipaths\I section.
+be overriden by any specific aliases in the \fImultipaths\fR section.
 Default is
 .I no
 .
@@ -196,9 +242,38 @@ The \fIWorld Wide Identification\fR of a device.
 Regular expression of the device nodes to be excluded.
 .TP
 .B device
-Subsection for the device description. For the full description of the
-.I device
-subsection please see the
+Subsection for the device description. This subsection recognizes the
+.I vendor
+and
+.I product
+keywords. For a full description of these keywords please see the
+.I devices
+section description.
+.SH "blacklist_exceptions section"
+The
+.I blacklist_exceptions
+section is used to revert the actions of the
+.I blacklist
+section, ie to include specific device in the
+multipath topology. This allows to selectively include devices which
+would normally be excluded via the
+.I blacklist
+section.
+.LP
+The following keywords are recognized:
+.TP 17
+.B wwid
+The \fIWorld Wide Identification\fR of a device.
+.TP
+.B devnode
+Regular expression of the device nodes to be excluded.
+.TP
+.B device
+Subsection for the device description. This subsection recognizes the
+.I vendor
+and
+.I product
+keywords. For a full description of these keywords please see the
 .I devices
 section description.
 .SH "multipaths section"
@@ -259,6 +334,15 @@ subsection recognizes the following attributes:
 .TP
 .B product_blacklist
 Product strings to blacklist for this vendor
+.TP
+.B hardware_handler
+(Optional) The hardware handler to use for this device type.
+The following hardware handler are implemented:
+.RS
+.TP 12
+.B 1 emc
+Hardware handler for EMC storage arrays.
+.RE
 .LP
 The following attributes are optional; if not set the default values
 are taken from the
@@ -272,13 +356,19 @@ section:
 .TP
 .B getuid_callout
 .TP
-.B prio_callout
+.B path_selector
 .TP
 .B path_checker
 .TP
-.B path_selector
+.B features
+.TP
+.B prio_callout
 .TP
 .B failback
+.TP
+.B rr_weight
+.TP
+.B no_path_retry
 .TP
 .B rr_min_io
 .RE
