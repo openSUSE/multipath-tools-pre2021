@@ -26,9 +26,9 @@ glibc: prepare $(OBJS)
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
 
-install:
+install: $(EXEC) $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
-	install -s -m 755 $(EXEC) $(DESTDIR)$(bindir)/
+	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
