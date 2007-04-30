@@ -6,7 +6,7 @@ multipath \- Device mapper target autoconfig
 .RB [\| \-v\ \c
 .IR verbosity \|]
 .RB [\| \-d \|]
-.RB [\| \-h | \-l | \-ll | \-f | \-F \|]
+.RB [\| \-h | \-l | \-ll | \-f | \-t | \-F \|]
 .RB [\| \-p\ \c
 .BR failover | multibus | group_by_serial | group_by_prio | group_by_node_name \|]
 .RB [\| device \|]
@@ -47,6 +47,9 @@ flush a multipath device map specified as parameter, if unused
 .B \-F
 flush all unused multipath device maps
 .TP
+.B \-t
+print internal hardware table to stdout
+.TP
 .BI \-p " policy"
 force maps to specified policy:
 .RS 1.2i
@@ -76,6 +79,9 @@ is in the /dev/sdb (as shown by udev in the $DEVNAME variable) or major:minor fo
 .I device
 may alternatively be a multipath mapname
 .SH "SEE ALSO"
+.BR multipathd (8),
+.BR multipath.conf (5),
+.BR kpartx (8),
 .BR udev (8),
 .BR dmsetup (8)
 .BR hotplug (8)
