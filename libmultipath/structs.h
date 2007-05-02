@@ -81,9 +81,12 @@ struct scsi_dev {
 	int host_no;
 };
 
+struct sysfs_device;
+
 struct path {
 	char dev[FILE_NAME_SIZE];
 	char dev_t[BLK_DEV_SIZE];
+	struct sysfs_device *sysdev;
 	struct scsi_idlun scsi_id;
 	struct sg_id sg_id;
 	char wwid[WWID_SIZE];

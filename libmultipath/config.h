@@ -63,6 +63,7 @@ struct config {
 	int user_friendly_names;
 
 	char * dev;
+	char * sysfs_dir;
 	char * udev_dir;
 	char * selector;
 	char * getuid;
