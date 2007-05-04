@@ -27,13 +27,13 @@
 #include <sys/stat.h>
 #include <string.h>
 
+#include "checkers.h"
+#include "vector.h"
+#include "structs.h"
 #include "sysfs.h"
 #include "util.h"
 
 char sysfs_path[PATH_SIZE];
-
-/* device cache */
-static LIST_HEAD(dev_list);
 
 /* attribute value cache */
 static LIST_HEAD(attr_list);
@@ -53,7 +53,6 @@ int sysfs_init(char *path, size_t len)
 		strlcpy(sysfs_path, "/sys", len);
 	dbg("sysfs_path='%s'", sysfs_path);
 
-	INIT_LIST_HEAD(&dev_list);
 	INIT_LIST_HEAD(&attr_list);
 	return 0;
 }
@@ -62,18 +61,12 @@ void sysfs_cleanup(void)
 {
 	struct sysfs_attr *attr_loop;
 	struct sysfs_attr *attr_temp;
-	struct sysfs_device *dev_loop;
-	struct sysfs_device *dev_temp;
 
 	list_for_each_entry_safe(attr_loop, attr_temp, &attr_list, node) {
 		list_del(&attr_loop->node);
 		free(attr_loop);
 	}
 
-	list_for_each_entry_safe(dev_loop, dev_temp, &dev_list, node) {
-		list_del(&dev_loop->node);
-		free(dev_loop);
-	}
 }
 
 void sysfs_device_set_values(struct sysfs_device *dev, const char *devpath,
@@ -147,7 +140,6 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	char path[PATH_SIZE];
 	char devpath_real[PATH_SIZE];
 	struct sysfs_device *dev;
-	struct sysfs_device *dev_loop;
 	struct stat statbuf;
 	char link_path[PATH_SIZE];
 	char link_target[PATH_SIZE];
@@ -157,14 +149,6 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	dbg("open '%s'", devpath);
 	strlcpy(devpath_real, devpath, sizeof(devpath_real));
 	remove_trailing_chars(devpath_real, '/');
-
-	/* look for device already in cache (we never put an untranslated path in the cache) */
-	list_for_each_entry(dev_loop, &dev_list, node) {
-		if (strcmp(dev_loop->devpath, devpath_real) == 0) {
-			dbg("found in cache '%s'", dev_loop->devpath);
-			return dev_loop;
-		}
-	}
 
 	/* if we got a link, resolve it to the real device */
 	strlcpy(path, sysfs_path, sizeof(path));
@@ -177,17 +161,10 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 		if (sysfs_resolve_link(devpath_real, sizeof(devpath_real)) != 0)
 			return NULL;
 
-		/* now look for device in cache after path translation */
-		list_for_each_entry(dev_loop, &dev_list, node) {
-			if (strcmp(dev_loop->devpath, devpath_real) == 0) {
-				dbg("found in cache '%s'", dev_loop->devpath);
-				return dev_loop;
-			}
-		}
 	}
 
 	/* it is a new device */
-	dbg("new uncached device '%s'", devpath_real);
+	dbg("new device '%s'", devpath_real);
 	dev = malloc(sizeof(struct sysfs_device));
 	if (dev == NULL)
 		return NULL;
@@ -248,9 +225,6 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 		if (pos != NULL)
 			strlcpy(dev->driver, &pos[1], sizeof(dev->driver));
 	}
-
-	dbg("add to cache 'devpath=%s', subsystem='%s', driver='%s'", dev->devpath, dev->subsystem, dev->driver);
-	list_add(&dev->node, &dev_list);
 
 	return dev;
 }

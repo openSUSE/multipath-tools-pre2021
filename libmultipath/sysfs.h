@@ -7,20 +7,7 @@
 
 #include "list.h"
 
-#define PATH_SIZE 512
-#define NAME_SIZE 128
-
 #define dbg(format, arg...) do {} while (0)
-
-struct sysfs_device {
-	struct list_head node;			/* for device cache */
-	struct sysfs_device *parent;		/* already cached parent*/
-	char devpath[PATH_SIZE];
-	char subsystem[NAME_SIZE];		/* $class, $bus, drivers, module */
-	char kernel[NAME_SIZE];			/* device instance name */
-	char kernel_number[NAME_SIZE];
-	char driver[NAME_SIZE];			/* device driver name */
-};
 
 int sysfs_init(char *path, size_t len);
 void sysfs_cleanup(void);

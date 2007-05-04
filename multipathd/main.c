@@ -26,7 +26,6 @@
 #include <memory.h>
 #include <config.h>
 #include <util.h>
-#include <sysfs.h>
 #include <hwtable.h>
 #include <defaults.h>
 #include <structs.h>
@@ -35,6 +34,7 @@
 #include <structs_vec.h>
 #include <dmparser.h>
 #include <devmapper.h>
+#include <sysfs.h>
 #include <dict.h>
 #include <discovery.h>
 #include <debug.h>

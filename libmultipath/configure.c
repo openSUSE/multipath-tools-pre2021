@@ -26,7 +26,6 @@
 #include "config.h"
 #include "blacklist.h"
 #include "propsel.h"
-#include "sysfs.h"
 #include "discovery.h"
 #include "debug.h"
 #include "switchgroup.h"

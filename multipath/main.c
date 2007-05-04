@@ -32,11 +32,11 @@
 #include <libdevmapper.h>
 #include <devmapper.h>
 #include <util.h>
-#include <sysfs.h>
 #include <defaults.h>
 #include <structs.h>
 #include <structs_vec.h>
 #include <dmparser.h>
+#include <sysfs.h>
 #include <config.h>
 #include <blacklist.h>
 #include <discovery.h>
