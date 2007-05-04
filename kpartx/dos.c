@@ -98,8 +98,8 @@ read_dos_pt(int fd, struct slice all, struct slice *sp, int ns) {
 		}
 		if (is_extended(p.sys_type)) {
 			n += read_extended_partition(fd, &p, sp+n, ns-n);
-			/* hide the extended partition itself */
-			sp[i].size = 0;
+			/* Set size to 1 to allow further partitions */
+			sp[i].size = 1;
 		}
 	}
 	return n;
