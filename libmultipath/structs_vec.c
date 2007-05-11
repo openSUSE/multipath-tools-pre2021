@@ -290,6 +290,7 @@ retry:
 	select_rr_weight(mpp);
 	select_pgfailback(mpp);
 	set_no_path_retry(mpp);
+	select_pg_timeout(mpp);
 
 	return 0;
 out:
