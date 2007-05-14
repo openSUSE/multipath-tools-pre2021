@@ -1,0 +1,104 @@
+#! /bin/sh
+# Copyright (c) 2005 SuSE GmbH Nuernberg, Germany.
+#
+# Author: Hannes Reinecke <feedback@suse.de>
+#
+# init.d/boot.multipath
+#
+### BEGIN INIT INFO
+# Provides:          boot.multipath
+# Required-Start:    boot.device-mapper boot.udev
+# Required-Stop:
+# Default-Start:     B
+# Default-Stop:
+# Description:       Create multipath device targets
+### END INIT INFO
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+PROGRAM=/sbin/multipath
+
+# Set the maximum number of open files
+MAX_OPEN_FDS=4096
+
+test -x $PROGRAM || exit 5
+
+# Shell functions sourced from /etc/rc.status:
+#      rc_check         check and set local and overall rc status
+#      rc_status        check and set local and overall rc status
+#      rc_status -v     ditto but be verbose in local rc status
+#      rc_status -v -r  ditto and clear the local rc status
+#      rc_failed        set local and overall rc status to failed
+#      rc_reset         clear local rc status (overall remains)
+#      rc_exit          exit appropriate to overall rc status
+. /etc/rc.status
+
+# First reset status of this service
+rc_reset
+
+# Return values acc. to LSB for all commands but status:
+# 0 - success
+# 1 - misc error
+# 2 - invalid or excess args
+# 3 - unimplemented feature (e.g. reload)
+# 4 - insufficient privilege
+# 5 - program not installed
+# 6 - program not configured
+# 7 - program is not running
+# 
+# Note that starting an already running service, stopping
+# or restarting a not-running service as well as the restart
+# with force-reload (in case signalling is not supported) are
+# considered a success.
+
+case "$1" in
+    start)
+	echo -n "Creating multipath targets"
+	# Check whether multipath daemon is already running
+	if /sbin/multipathd -k"list paths" > /dev/null 2>&1 ; then
+	    echo -n " (multipathd running)"
+	    rc_status -v
+	    rc_exit
+	fi
+
+	# Load prerequisite module
+	modprobe dm-multipath
+	
+	# Be a chicken and flush all existing maps
+	$PROGRAM -F
+
+	# Clear /dev/disk/by-name/ prior to start-up; multipath will
+	# recreate them.
+	rm -f /dev/disk/by-name/* 2>&1 >/dev/null
+
+	# Set the maximum number of open files
+	if [ -n "$MAX_OPEN_FDS" ] ; then
+	    ulimit -n $MAX_OPEN_FDS
+	fi
+
+	# Start the program directly as checkproc doesn't work here
+	$PROGRAM -v 0
+
+	# Create all partitions which might have been missing
+	/sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -a -p -part"
+
+	# Remember status and be verbose
+	rc_status -v
+	sleep 1
+	;;
+    stop)
+	# Remove all partition mappings
+	if dmsetup ls | grep -q -- -part; then
+	    /sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -d -p -part"
+	fi
+
+	# And remove the multipath mappings themselves
+	for map in $(/sbin/dmsetup ls --target multipath | cut -f 1); do
+	    /sbin/dmsetup remove $map
+	done
+	;;
+    *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+	;;
+esac
+rc_exit
