@@ -498,7 +498,7 @@ key_generator (const char * str, int state)
 	/*
 	 * Loop through keywords for completion candidates
 	 */
-	vector_foreach_slot_after (keys, kw, index) {
+	vector_foreach_slot (keys, kw, index) {
 		if (!strncmp(kw->str, str, len)) {
 			/*
 			 * Discard keywords already in the command line
