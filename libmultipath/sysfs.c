@@ -31,6 +31,7 @@
 #include "vector.h"
 #include "structs.h"
 #include "sysfs.h"
+#include "list.h"
 #include "util.h"
 
 char sysfs_path[PATH_SIZE];
