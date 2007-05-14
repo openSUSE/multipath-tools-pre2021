@@ -5,8 +5,6 @@
 #ifndef _LIBMULTIPATH_SYSFS_H
 #define _LIBMULTIPATH_SYSFS_H
 
-#include "list.h"
-
 #define dbg(format, arg...) do {} while (0)
 
 int sysfs_init(char *path, size_t len);
