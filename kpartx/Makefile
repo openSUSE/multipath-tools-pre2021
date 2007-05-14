@@ -34,9 +34,10 @@ klibc: prepare $(OBJS)
 $(MULTIPATHLIB)-$(BUILD).a:
 	make -C $(multipathdir) BUILD=$(BUILD)
 
-install: $(EXEC) $(EXEC).8
+install: $(EXEC) kpartx_id $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
 	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	install -m 755 kpartx_id $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
