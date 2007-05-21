@@ -50,10 +50,10 @@ int
 read_bsd_pt(int fd, struct slice all, struct slice *sp, int ns) {
 	struct bsd_disklabel *l;
 	struct bsd_partition *p;
-	unsigned int offset = all.start;
+	unsigned int offset = all.start, end;
 	int max_partitions;
 	char *bp;
-	int n = 0;
+	int n = 0, i, j;
 
 	bp = getblock(fd, offset+1);    /* 1 sector suffices */
 	if (bp == NULL)
