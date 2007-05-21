@@ -116,7 +116,6 @@ strip_slash (char * device)
 	char * p = device;
 
 	while (*(p++) != 0x0) {
-		
 		if (*p == '/')
 			*p = '!';
 	}
@@ -126,9 +125,9 @@ static int
 find_devname_offset (char * device)
 {
 	char *p, *q = NULL;
-	
+
 	p = device;
-	
+
 	while (*p++)
 		if (*p == '/')
 			q = p;
@@ -183,7 +182,7 @@ get_hotplug_device(void)
 
 int
 main(int argc, char **argv){
-        int fd, i, j, k, m, n, op, off, arg, c, d;
+	int fd, i, j, m, n, op, off, arg, c, d;
 	struct slice all;
 	struct pt *ptp;
 	enum action what = LIST;
@@ -206,7 +205,7 @@ main(int argc, char **argv){
 	type = device = diskdevice = NULL;
 	memset(&all, 0, sizeof(all));
 	memset(&partname, 0, sizeof(partname));
-	
+
 	/* Check whether hotplug mode. */
 	progname = strrchr(argv[0], '/');
 
@@ -265,7 +264,7 @@ main(int argc, char **argv){
 	}
 
 	if (dm_prereq(DM_TARGET, 0, 0, 0) && (what == ADD || what == DELETE)) {
-		fprintf(stderr, "device mapper prerequisites not met\n"); 
+		fprintf(stderr, "device mapper prerequisites not met\n");
 		exit(1);
 	}
 
@@ -292,7 +291,7 @@ main(int argc, char **argv){
 
 		if (!loopdev && what == DELETE)
 			exit (0);
-				
+
 		if (!loopdev) {
 			loopdev = find_unused_loop_device();
 
@@ -309,7 +308,7 @@ main(int argc, char **argv){
 		memset(delim, 0, DELIM_SIZE);
 		set_delimiter(device, delim);
 	}
-	
+
 	off = find_devname_offset(device);
 
 	if (!loopdev) {
@@ -321,7 +320,7 @@ main(int argc, char **argv){
 
 	if (!uuid)
 		uuid = device + off;
-		
+
 	if (!mapname)
 		mapname = device + off;
 
@@ -340,7 +339,7 @@ main(int argc, char **argv){
 
 		if (type && strcmp(type, ptp->type))
 			continue;
-		
+
 		/* here we get partitions */
 		n = ptp->fn(fd, all, slices, SIZE(slices));
 
@@ -367,9 +366,9 @@ main(int argc, char **argv){
 				slices[j].minor = m++;
 
 				printf("%s%s%d : 0 %lu %s %lu\n",
-					mapname, delim, j+1,
-					(unsigned long) slices[j].size, device,
-				        (unsigned long) slices[j].start);
+				       mapname, delim, j+1,
+				       (unsigned long) slices[j].size, device,
+				       (unsigned long) slices[j].start);
 			}
 			/* Loop to resolve contained slices */
 			d = c;
@@ -422,7 +421,7 @@ main(int argc, char **argv){
 			if (S_ISREG (buf.st_mode)) {
 				if (del_loop(device)) {
 					if (verbose)
-				    		printf("can't del loop : %s\n",
+						printf("can't del loop : %s\n",
 							device);
 					exit(1);
 				}
@@ -447,7 +446,7 @@ main(int argc, char **argv){
 					exit(1);
 				}
 				strip_slash(partname);
-				
+
 				if (safe_sprintf(params, "%s %lu", device,
 					     (unsigned long)slices[j].start)) {
 					fprintf(stderr, "params too small\n");
@@ -464,7 +463,7 @@ main(int argc, char **argv){
 					dm_simplecmd(DM_DEVICE_RESUME,
 							partname);
 
-				dm_devn(partname, &slices[j].major, 
+				dm_devn(partname, &slices[j].major,
 					&slices[j].minor);
 
 				if (verbose)
@@ -501,7 +500,7 @@ main(int argc, char **argv){
 						exit(1);
 					}
 					strip_slash(partname);
-				
+
 					if (safe_sprintf(params, "%d:%d %lu",
 							 slices[k].major,
 							 slices[k].minor,
@@ -519,8 +518,8 @@ main(int argc, char **argv){
 					if (op == DM_DEVICE_RELOAD)
 						dm_simplecmd(DM_DEVICE_RESUME,
 							     partname);
-					
-					dm_devn(partname, &slices[j].major, 
+
+					dm_devn(partname, &slices[j].major,
 						&slices[j].minor);
 
 					if (verbose)
@@ -607,7 +606,7 @@ getblock (int fd, unsigned int secnr) {
 	bp->next = blockhead;
 	blockhead = bp;
 	bp->block = (char *) xmalloc(READ_SIZE);
-	
+
 	if (read(fd, bp->block, READ_SIZE) != READ_SIZE) {
 		fprintf(stderr, "read error, sector %d\n", secnr);
 		bp->block = NULL;
