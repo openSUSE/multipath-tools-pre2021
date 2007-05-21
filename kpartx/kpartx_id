@@ -25,6 +25,7 @@ DMSETUP=/sbin/dmsetup
 
 MAJOR=$1
 MINOR=$2
+UUID=$3
 
 if [ -z "$MAJOR" -o -z "$MINOR" ]; then
     echo "usage: $0 major minor"
@@ -36,23 +37,10 @@ if [ ! -x $DMSETUP ] ; then
     exit 0
 fi
 
-# Get the table info
-tblinfo=$($DMSETUP info -c --noheadings -o name,uuid -j $MAJOR -m $MINOR)
-if [ $? -ne 0 ] || [ -z "$tblinfo" ]; then
-    exit $?
-fi
-
-set -- $(IFS=":"; echo $tblinfo)
-tblname=$1
-tbluuid=$2
-
-if [ -z "$tbluuid" ] ; then
-    exit 0
-fi
 
 # Table UUIDs are always '<type>-<uuid>'.
-dmuuid=${tbluuid#*-}
-dmtbl=${tbluuid%%-*}
+dmuuid=${UUID#*-}
+dmtbl=${UUID%%-*}
 dmpart=${dmtbl#part}
 # kpartx types are 'part<num>'
 if [ "$dmpart" == "$dmtbl" ] ; then
@@ -66,9 +54,10 @@ fi
 if [ "$dmtbl" == "part" ] ; then
     # The name of the kpartx table is the name of the parent table
     dmname=$($DMSETUP info  -c --noheadings -o name -u $dmuuid)
+    echo "DM_NAME=$dmname"
     # We need the dependencies of the parent table to figure out
     # the type if the parent is a multipath table
-    case "$dmparent" in
+    case "$dmuuid" in
 	mpath-*)
 	    dmdeps=$($DMSETUP deps -u $dmuuid)
 	    ;;
@@ -76,35 +65,29 @@ if [ "$dmtbl" == "part" ] ; then
 elif [ "$dmtbl" == "mpath" ] ; then
     dmname=$tblname
     # We need the dependencies of the table to figure out the type
-    dmdeps=$($DMSETUP deps -u $tbluuid)
+    dmdeps=$($DMSETUP deps -u $UUID)
 elif [ "$dmtbl" == "dmraid" ] ; then
     dmname=$tblname
 fi
 
-if [ -z "$dmname" ] ; then
-    exit 0
-fi
-
-echo "ID_DM_TABLE=$dmtbl"
-echo "ID_DM_NAME=$dmname"
-[ -n "$dmpart" ] && echo "ID_DM_PART=$dmpart"
+[ -n "$dmpart" ] && echo "DM_PART=$dmpart"
 
 # Figure out the type of the map. For non-multipath maps it's
 # always 'raid'.
 if [ -n "$dmdeps" ] ; then
     case "$dmdeps" in
 	*\(94,*)
-            echo "ID_DM_TYPE=dasd"
+            echo "DM_TYPE=dasd"
 	    ;;
 	*\(9*)
-            echo "ID_DM_TYPE=raid"
+            echo "DM_TYPE=raid"
 	    ;;
 	*)
-            echo "ID_DM_TYPE=scsi"
+            echo "DM_TYPE=scsi"
 	    ;;
     esac
 else
-    echo "ID_DM_TYPE=raid"
+    echo "DM_TYPE=raid"
 fi
 
 exit 0
