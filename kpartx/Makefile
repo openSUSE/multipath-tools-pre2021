@@ -40,6 +40,7 @@ install: $(EXEC) kpartx_id $(EXEC).8
 	install -m 755 kpartx_id $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
 
 uninstall:
