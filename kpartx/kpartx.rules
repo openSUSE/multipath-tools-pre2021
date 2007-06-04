@@ -4,10 +4,10 @@
 # and kpartx) have meaningful persistent device names
 #
 
-KERNEL!="dm-*", GOTO="multipath_end"
-ACTION=="remove", GOTO="multipath_end"
+KERNEL!="dm-*", GOTO="kpartx_end"
+ACTION=="remove", GOTO="kpartx_end"
 
-ENV{DM_TABLE_STATE}!="LIVE", GOTO="multipath_end"
+ENV{DM_TABLE_STATE}!="LIVE", GOTO="kpartx_end"
 
 ENV{DM_UUID}=="?*", IMPORT{program}=="/sbin/kpartx_id %M %m $env{DM_UUID}"
 
@@ -31,6 +31,6 @@ ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="mpath-*", \
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="dmraid-*", \
         RUN+="/sbin/kpartx -a -p -part /dev/$kernel"
 
-LABEL="multipath_end"
+LABEL="kpartx_end"
 
 
