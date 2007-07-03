@@ -290,6 +290,22 @@ static struct hwentry default_hw[] = {
 		.checker_name  = READSECTOR0,
 	},
 	{
+		/* IBM FAStT 1722-600 */
+		.vendor        = "IBM",
+		.product       = "1722-600",
+		.getuid        = DEFAULT_GETUID,
+		.getprio       = "mpath_prio_tpc /dev/%n",
+		.features      = "1 queue_if_no_path",
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = "300",
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+	},
+	{
 		/* IBM DS4400 / FAStT700 */
 		.vendor        = "IBM",
 		.product       = "1742",
