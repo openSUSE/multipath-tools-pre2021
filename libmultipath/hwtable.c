@@ -301,7 +301,7 @@ static struct hwentry default_hw[] = {
 		.pgpolicy      = GROUP_BY_PRIO,
 		.pgfailback    = -FAILBACK_IMMEDIATE,
 		.rr_weight     = RR_WEIGHT_NONE,
-		.no_path_retry = "300",
+		.no_path_retry = 300,
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = RDAC,
 	},
