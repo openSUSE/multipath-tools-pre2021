@@ -22,6 +22,7 @@ endif
 prefix      = 
 exec_prefix = $(prefix)
 bindir      = $(exec_prefix)/sbin
+libudevdir  = ${prefix}/lib/udev
 checkersdir = $(TOPDIR)/libcheckers
 multipathdir = $(TOPDIR)/libmultipath
 mandir      = $(prefix)/usr/share/man/man8
@@ -32,6 +33,8 @@ GZIP        = /bin/gzip -9 -c
 
 CHECKERSLIB = $(checkersdir)/libcheckers
 MULTIPATHLIB = $(multipathdir)/libmultipath
+
+INSTALL_PROGRAM = install -s
 
 OPTFLAGS     = -pipe -g -Wall -Wunused -Wstrict-prototypes
 CFLAGS	     = $(OPTFLAGS)

@@ -6,7 +6,7 @@ BUILD=glibc
 
 include ../Makefile.inc
 
-CFLAGS += -I. -D_LARGEFILE64_SOURCE
+CFLAGS += -I. -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
 ifeq ($(strip $(BUILD)),klibc)
 	OBJS = bsd.o dos.o kpartx.o solaris.o unixware.o gpt.o crc32.o \
@@ -36,8 +36,11 @@ $(MULTIPATHLIB)-$(BUILD).a:
 
 install: $(EXEC) kpartx_id $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
-	install -m 755 kpartx_id $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	install -d $(DESTDIR)$(libudevdir)
+	install -m 755 kpartx_id $(DESTDIR)$(libudevdir)
+	install -d $(DESTDIR)/etc/udev/rules.d
+	install -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	install -d $(DESTDIR)/etc/udev/rules.d

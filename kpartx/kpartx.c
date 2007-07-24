@@ -396,6 +396,32 @@ main(int argc, char **argv){
 				if (d == c)
 					break;
 			}
+			/* Loop to resolve contained slices */
+			d = c;
+			while (c) {
+				for (j = 0; j < n; j++) {
+					unsigned long start;
+					int k = slices[j].container - 1;
+
+					if (slices[j].size == 0)
+						continue;
+					if (slices[j].minor > 0)
+						continue;
+					if (slices[j].container == 0)
+						continue;
+					slices[j].minor = m++;
+
+					start = slices[j].start - slices[k].start;
+					printf("%s%s%d : 0 %lu /dev/dm-%d %lu\n",
+					       mapname, delim, j+1,
+					       (unsigned long) slices[j].size,
+					       slices[k].minor, start);
+					c--;
+				}
+				/* Terminate loop if nothing more to resolve */
+				if (d == c)
+					break;
+			}
 
 			break;
 

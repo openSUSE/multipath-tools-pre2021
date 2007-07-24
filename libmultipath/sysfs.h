@@ -5,7 +5,11 @@
 #ifndef _LIBMULTIPATH_SYSFS_H
 #define _LIBMULTIPATH_SYSFS_H
 
-#define dbg(format, arg...) do {} while (0)
+#ifdef DEBUG
+# define dbg(format, args...) printf(format "\n", ##args)
+#else
+# define dbg(format, args...) do {} while (0)
+#endif
 
 int sysfs_init(char *path, size_t len);
 void sysfs_cleanup(void);

@@ -237,7 +237,12 @@ devt2devname (char *devname, char *devt)
 	}
 	
 	while (!feof(fd)) {
-		if (fscanf(fd," %u %u %*d %s",&tmpmaj, &tmpmin, dev) != 3)
+		int r = fscanf(fd,"%u %u %*d %s",&tmpmaj, &tmpmin, dev);
+		if (!r) {
+			fscanf(fd,"%*s\n");
+			continue;
+		}
+		if (r != 3)
 			continue;
 
 		if ((major == tmpmaj) && (minor == tmpmin)) {
@@ -247,7 +252,7 @@ devt2devname (char *devname, char *devt)
 	}
 	fclose(fd);
 
-	if (strncpy(block_path,"/sys/block", 10))
+	if (strncmp(block_path,"/sys/block", 10))
 		return 1;
 
 	if (stat(block_path, &statbuf) < 0) {
@@ -262,7 +267,7 @@ devt2devname (char *devname, char *devt)
 	return 0;
 }
 
-static int
+int
 do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
        void *resp, int mx_resp_len, int noisy)
 {
@@ -616,11 +621,11 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		goto blank;
 	
 	 /*
-	  * Retrieve path priority even for not PATH_UP paths if it has never
+	  * Retrieve path priority, even for PATH_DOWN paths if it has never
 	  * been successfully obtained before.
 	  */
 	if (mask & DI_PRIO &&
-	    (pp->state == PATH_UP || pp->priority == PRIO_UNDEF))
+	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF))
 		get_prio(pp);
 
 	if (mask & DI_WWID && !strlen(pp->wwid))

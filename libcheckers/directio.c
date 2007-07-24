@@ -14,14 +14,17 @@
 #include <errno.h>
 #include <linux/kdev_t.h>
 #include <asm/unistd.h>
+#include <libaio.h>
 
-#include "libaio.h"
 #include "checkers.h"
 #include "../libmultipath/debug.h"
 
 #define MSG_DIRECTIO_UNKNOWN	"directio checker is not available"
 #define MSG_DIRECTIO_UP		"directio checker reports path is up"
 #define MSG_DIRECTIO_DOWN	"directio checker reports path is down"
+#define MSG_DIRECTIO_PENDING	"directio checker is waiting on aio"
+
+#define LOG(prio, fmt, args...) condlog(prio, "directio: " fmt, ##args)
 
 struct directio_context {
 	int		running;
@@ -45,7 +48,7 @@ int directio_init (struct checker * c)
 		return 1;
 	memset(ct, 0, sizeof(struct directio_context));
 
-	if (syscall(__NR_io_setup, 1, &ct->ioctx) != 0) {
+	if (io_setup(1, &ct->ioctx) != 0) {
 		condlog(1, "io_setup failed");
 		free(ct);
 		return 1;
@@ -87,7 +90,7 @@ int directio_init (struct checker * c)
 out:
 	if (ct->buf)
 		free(ct->buf);
-	syscall(__NR_io_destroy, ct->ioctx);
+	io_destroy(ct->ioctx);
 	free(ct);
 	return 1;
 }
@@ -110,43 +113,52 @@ void directio_free (struct checker * c)
 
 	if (ct->buf)
 		free(ct->buf);
-	syscall(__NR_io_destroy, ct->ioctx);
+	io_destroy(ct->ioctx);
 	free(ct);
 }
 
 static int
-check_state(int fd, struct directio_context *ct)
+check_state(int fd, struct directio_context *ct, int sync)
 {
-	struct timespec	timeout = { .tv_sec = 2 };
+	struct timespec	timeout = { .tv_nsec = 5 };
 	struct io_event event;
 	struct stat	sb;
 	int		rc = PATH_UNCHECKED;
 	long		r;
 
 	if (fstat(fd, &sb) == 0) {
-		condlog(4, "directio: called for %x", (unsigned) sb.st_rdev);
+		LOG(4, "called for %x", (unsigned) sb.st_rdev);
+	}
+	if (sync) {
+		LOG(4, "called in synchronous mode");
+		timeout.tv_sec  = ASYNC_TIMEOUT_SEC;
+		timeout.tv_nsec = 0;
 	}
 
 	if (!ct->running) {
 		struct iocb *ios[1] = { &ct->io };
 
-		condlog(3, "directio: starting new request");
+		LOG(3, "starting new request");
 		memset(&ct->io, 0, sizeof(struct iocb));
 		io_prep_pread(&ct->io, fd, ct->ptr, ct->blksize, 0);
-		if (syscall(__NR_io_submit, ct->ioctx, 1, ios) != 1) {
-			condlog(3, "directio: io_submit error %i", errno);
+		if (io_submit(ct->ioctx, 1, ios) != 1) {
+			LOG(3, "io_submit error %i", errno);
 			return PATH_UNCHECKED;
 		}
 	}
-	ct->running = 1;
+	ct->running++;
 
-	r = syscall(__NR_io_getevents, ct->ioctx, 1L, 1L, &event, &timeout);
+	r = io_getevents(ct->ioctx, 1L, 1L, &event, &timeout);
+	LOG(3, "async io getevents returns %li (errno=%s)", r, strerror(errno));
+
 	if (r < 1L) {
-		condlog(3, "directio: timeout r=%li errno=%i", r, errno);
-		rc = PATH_DOWN;
+		if (ct->running > ASYNC_TIMEOUT_SEC || sync) {
+			LOG(3, "abort check on timeout");
+			rc = PATH_DOWN;
+		} else
+			rc = PATH_PENDING;
 	} else {
-		condlog(3, "directio: io finished %lu/%lu", event.res,
-			event.res2);
+		LOG(3, "io finished %lu/%lu", event.res, event.res2);
 		ct->running = 0;
 		rc = (event.res == ct->blksize) ? PATH_UP : PATH_DOWN;
 	}
@@ -162,7 +174,7 @@ int directio (struct checker * c)
 	if (!ct)
 		return PATH_UNCHECKED;
 
-	ret = check_state(c->fd, ct);
+	ret = check_state(c->fd, ct, c->sync);
 
 	switch (ret)
 	{
@@ -174,6 +186,9 @@ int directio (struct checker * c)
 		break;
 	case PATH_UP:
 		MSG(c, MSG_DIRECTIO_UP);
+		break;
+	case PATH_PENDING:
+		MSG(c, MSG_DIRECTIO_PENDING);
 		break;
 	default:
 		break;

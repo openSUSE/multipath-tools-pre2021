@@ -8,9 +8,10 @@ include ../Makefile.inc
 OBJS = main.o $(MULTIPATHLIB)-$(BUILD).a $(CHECKERSLIB)-$(BUILD).a
 
 CFLAGS += -I$(multipathdir) -I$(checkersdir)
+LDFLAGS += -laio
 
 ifeq ($(strip $(BUILD)),klibc)
-	OBJS += $(libdm) $(libsysfs)
+	OBJS += $(libdm)
 else
 	LDFLAGS += -ldevmapper
 endif
@@ -37,7 +38,7 @@ $(MULTIPATHLIB)-$(BUILD).a:
 
 install:
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/
+	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/71-multipath.rules
 	install -d $(DESTDIR)$(mandir)
