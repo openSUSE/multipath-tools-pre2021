@@ -1,7 +1,7 @@
 #! /bin/sh
 # Copyright (c) 1995-2001 SuSE GmbH Nuernberg, Germany.
 #
-# Author: Thorsten Kukuk <feedback@suse.de>
+# Author: Hannes Reinecke <feedback@suse.de>
 #
 # init.d/routed
 #
@@ -27,33 +27,10 @@ MAX_OPEN_FDS=4096
 
 test -x $DAEMON || exit 5
 
-# Shell functions sourced from /etc/rc.status:
-#      rc_check         check and set local and overall rc status
-#      rc_status        check and set local and overall rc status
-#      rc_status -v     ditto but be verbose in local rc status
-#      rc_status -v -r  ditto and clear the local rc status
-#      rc_failed        set local and overall rc status to failed
-#      rc_reset         clear local rc status (overall remains)
-#      rc_exit          exit appropriate to overall rc status
 . /etc/rc.status
 
 # First reset status of this service
 rc_reset
-
-# Return values acc. to LSB for all commands but status:
-# 0 - success
-# 1 - misc error
-# 2 - invalid or excess args
-# 3 - unimplemented feature (e.g. reload)
-# 4 - insufficient privilege
-# 5 - program not installed
-# 6 - program not configured
-# 7 - program is not running
-# 
-# Note that starting an already running service, stopping
-# or restarting a not-running service as well as the restart
-# with force-reload (in case signalling is not supported) are
-# considered a success.
 
 case "$1" in
     start)
