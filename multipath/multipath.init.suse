@@ -50,9 +50,11 @@ rc_reset
 # with force-reload (in case signalling is not supported) are
 # considered a success.
 
+maplist=$(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | cut -f 1)
+
 case "$1" in
     start)
-	echo -n "Creating multipath targets"
+	echo -n "Creating multipath targets:"
 	# Check whether multipath daemon is already running
 	if /sbin/multipathd -k"list paths" > /dev/null 2>&1 ; then
 	    echo -n " (multipathd running)"
@@ -64,7 +66,9 @@ case "$1" in
 	modprobe dm-multipath
 	
 	# Be a chicken and flush all existing maps
-	$PROGRAM -F
+	for map in  $maplist ; do
+	    $PROGRAM -f $map
+	done
 
 	# Clear /dev/disk/by-name/ prior to start-up; multipath will
 	# recreate them.
@@ -86,18 +90,35 @@ case "$1" in
 	sleep 1
 	;;
     stop)
+	echo -n "Removing multipath targets:"
+
 	# Remove all partition mappings
-	if dmsetup ls | grep -q -- -part; then
-	    /sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -d -p -part"
+	if /sbin/dmsetup ls | sed '/No devices/d' | grep -q -- -part; then
+	    /sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -d -p -part" 2> /dev/null
 	fi
 
-	# And remove the multipath mappings themselves
-	for map in $(/sbin/dmsetup ls --target multipath | cut -f 1); do
-	    /sbin/dmsetup remove $map
+	# Flush all existing maps
+	for map in $maplist ; do
+	    $PROGRAM -f $map
 	done
+
+	rc_failed 0
+	rc_status -v
+	;;
+    status)
+	echo -n "Checking multipath targets: "
+	# Display active multipath tables
+	tblnum=$(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | wc --lines)
+	if [ "$tblnum" ] && [ $tblnum -gt 0 ] ; then
+	    echo -n "($tblnum multipath devices) "
+	    rc_failed 0
+	else
+	    rc_failed 3
+	fi
+	rc_status -v
 	;;
     *)
-	echo "Usage: $0 {start|stop}"
+	echo "Usage: $0 {start|stop|status}"
 	exit 1
 	;;
 esac
