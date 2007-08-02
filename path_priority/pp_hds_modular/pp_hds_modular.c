@@ -120,7 +120,7 @@ int main (int argc, char **argv)
 int hds_modular_prio (const char *dev)
 {
 	int sg_fd, k;
-	char vendor[8];
+	char vendor[9];
 	char product[32];
 	char serial[32];
 	char ldev[32];
