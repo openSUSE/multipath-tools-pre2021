@@ -11,7 +11,8 @@
 # Required-Stop:
 # Default-Start:     B
 # Default-Stop:
-# Description:       Create multipath device targets
+# Short-Description:       Create multipath device targets
+# Description:       Setup initial multipath device-mapper targets
 ### END INIT INFO
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
@@ -116,6 +117,10 @@ case "$1" in
 	    rc_failed 3
 	fi
 	rc_status -v
+	;;
+    reload)
+	$0 stop
+	$0 start
 	;;
     *)
 	echo "Usage: $0 {start|stop|status}"
