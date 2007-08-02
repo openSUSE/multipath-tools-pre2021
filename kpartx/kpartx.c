@@ -116,6 +116,7 @@ strip_slash (char * device)
 	char * p = device;
 
 	while (*(p++) != 0x0) {
+
 		if (*p == '/')
 			*p = '!';
 	}
