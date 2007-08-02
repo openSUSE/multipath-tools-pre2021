@@ -386,36 +386,10 @@ main(int argc, char **argv){
 					slices[j].minor = m++;
 
 					start = slices[j].start - slices[k].start;
-					printf("%s%s%d : 0 %lu /dev/dm-%d %lu\n",
+					printf("%s%s%d : 0 %lu %s%s%d %lu\n",
 					       mapname, delim, j+1,
 					       (unsigned long) slices[j].size,
-					       slices[k].minor, start);
-					c--;
-				}
-				/* Terminate loop if nothing more to resolve */
-				if (d == c)
-					break;
-			}
-			/* Loop to resolve contained slices */
-			d = c;
-			while (c) {
-				for (j = 0; j < n; j++) {
-					unsigned long start;
-					int k = slices[j].container - 1;
-
-					if (slices[j].size == 0)
-						continue;
-					if (slices[j].minor > 0)
-						continue;
-					if (slices[j].container == 0)
-						continue;
-					slices[j].minor = m++;
-
-					start = slices[j].start - slices[k].start;
-					printf("%s%s%d : 0 %lu /dev/dm-%d %lu\n",
-					       mapname, delim, j+1,
-					       (unsigned long) slices[j].size,
-					       slices[k].minor, start);
+					       mapname, delim, k, start);
 					c--;
 				}
 				/* Terminate loop if nothing more to resolve */
@@ -456,7 +430,7 @@ main(int argc, char **argv){
 			break;
 
 		case ADD:
-			for (j=0, c = 0; j<n; j++) {
+			for (j = 0, c = 0; j < n; j++) {
 				if (slices[j].size == 0)
 					continue;
 
@@ -502,6 +476,7 @@ main(int argc, char **argv){
 			d = c;
 			while (c) {
 				for (j = 0; j < n; j++) {
+					unsigned long start;
 					int k = slices[j].container - 1;
 
 					if (slices[j].size == 0)
@@ -512,7 +487,7 @@ main(int argc, char **argv){
 						continue;
 
 					/* Skip all simple slices */
-					if (k < 0)
+					if (slices[j].container == 0)
 						continue;
 
 					/* Check container slice */
@@ -527,10 +502,11 @@ main(int argc, char **argv){
 					}
 					strip_slash(partname);
 
+					start = slices[j].start - slices[k].start;
 					if (safe_sprintf(params, "%d:%d %lu",
 							 slices[k].major,
 							 slices[k].minor,
-							 (unsigned long)slices[j].start)) {
+							 start)) {
 						fprintf(stderr, "params too small\n");
 						exit(1);
 					}
@@ -549,9 +525,12 @@ main(int argc, char **argv){
 						&slices[j].minor);
 
 					if (verbose)
-						printf("add map %s : 0 %lu %s %s\n",
-						       partname, slices[j].size,
-						       DM_TARGET, params);
+						printf("add map %s (%d:%d): 0 %lu %s\n",
+						       partname, 
+						       slices[j].major,
+						       slices[j].minor,
+						       slices[j].size,
+						       params);
 					c--;
 				}
 				/* Terminate loop */
