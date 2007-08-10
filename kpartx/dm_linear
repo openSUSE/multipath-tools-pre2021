@@ -1,0 +1,6 @@
+#!/bin/sh
+
+. /etc/sysconfig/kernel
+if [ "DM_BLOCK" ]; then
+    echo 0 $(/sbin/blockdev --getsize /dev/$1) linear /dev/$1 0 | /sbin/dmsetup create "linear-$ID_BUS-$ID_SERIAL" -u "linear-$ID_BUS-$ID_SERIAL"
+fi

@@ -39,8 +39,10 @@ install: $(EXEC) kpartx_id $(EXEC).8
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(libudevdir)
 	install -m 755 kpartx_id $(DESTDIR)$(libudevdir)
+	install -m 755 dm_linear $(DESTDIR)$(libudevdir)
 	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
+	install -m 644 dm_linear.rules $(DESTDIR)/etc/udev/rules.d/62-dm_linear.rules
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
