@@ -37,7 +37,7 @@ $(MULTIPATHLIB)-$(BUILD).a:
 install: $(EXEC) kpartx_id $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) -m 755 activate_dm_linear $(DESTDIR)$(bindir)
+	install -m 755 activate_dm_linear $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(libudevdir)
 	install -m 755 kpartx_id $(DESTDIR)$(libudevdir)
 	install -m 755 dm_linear $(DESTDIR)$(libudevdir)
