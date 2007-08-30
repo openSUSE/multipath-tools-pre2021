@@ -1,6 +1,27 @@
 #!/bin/sh
+#
+# Create a linear table on top of a given device
+# usage:
+#         dm_linear <dev> <size> <name>
+#
 
-. /etc/sysconfig/kernel
-if [ "DM_BLOCK" ]; then
-    echo 0 $(/sbin/blockdev --getsize /dev/$1) linear /dev/$1 0 | /sbin/dmsetup create "linear-$ID_BUS-$ID_SERIAL" -u "linear-$ID_BUS-$ID_SERIAL"
+if [ -z "$1" ] ; then
+    exit 1
 fi
+
+if [ ! -b "$1" ] ; then
+    exit 2
+fi
+
+if [ -z "$2" ] ; then
+    exit 3
+fi
+
+if [ -z "$3" ] ; then
+    exit 4
+fi
+
+echo 0 $2 linear $1 0 | /sbin/dmsetup create "$3" -u "linear-$3"
+
+exit $?
+

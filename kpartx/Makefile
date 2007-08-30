@@ -37,17 +37,22 @@ $(MULTIPATHLIB)-$(BUILD).a:
 install: $(EXEC) kpartx_id $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) -m 755 activate_dm_linear $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(libudevdir)
 	install -m 755 kpartx_id $(DESTDIR)$(libudevdir)
 	install -m 755 dm_linear $(DESTDIR)$(libudevdir)
 	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
-	install -m 644 dm_linear.rules $(DESTDIR)/etc/udev/rules.d/62-dm_linear.rules
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
+	rm -f $(DESTDIR)$(bindir)/activate_dm_linear
+	rm -f $(DESTDIR)$(libudevdir)/kpartx_id
+	rm -f $(DESTDIR)$(libudevdir)/dm_linear
+	rm -f $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
+	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
 
 clean:
 	rm -f core *.o $(EXEC)

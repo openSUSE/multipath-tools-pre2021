@@ -1,1 +1,0 @@
-ACTION=="add", KERNEL=="sd*[!0-9]", RUN+="/lib/udev/dm_linear $kernel"
