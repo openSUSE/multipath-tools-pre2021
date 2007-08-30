@@ -1,4 +1,13 @@
 #!/bin/sh
+#
+# activate_dm_linear
+#
+# Activate a linear mapping on top of an existing block device.
+# This allows for partitions to be mapped via kpartx, so all
+# partitions on a device can be accessed.
+#
+
+RULE=/etc/udev/rules.d/62-dm_linear.rules
 
 if [ -z "$1" ] ; then
     echo "Usage: $0 [-d] devname"
@@ -51,10 +60,10 @@ if [ "$serial" ]; then
     echo "/$serial/d
 w
 q
-" | ed /tmp/62-dm_linear.rules > /dev/null 2>&1
+" | ed $RULE > /dev/null 2>&1
     [ "$remove_only" = 1 ] && exit 0
     # And create a new one
-    cat >> /tmp/62-dm_linear.rules <<EOF
+    cat >> $RULE <<EOF
 ACTION=="add", KERNEL=="sd*[!0-9]", ID_BUS=="$bus", ID_SERIAL=="$serial", RUN+="/lib/udev/dm_linear \$kernel $blksize $bus-$serial"
 EOF
 fi
