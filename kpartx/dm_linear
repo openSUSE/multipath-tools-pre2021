@@ -21,7 +21,7 @@ if [ -z "$3" ] ; then
     exit 4
 fi
 
-echo 0 $2 linear $1 0 | /sbin/dmsetup create "linear-$3" -u "linear-$3"
+echo 0 $2 linear $1 0 | /sbin/dmsetup create "$3" -u "linear-$3"
 
 exit $?
 

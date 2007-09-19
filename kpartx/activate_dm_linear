@@ -47,13 +47,14 @@ for link in $(udevinfo -q symlink -p /block/$dev) ; do
 	    ;;
     esac
 done
-if [ "$scsilink" ] ; then
-    serial="$scsilink"
-    bus="scsi"
-fi
 if [ "$atalink" ] ; then
     serial="$atalink"
     bus="ata"
+fi
+if [ "$scsilink" ] ; then
+    unset atalink
+    serial="$scsilink"
+    bus="scsi"
 fi
 if [ "$serial" ]; then
     # Remove existing rules
@@ -63,7 +64,13 @@ q
 " | ed $RULE > /dev/null 2>&1
     [ "$remove_only" = 1 ] && exit 0
     # And create a new one
-    cat >> $RULE <<EOF
-ACTION=="add", KERNEL=="sd*[!0-9]", ID_BUS=="$bus", ID_SERIAL=="$serial", RUN+="/lib/udev/dm_linear \$kernel $blksize $bus-$serial"
+    if [ "$atalink" ] ; then
+	cat >> $RULE <<EOF
+ACTION=="add", KERNEL=="sd*[!0-9]", ENV{ID_VENDOR}=="ATA", ENV{ID_ATA_COMPAT}=="$serial", RUN+="dm_linear /dev/\$kernel $blksize ata-\$env{ID_ATA_COMPAT}"
 EOF
+    else
+	cat >> $RULE <<EOF
+ACTION=="add", KERNEL=="sd*[!0-9]", ENV{ID_BUS}=="$bus", ENV{ID_SERIAL}=="$serial", RUN+="dm_linear \$kernel /dev/$blksize \$env{ID_BUS}-\$env{ID_SERIAL}"
+EOF
+    fi
 fi
