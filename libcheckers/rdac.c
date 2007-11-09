@@ -18,7 +18,7 @@
 #define INQUIRY_CMDLEN		6
 #define INQUIRY_CMD		0x12
 #define SENSE_BUFF_LEN		32
-#define DEF_TIMEOUT		60000
+#define RDAC_DEF_TIMEOUT	60000
 #define SCSI_CHECK_CONDITION	0x2
 #define SCSI_COMMAND_TERMINATED	0x22
 #define SG_ERR_DRIVER_SENSE	0x08
@@ -61,7 +61,7 @@ do_inq(int sg_fd, unsigned int pg_op, void *resp, int mx_resp_len)
 	io_hdr.dxferp = resp;
 	io_hdr.cmdp = inqCmdBlk;
 	io_hdr.sbp = sense_b;
-	io_hdr.timeout = DEF_TIMEOUT;
+	io_hdr.timeout = RDAC_DEF_TIMEOUT;
 
 	if (ioctl(sg_fd, SG_IO, &io_hdr) < 0)
 		return 1;

@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <ctype.h>
@@ -372,10 +373,10 @@ main(int argc, char **argv){
 				if (slices[j].size == 0)
 					continue;
 
-				printf("%s%s%d : 0 %lu %s %lu\n",
+				printf("%s%s%d : 0 %" PRIu64 " %s %" PRIu64 "\n",
 					mapname, delim, j+1,
-					(unsigned long) slices[j].size, device,
-				        (unsigned long) slices[j].start);
+					slices[j].size, device,
+				        slices[j].start);
 			}
 			break;
 
@@ -415,14 +416,14 @@ main(int argc, char **argv){
 					continue;
 
 				if (safe_sprintf(partname, "%s%s%d",
-					     mapname, delim, j+1)) {
+						 mapname, delim, j+1)) {
 					fprintf(stderr, "partname too small\n");
 					exit(1);
 				}
 				strip_slash(partname);
 				
-				if (safe_sprintf(params, "%s %lu", device,
-					     (unsigned long)slices[j].start)) {
+				if (safe_sprintf(params, "%s %" PRIu64, device,
+						 slices[j].start)) {
 					fprintf(stderr, "params too small\n");
 					exit(1);
 				}
@@ -438,7 +439,7 @@ main(int argc, char **argv){
 							partname);
 
 				if (verbose)
-					printf("add map %s : 0 %lu %s %s\n",
+					printf("add map %s : 0 %" PRIu64 " %s %s\n",
 						partname, slices[j].size,
 						DM_TARGET, params);
 			}

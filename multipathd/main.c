@@ -900,11 +900,16 @@ checkerloop (void *ap)
 				pathinfo(pp, conf->hwtable, DI_SYSFS);
 				select_checker(pp);
 			}
-
 			if (!checker_selected(&pp->checker)) {
 				condlog(0, "%s: checker is not set", pp->dev);
 				continue;
 			}
+			/*
+			 * Set checker in async mode.
+			 * Honored only by checker implementing the said mode.
+			 */
+			checker_set_async(&pp->checker);
+
 			newstate = checker_check(&pp->checker);
 			
 			if (newstate < 0) {
@@ -912,7 +917,14 @@ checkerloop (void *ap)
 				pathinfo(pp, conf->hwtable, 0);
 				continue;
 			}
-
+			/*
+			 * Async IO in flight. Keep the previous path state
+			 * and reschedule as soon as possible
+			 */
+			if (newstate == PATH_PENDING) {
+				pp->tick = 1;
+				continue;
+			}
 			if (newstate != pp->state) {
 				int oldstate = pp->state;
 				pp->state = newstate;
