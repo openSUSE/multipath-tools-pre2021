@@ -1,6 +1,6 @@
-EXEC		= mpath_prio_netapp
+EXEC		= mpath_prio_ontap
 BUILD		= glibc
-OBJS		= pp_netapp.o
+OBJS		= pp_ontap.o
 
 TOPDIR		= ../..
 include $(TOPDIR)/Makefile.inc
