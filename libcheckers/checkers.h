@@ -58,6 +58,7 @@
 #define RDAC         "rdac"
 #define EMC_CLARIION "emc_clariion"
 #define READSECTOR0  "readsector0"
+#define CCISS_TUR    "cciss_tur"
 
 #define DEFAULT_CHECKER DIRECTIO
 
