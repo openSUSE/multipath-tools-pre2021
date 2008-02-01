@@ -243,8 +243,6 @@ snprint_action (char * buff, size_t len, struct multipath * mpp)
 		return snprint_str(buff, len, ACT_RELOAD_STR);
 	case ACT_SWITCHPG:
 		return snprint_str(buff, len, ACT_SWITCHPG_STR);
-	case ACT_RENAME:
-		return snprint_str(buff, len, ACT_RENAME_STR);
 	case ACT_CREATE:
 		return snprint_str(buff, len, ACT_CREATE_STR);
 	default:

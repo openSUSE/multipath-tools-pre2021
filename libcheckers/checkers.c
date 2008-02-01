@@ -114,7 +114,7 @@ void checker_disable (struct checker * c)
 struct checker * checker_lookup (char * name)
 {
 	struct checker * c = &checkers[0];
-	
+
 	while (c->check) {
 		if (!strncmp(name, c->name, CHECKER_NAME_LEN))
 			return c;

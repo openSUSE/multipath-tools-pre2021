@@ -82,26 +82,6 @@ dm_init(void) {
 	dm_log_init_verbose(conf ? conf->verbosity + 3 : 0);
 }
 
-static int
-dm_libprereq (void)
-{
-	char version[64];
-	int v[3];
-	int minv[3] = {1, 2, 8};
-
-	dm_get_library_version(version, sizeof(version));
-	condlog(3, "libdevmapper version %s", version);
-	sscanf(version, "%d.%d.%d ", &v[0], &v[1], &v[2]);
-
-	if ((v[0] > minv[0]) ||
-	    ((v[0] ==  minv[0]) && (v[1] > minv[1])) ||
-	    ((v[0] == minv[0]) && (v[1] == minv[1]) && (v[2] >= minv[2])))
-		return 0;
-	condlog(0, "libdevmapper version must be >= %d.%.2d.%.2d",
-		minv[0], minv[1], minv[2]);
-	return 1;
-}
-
 extern int
 dm_prereq (char * str, int x, int y, int z)
 {
@@ -127,7 +107,7 @@ dm_prereq (char * str, int x, int y, int z)
 
 		if (!strncmp(str, target->name, strlen(str))) {
 			r--;
-			
+
 			if (target->version[0] >= x &&
 			    target->version[1] >= y &&
 			    target->version[2] >= z)

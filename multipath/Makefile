@@ -8,7 +8,6 @@ include ../Makefile.inc
 OBJS = main.o $(MULTIPATHLIB)-$(BUILD).a $(CHECKERSLIB)-$(BUILD).a $(LIBPRIO)-$(BUILD).a
 
 CFLAGS += -I$(multipathdir) -I$(checkersdir) -I$(libpriodir)
-LDFLAGS += -laio
 
 ifeq ($(strip $(BUILD)),klibc)
 	OBJS += $(libdm)

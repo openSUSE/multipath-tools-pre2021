@@ -656,9 +656,9 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 * Device-mapper generated tons of them and
 	 * they don't carry additional information.
 	 */
-	if (!strncmp(devname, "dm-", 3)) {
+	if (!strncmp(sysdev->kernel, "dm-", 3)) {
 		if (!strncmp(uev->action, "online", 6)) {
-			r = uev_add_map(devname, vecs);
+			r = uev_add_map(sysdev, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "remove", 6)) {
@@ -961,19 +961,25 @@ check_path (struct vectors * vecs, struct path * pp)
 			enable_group(pp);
 	}
 	else if (newstate == PATH_UP || newstate == PATH_GHOST) {
-		LOG_MSG(4, checker_message(&pp->checker));
-		/*
-		 * double the next check delay.
-		 * max at conf->max_checkint
-		 */
-		if (pp->checkint < (conf->max_checkint / 2))
-			pp->checkint = 2 * pp->checkint;
-		else
-			pp->checkint = conf->max_checkint;
+		if (pp->dmstate == PSTATE_FAILED ||
+		    pp->dmstate == PSTATE_UNDEF) {
+			/* Clear IO errors */
+			reinstate_path(pp, 0);
+		} else {
+			LOG_MSG(4, checker_message(&pp->checker));
+			/*
+			 * double the next check delay.
+			 * max at conf->max_checkint
+			 */
+			if (pp->checkint < (conf->max_checkint / 2))
+				pp->checkint = 2 * pp->checkint;
+			else
+				pp->checkint = conf->max_checkint;
 
-		pp->tick = pp->checkint;
-		condlog(4, "%s: delay next check %is",
+			pp->tick = pp->checkint;
+			condlog(4, "%s: delay next check %is",
 				pp->dev_t, pp->tick);
+		}
 	}
 	else if (newstate == PATH_DOWN)
 		LOG_MSG(2, checker_message(&pp->checker));
@@ -1346,9 +1352,7 @@ child (void * param)
 	/*
 	 * exit path
 	 */
-	lock(vecs->lock);
 	remove_maps(vecs, stop_waiter_thread);
-	free_pathvec(vecs->pathvec, FREE_PATHS);
 
 	pthread_cancel(check_thr);
 	pthread_cancel(uevent_thr);
@@ -1362,6 +1366,8 @@ child (void * param)
 	handlers = NULL;
 	free_polls();
 
+	lock(vecs->lock);
+	free_pathvec(vecs->pathvec, FREE_PATHS);
 	unlock(vecs->lock);
 	pthread_mutex_destroy(vecs->lock);
 	FREE(vecs->lock);

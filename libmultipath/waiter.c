@@ -58,7 +58,7 @@ void free_waiter (void *data)
 void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 {
 	struct event_thread *wp = (struct event_thread *)mpp->waiter;
-	
+
 	if (!wp) {
 		condlog(3, "%s: no waiter thread", mpp->alias);
 		return;

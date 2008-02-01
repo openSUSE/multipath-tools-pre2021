@@ -45,7 +45,7 @@ static struct prio prioritizers[] = {
 struct prio * prio_lookup (char * name)
 {
 	struct prio * p = &prioritizers[0];
-	
+
 	while (p->getprio) {
 		if (!strncmp(name, p->name, PRIO_NAME_LEN))
 			return p;
