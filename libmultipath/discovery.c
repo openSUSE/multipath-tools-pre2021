@@ -245,7 +245,7 @@ devt2devname (char *devname, char *devt)
 		condlog(0, "Cannot open /proc/partitions");
 		return 1;
 	}
-	
+
 	while (!feof(fd)) {
 		int r = fscanf(fd,"%u %u %*d %s",&tmpmaj, &tmpmin, dev);
 		if (!r) {
@@ -281,66 +281,66 @@ devt2devname (char *devname, char *devt)
 
 int
 do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
-       void *resp, int mx_resp_len, int noisy)
+       void *resp, int mx_resp_len)
 {
-        unsigned char inqCmdBlk[INQUIRY_CMDLEN] =
-            { INQUIRY_CMD, 0, 0, 0, 0, 0 };
-        unsigned char sense_b[SENSE_BUFF_LEN];
-        struct sg_io_hdr io_hdr;
+	unsigned char inqCmdBlk[INQUIRY_CMDLEN] =
+		{ INQUIRY_CMD, 0, 0, 0, 0, 0 };
+	unsigned char sense_b[SENSE_BUFF_LEN];
+	struct sg_io_hdr io_hdr;
 
-        if (cmddt)
-                inqCmdBlk[1] |= 2;
-        if (evpd)
-                inqCmdBlk[1] |= 1;
-        inqCmdBlk[2] = (unsigned char) pg_op;
+	if (cmddt)
+		inqCmdBlk[1] |= 2;
+	if (evpd)
+		inqCmdBlk[1] |= 1;
+	inqCmdBlk[2] = (unsigned char) pg_op;
 	inqCmdBlk[3] = (unsigned char)((mx_resp_len >> 8) & 0xff);
 	inqCmdBlk[4] = (unsigned char) (mx_resp_len & 0xff);
-        memset(&io_hdr, 0, sizeof (struct sg_io_hdr));
-        io_hdr.interface_id = 'S';
-        io_hdr.cmd_len = sizeof (inqCmdBlk);
-        io_hdr.mx_sb_len = sizeof (sense_b);
-        io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
-        io_hdr.dxfer_len = mx_resp_len;
-        io_hdr.dxferp = resp;
-        io_hdr.cmdp = inqCmdBlk;
-        io_hdr.sbp = sense_b;
-        io_hdr.timeout = DEF_TIMEOUT;
+	memset(&io_hdr, 0, sizeof (struct sg_io_hdr));
+	io_hdr.interface_id = 'S';
+	io_hdr.cmd_len = sizeof (inqCmdBlk);
+	io_hdr.mx_sb_len = sizeof (sense_b);
+	io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
+	io_hdr.dxfer_len = mx_resp_len;
+	io_hdr.dxferp = resp;
+	io_hdr.cmdp = inqCmdBlk;
+	io_hdr.sbp = sense_b;
+	io_hdr.timeout = DEF_TIMEOUT;
 
-        if (ioctl(sg_fd, SG_IO, &io_hdr) < 0)
-                return -1;
+	if (ioctl(sg_fd, SG_IO, &io_hdr) < 0)
+		return -1;
 
-        /* treat SG_ERR here to get rid of sg_err.[ch] */
-        io_hdr.status &= 0x7e;
-        if ((0 == io_hdr.status) && (0 == io_hdr.host_status) &&
-            (0 == io_hdr.driver_status))
-                return 0;
-        if ((SCSI_CHECK_CONDITION == io_hdr.status) ||
-            (SCSI_COMMAND_TERMINATED == io_hdr.status) ||
-            (SG_ERR_DRIVER_SENSE == (0xf & io_hdr.driver_status))) {
-                if (io_hdr.sbp && (io_hdr.sb_len_wr > 2)) {
-                        int sense_key;
-                        unsigned char * sense_buffer = io_hdr.sbp;
-                        if (sense_buffer[0] & 0x2)
-                                sense_key = sense_buffer[1] & 0xf;
-                        else
-                                sense_key = sense_buffer[2] & 0xf;
-                        if(RECOVERED_ERROR == sense_key)
-                                return 0;
-                }
-        }
-        return -1;
+	/* treat SG_ERR here to get rid of sg_err.[ch] */
+	io_hdr.status &= 0x7e;
+	if ((0 == io_hdr.status) && (0 == io_hdr.host_status) &&
+	    (0 == io_hdr.driver_status))
+		return 0;
+	if ((SCSI_CHECK_CONDITION == io_hdr.status) ||
+	    (SCSI_COMMAND_TERMINATED == io_hdr.status) ||
+	    (SG_ERR_DRIVER_SENSE == (0xf & io_hdr.driver_status))) {
+		if (io_hdr.sbp && (io_hdr.sb_len_wr > 2)) {
+			int sense_key;
+			unsigned char * sense_buffer = io_hdr.sbp;
+			if (sense_buffer[0] & 0x2)
+				sense_key = sense_buffer[1] & 0xf;
+			else
+				sense_key = sense_buffer[2] & 0xf;
+			if(RECOVERED_ERROR == sense_key)
+				return 0;
+		}
+	}
+	return -1;
 }
 
 static int
 get_serial (char * str, int maxlen, int fd)
 {
-        int len = 0;
-        char buff[MX_ALLOC_LEN + 1] = {0};
+	int len = 0;
+	char buff[MX_ALLOC_LEN + 1] = {0};
 
 	if (fd < 0)
-                return 1;
+		return 1;
 
-	if (0 == do_inq(fd, 0, 1, 0x80, buff, MX_ALLOC_LEN, 0)) {
+	if (0 == do_inq(fd, 0, 1, 0x80, buff, MX_ALLOC_LEN)) {
 		len = buff[3];
 		if (len >= maxlen)
 			return 1;
@@ -350,30 +350,37 @@ get_serial (char * str, int maxlen, int fd)
 		}
 		return 0;
 	}
-        return 1;
+	return 1;
 }
 
 static int
 get_inq (char * vendor, char * product, char * rev, int fd)
 {
 	char buff[MX_ALLOC_LEN + 1] = {0};
+	int len = 0;
 
 	if (fd < 0)
 		return 1;
 
-	if (0 == do_inq(fd, 0, 0, 0, buff, MX_ALLOC_LEN, 0)) {
-		memcpy(vendor, buff + 8, 8);
-		vendor[8] = '\0';
-		strchop(vendor);
-		memcpy(product, buff + 16, 16);
-		product[16] = '\0';
-		strchop(product);
-		memcpy(rev, buff + 32, 4);
-		rev[4] = '\0';
-		strchop(rev);
-		return 0;
-	}
-	return 1;
+	memset(buff, 0, MX_ALLOC_LEN);
+	if (0 != do_inq(fd, 0, 0, 0, buff, 36))
+		return 1;
+
+	len = buff[4] + 4;
+
+	if (len < 8)
+		return 1;
+
+	memcpy(vendor, buff + 8, 8);
+	vendor[8] = '\0';
+	strchop(vendor);
+	memcpy(product, buff + 16, 16);
+	product[16] = '\0';
+	strchop(product);
+	memcpy(rev, buff + 32, 4);
+	rev[4] = '\0';
+	strchop(rev);
+	return 0;
 }
 
 static int
@@ -462,7 +469,7 @@ ccw_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 
 	/*
 	 * host / bus / target / lun
-	 */	
+	 */
 	basename(parent->devpath, attr_path);
 	pp->sg_id.lun = 0;
 	sscanf(attr_path, "%i.%i.%x",
@@ -592,6 +599,12 @@ cciss_ioctl_pathinfo (struct path * pp, int mask)
 {
 	if (mask & DI_SYSFS) {
 		get_inq(pp->vendor_id, pp->product_id, pp->rev, pp->fd);
+		/* Inquiry returns bogus values if no arrays are configured */
+		if (strcmp(pp->vendor_id, "HP")) {
+			sprintf(pp->vendor_id,"HP");
+			sprintf(pp->product_id,"SMART ARRAY");
+			memset(pp->rev,0, sizeof(pp->rev));
+		}
 		condlog(3, "%s: vendor = %s", pp->dev, pp->vendor_id);
 		condlog(3, "%s: product = %s", pp->dev, pp->product_id);
 		condlog(3, "%s: revision = %s", pp->dev, pp->rev);
