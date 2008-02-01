@@ -6,7 +6,7 @@ BUILD = glibc
 
 include ../Makefile.inc
 
-OBJS = libprio.o random.o const.o hp_sw.o emc.o rdac.o alua.o alua_rtpg.o netapp.o hds.o
+OBJS = libprio.o random.o const.o hp_sw.o emc.o rdac.o alua.o alua_rtpg.o netapp.o hds.o command.o
 
 CFLAGS += -I$(multipathdir)
 

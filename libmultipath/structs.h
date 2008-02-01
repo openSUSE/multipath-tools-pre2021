@@ -120,6 +120,7 @@ struct path {
 	int priority;
 	int pgindex;
 	char * getuid;
+	char * getprio;
 	struct prio * prio;
 	struct checker checker;
 	struct multipath * mpp;

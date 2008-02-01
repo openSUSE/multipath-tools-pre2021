@@ -16,6 +16,7 @@
 #include "netapp.h"
 #include "hds.h"
 #include "rdac.h"
+#include "command.h"
 
 #define DEFAULT_PRIO PRIO_CONST
 

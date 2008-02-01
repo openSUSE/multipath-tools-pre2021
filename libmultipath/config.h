@@ -16,6 +16,7 @@ struct hwentry {
 	char * product;
 	char * revision;
 	char * getuid;
+	char * getprio;
 	char * features;
 	char * hwhandler;
 	char * selector;
@@ -37,6 +38,7 @@ struct mpentry {
 	char * wwid;
 	char * alias;
 	char * getuid;
+	char * getprio;
 	char * selector;
 
 	int pgpolicy;
@@ -73,6 +75,7 @@ struct config {
 	char * udev_dir;
 	char * selector;
 	char * getuid;
+	char * getprio;
 	char * features;
 	char * hwhandler;
 	char * bindings_file;

@@ -37,6 +37,10 @@ static struct prio prioritizers[] = {
 		.getprio = prio_hp_sw
 	},
 	{
+		.name    = PRIO_COMMAND,
+		.getprio = prio_command
+	},
+	{
 		.name    = "",
 		.getprio = NULL
 	},

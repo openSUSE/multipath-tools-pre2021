@@ -266,10 +266,26 @@ select_prio (struct path * pp)
 			pp->dev, prio_name(pp->prio));
 		return 0;
 	}
+	if (pp->hwe && pp->hwe->getprio) {
+		pp->getprio = pp->hwe->getprio;
+		pp->prio = prio_lookup(PRIO_COMMAND);
+		condlog(1, "%s: Using deprecated prio_callout '%s' (controller setting)\n"
+			"\tPlease fixup /etc/multipath.conf",
+			pp->dev, pp->hwe->getprio);
+		return 0;
+	}
 	if (conf->prio) {
 		pp->prio = conf->prio;
 		condlog(3, "%s: prio = %s (config file default)",
 			pp->dev, prio_name(pp->prio));
+		return 0;
+	}
+	if (conf->getprio) {
+		pp->getprio = conf->getprio;
+		pp->prio = prio_lookup(PRIO_COMMAND);
+		condlog(1, "%s: Using deprecated prio_callout '%s' (controller setting)\n"
+			"\tPlease fixup /etc/multipath.conf",
+			pp->dev, pp->hwe->getprio);
 		return 0;
 	}
 	pp->prio = prio_default();
