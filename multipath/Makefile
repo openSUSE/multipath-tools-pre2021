@@ -5,14 +5,15 @@ BUILD = glibc
 
 include ../Makefile.inc
 
-OBJS = main.o $(MULTIPATHLIB)-$(BUILD).a $(CHECKERSLIB)-$(BUILD).a
+OBJS = main.o $(MULTIPATHLIB)-$(BUILD).a $(CHECKERSLIB)-$(BUILD).a $(LIBPRIO)-$(BUILD).a
 
-CFLAGS += -I$(multipathdir) -I$(checkersdir)
+CFLAGS += -I$(multipathdir) -I$(checkersdir) -I$(libpriodir)
+LDFLAGS += -laio
 
 ifeq ($(strip $(BUILD)),klibc)
-	OBJS += $(libdm) $(libsysfs)
+	OBJS += $(libdm)
 else
-	LDFLAGS += -ldevmapper -lsysfs
+	LDFLAGS += -ldevmapper
 endif
 
 EXEC = multipath
@@ -29,6 +30,9 @@ glibc: prepare $(OBJS)
 klibc: prepare $(OBJS)
 	$(CC) -static -o $(EXEC) $(CRT0) $(OBJS) $(KLIBC) $(LIBGCC)
 
+$(LIBPRIO)-$(BUILD).a:
+	make -C $(libpriodir) BUILD=$(BUILD) $(BUILD)
+
 $(CHECKERSLIB)-$(BUILD).a:
 	make -C $(checkersdir) BUILD=$(BUILD) $(BUILD)
 
@@ -37,7 +41,7 @@ $(MULTIPATHLIB)-$(BUILD).a:
 
 install:
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/
+	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/
 	install -d $(DESTDIR)$(mandir)
@@ -49,6 +53,7 @@ uninstall:
 	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules
 	rm $(DESTDIR)$(bindir)/$(EXEC)
 	rm $(DESTDIR)$(mandir)/$(EXEC).8
+	rm $(DESTDIR)$(man5dir)/$(EXEC).conf.5
 
 clean:
 	rm -f core *.o $(EXEC)

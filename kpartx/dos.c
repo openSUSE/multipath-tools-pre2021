@@ -16,7 +16,7 @@ is_extended(int type) {
 }
 
 static int
-read_extended_partition(int fd, struct partition *ep,
+read_extended_partition(int fd, struct partition *ep, int en,
 			struct slice *sp, int ns)
 {
 	struct partition p;
@@ -53,6 +53,7 @@ read_extended_partition(int fd, struct partition *ep,
 			if (n < ns) {
 				sp[n].start = here + le32_to_cpu(p.start_sect);
 				sp[n].size = le32_to_cpu(p.nr_sects);
+				sp[n].container = en + 1;
 				n++;
 			} else {
 				fprintf(stderr,
@@ -97,9 +98,7 @@ read_dos_pt(int fd, struct slice all, struct slice *sp, int ns) {
 			break;
 		}
 		if (is_extended(p.sys_type)) {
-			n += read_extended_partition(fd, &p, sp+n, ns-n);
-			/* Set size to 1 to allow further partitions */
-			sp[i].size = 1;
+			n += read_extended_partition(fd, &p, i, sp+n, ns-n);
 		}
 	}
 	return n;

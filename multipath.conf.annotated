@@ -11,7 +11,7 @@
 #	#
 #	# name    : udev_dir
 #	# desc    : directory where udev creates its device nodes
-#	# default : /udev
+#	# default : /dev
 #	#
 #	udev_dir	/dev
 #
@@ -38,7 +38,7 @@
 #	# scope   : multipath
 #	# desc    : the default path grouping policy to apply to unspecified
 #	#           multipaths
-#	# default : multibus
+#	# default : failover
 #	#
 #	path_grouping_policy	multibus
 #
@@ -47,28 +47,28 @@
 #	# scope   : multipath
 #	# desc    : the default program and args to callout to obtain a unique 
 #	#           path identifier. Absolute path required
-#	# default : /sbin/scsi_id -g -u -s
+#	# default : /lib/udev/scsi_id -g -u -s
 #	#
-#	getuid_callout	"/sbin/scsi_id -g -u -s /block/%n"
+#	getuid_callout	"/lib/udev/scsi_id -g -u -s /block/%n"
 #
 #	#
-#	# name    : prio_callout
+#	# name    : prio
 #	# scope   : multipath
-#	# desc    : the default program and args to callout to obtain a path 
+#	# desc    : the default function to call to obtain a path 
 #	#           priority value. The ALUA bits in SPC-3 provide an
-#	#           exploitable prio value for example. "none" is a valid value
+#	#           exploitable prio value for example.
 #	# default : (null)
 #	#
-#	#prio_callout	"/bin/true"
+#	#prio	"alua"
 #
 #	#
 #	# name    : path_checker
 #	# scope   : multipath & multipathd
 #	# desc    : the default method used to determine the paths' state
 #	# values  : readsector0|tur|emc_clariion|hp_sw|directio
-#	# default : readsector0
+#	# default : directio
 #	#
-#	#path_checker	readsector0
+#	#path_checker	directio
 #
 #	#
 #	# name    : rr_min_io
@@ -78,6 +78,16 @@
 #	# default : 1000
 #	#
 #	rr_min_io	100
+#
+#	#
+#	# name    : max_fds
+#	# scope   : multipathd
+#	# desc    : Sets the maximum number of open file descriptors for the
+#	#           multipathd process.
+#	# values  : unlimited|n > 0
+#	# default : None
+#	#
+#	max_fds		8192
 #
 #	#
 #	# name    : rr_weight
@@ -96,9 +106,9 @@
 #	#	    0 means immediate failback, values >0 means deffered failback
 #	#	    expressed in seconds.
 #	# values  : manual|immediate|n > 0
-#	# default : immediate
+#	# default : manual
 #	#
-#	failback	manual
+#	failback	immediate
 #
 #	#
 #	# name    : no_path_retry
@@ -198,10 +208,10 @@
 #		# name    : path_checker
 #		# scope   : multipathd
 #		# desc    : path checking alorithm to use to check path state
-#		# values  : readsector0, tur
-#		# default : readsector0
+#		# values  : readsector0|tur|emc_clariion|hp_sw|directio
+#		# default : directio
 #		#
-#		# path_checker		readsector0
+#		# path_checker		directio
 #		
 #		#
 #		# name    : path_selector
@@ -219,9 +229,9 @@
 #		#	    0 means immediate failback, values >0 means deffered failback
 #		#	    expressed in seconds.
 #		# values  : manual|immediate|n > 0
-#		# default : immediate
+#		# default : manual
 #		#
-#		failback		manual
+#		failback		immediate
 #
 #		#
 #		# name    : no_path_retry
@@ -291,29 +301,28 @@
 #		# scope   : multipath
 #		# desc    : the program and args to callout to obtain a unique 
 #		#           path identifier. Absolute path required
-#		# default : /sbin/scsi_id -g -u -s
+#		# default : /lib/udev/scsi_id -g -u -s
 #		#
-#		getuid_callout          "/sbin/scsi_id -g -u -s /block/%n"
+#		getuid_callout          "/lib/udev/scsi_id -g -u -s /block/%n"
 #
 #		#
-#		# name    : prio_callout
+#		# name    : prio
 #		# scope   : multipath
-#		# desc    : the program and args to callout to obtain a path 
+#		# desc    : the function to call to obtain a path 
 #		#           weight. Weights are summed for each path group to
 #		#	    determine the next PG to use case of failure.
-#		#	    "none" is a valid value.
 #		# default : no callout, all paths equals
 #		#
-#		prio_callout          "/sbin/mpath_prio_balance_units %d"
+#		prio          "hp_sw"
 #
 #		#
 #		# name    : path_checker
 #		# scope   : multipathd
 #		# desc    : path checking alorithm to use to check path state
-#		# values  : readsector0, tur
-#		# default : readsector0
+#		# values  : readsector0|tur|emc_clariion|hp_sw|directio
+#		# default : directio
 #		#
-#		path_checker		readsector0
+#		path_checker		directio
 #
 #		#
 #		# name    : path_selector
@@ -331,7 +340,7 @@
 #		#	    0 means immediate failback, values >0 means deffered failback
 #		#	    expressed in seconds.
 #		# values  : manual|immediate|n > 0
-#		# default : immediate
+#		# default : manual
 #		#
 #		failback		30
 #

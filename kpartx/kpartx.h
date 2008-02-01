@@ -24,6 +24,9 @@
 struct slice {
 	uint64_t start;
 	uint64_t size;
+	int container;
+	int major;
+	int minor;
 };
 
 typedef int (ptreader)(int fd, struct slice all, struct slice *sp, int ns);
@@ -35,6 +38,7 @@ extern ptreader read_unixware_pt;
 extern ptreader read_gpt_pt;
 extern ptreader read_dasd_pt;
 extern ptreader read_mac_pt;
+extern ptreader read_sun_pt;
 
 char *getblock(int fd, unsigned int secnr);
 

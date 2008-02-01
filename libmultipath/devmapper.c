@@ -82,6 +82,26 @@ dm_init(void) {
 	dm_log_init_verbose(conf ? conf->verbosity + 3 : 0);
 }
 
+static int
+dm_libprereq (void)
+{
+	char version[64];
+	int v[3];
+	int minv[3] = {1, 2, 8};
+
+	dm_get_library_version(version, sizeof(version));
+	condlog(3, "libdevmapper version %s", version);
+	sscanf(version, "%d.%d.%d ", &v[0], &v[1], &v[2]);
+
+	if ((v[0] > minv[0]) ||
+	    ((v[0] ==  minv[0]) && (v[1] > minv[1])) ||
+	    ((v[0] == minv[0]) && (v[1] == minv[1]) && (v[2] >= minv[2])))
+		return 0;
+	condlog(0, "libdevmapper version must be >= %d.%.2d.%.2d",
+		minv[0], minv[1], minv[2]);
+	return 1;
+}
+
 extern int
 dm_prereq (char * str, int x, int y, int z)
 {
@@ -142,6 +162,9 @@ dm_simplecmd (int task, const char *name) {
 
 	dm_task_no_open_count(dmt);
 	dm_task_skip_lockfs(dmt);       /* for DM_DEVICE_RESUME */
+#ifdef LIBDM_API_FLUSH
+	dm_task_no_flush(dmt);          /* for DM_DEVICE_SUSPEND/RESUME */
+#endif
 
 	r = dm_task_run (dmt);
 
@@ -567,6 +590,16 @@ dm_queue_if_no_path(char *mapname, int enable)
 	else
 		message = "fail_if_no_path\n";
 
+	return dm_message(mapname, message);
+}
+
+int
+dm_set_pg_timeout(char *mapname, int timeout_val)
+{
+	char message[24];
+
+	if (snprintf(message, 24, "set_pg_timeout %d", timeout_val) >= 24)
+		return 1;
 	return dm_message(mapname, message);
 }
 

@@ -24,9 +24,9 @@
 #define SG_ERR_DRIVER_SENSE	0x08
 #define RECOVERED_ERROR		0x01
 
-#define MSG_RDAC_UP	"rdac checker reports path is up"
-#define MSG_RDAC_DOWN	"rdac checker reports path is down"
-#define MSG_RDAC_GHOST	"rdac checker reports path is ghost"
+#define MSG_RDAC_UP    "rdac checker reports path is up"
+#define MSG_RDAC_DOWN  "rdac checker reports path is down"
+#define MSG_RDAC_GHOST "rdac checker reports path is ghost"
 
 struct rdac_checker_context {
 	void * dummy;
@@ -69,11 +69,11 @@ do_inq(int sg_fd, unsigned int pg_op, void *resp, int mx_resp_len)
 	/* treat SG_ERR here to get rid of sg_err.[ch] */
 	io_hdr.status &= 0x7e;
 	if ((0 == io_hdr.status) && (0 == io_hdr.host_status) &&
-			(0 == io_hdr.driver_status))
+	    (0 == io_hdr.driver_status))
 		return 0;
 	if ((SCSI_CHECK_CONDITION == io_hdr.status) ||
-		(SCSI_COMMAND_TERMINATED == io_hdr.status) ||
-		(SG_ERR_DRIVER_SENSE == (0xf & io_hdr.driver_status))) {
+	    (SCSI_COMMAND_TERMINATED == io_hdr.status) ||
+	    (SG_ERR_DRIVER_SENSE == (0xf & io_hdr.driver_status))) {
 		if (io_hdr.sbp && (io_hdr.sb_len_wr > 2)) {
 			int sense_key;
 			unsigned char * sense_buffer = io_hdr.sbp;

@@ -5,6 +5,7 @@
  * Copyright (c) 2005 Kiyoshi Ueda, NEC
  */
 #include <checkers.h>
+#include <libprio.h>
 
 #include "vector.h"
 #include "hwtable.h"
@@ -82,19 +83,16 @@ def_getuid_callout_handler(vector strvec)
 }
 
 static int
-def_prio_callout_handler(vector strvec)
+def_prio_handler(vector strvec)
 {
-	conf->getprio = set_value(strvec);
+	char * buff;
 
-	if (!conf->getprio)
+	buff = set_value(strvec);
+	if (!buff)
 		return 1;
-	
-	if (strlen(conf->getprio) == 4 &&
-	    !strcmp(conf->getprio, "none")) {
-		FREE(conf->getprio);
-		conf->getprio = NULL;
-	}
-		
+
+	conf->prio = prio_lookup(buff);
+	FREE(buff);
 	return 0;
 }
 
@@ -136,6 +134,26 @@ def_minio_handler(vector strvec)
 		return 1;
 
 	conf->minio = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
+max_fds_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "unlimited"))
+		conf->max_fds = MAX_FDS_UNLIMITED;
+	else
+		conf->max_fds = atoi(buff);
 	FREE(buff);
 
 	return 0;
@@ -195,6 +213,32 @@ def_no_path_retry_handler(vector strvec)
 		conf->no_path_retry = NO_PATH_RETRY_QUEUE;
 	else if ((conf->no_path_retry = atoi(buff)) < 1)
 		conf->no_path_retry = NO_PATH_RETRY_UNDEF;
+
+	FREE(buff);
+	return 0;
+}
+
+static int
+def_pg_timeout_handler(vector strvec)
+{
+	int pg_timeout;
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 4 && !strcmp(buff, "none"))
+		conf->pg_timeout = -PGTIMEOUT_NONE;
+	else if (sscanf(buff, "%d", &pg_timeout) == 1 && pg_timeout >= 0) {
+		if (pg_timeout == 0)
+			conf->pg_timeout = -PGTIMEOUT_NONE;
+		else
+			conf->pg_timeout = pg_timeout;
+	}
+	else
+		conf->pg_timeout = PGTIMEOUT_UNDEF;
 
 	FREE(buff);
 	return 0;
@@ -266,12 +310,12 @@ ble_devnode_handler(vector strvec)
 static int
 ble_except_devnode_handler(vector strvec)
 {
-        char * buff;
+	char * buff;
 
-        buff = set_value(strvec);
+	buff = set_value(strvec);
 
-        if (!buff)
-                return 1;
+	if (!buff)
+		return 1;
 
 	return store_ble(conf->elist_devnode, buff, ORIGIN_CONFIG);
 }
@@ -545,23 +589,20 @@ hw_handler_handler(vector strvec)
 }
 
 static int
-prio_callout_handler(vector strvec)
+hw_prio_handler(vector strvec)
 {
 	struct hwentry * hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char * buff;
 	
 	if (!hwe)
 		return 1;
 
-	hwe->getprio = set_value(strvec);
-
-	if (!hwe->getprio)
+	buff = set_value(strvec);
+	if (!buff)
 		return 1;
-
-	if (strlen(hwe->getprio) == 4 && !strcmp(hwe->getprio, "none")) {
-		FREE(hwe->getprio);
-		hwe->getprio = NULL;
-	}
-
+	
+	hwe->prio = prio_lookup(buff);
+	FREE(buff);
 	return 0;
 }
 
@@ -653,6 +694,36 @@ hw_minio_handler(vector strvec)
 	hwe->minio = atoi(buff);
 	FREE(buff);
 
+	return 0;
+}
+
+static int
+hw_pg_timeout_handler(vector strvec)
+{
+	int pg_timeout;
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char *buff;
+
+	if (!hwe)
+		return 1;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 4 && !strcmp(buff, "none"))
+		hwe->pg_timeout = -PGTIMEOUT_NONE;
+	else if (sscanf(buff, "%d", &pg_timeout) == 1 && pg_timeout >= 0) {
+		if (pg_timeout == 0)
+			hwe->pg_timeout = -PGTIMEOUT_NONE;
+		else
+			hwe->pg_timeout = pg_timeout;
+	}
+	else
+		hwe->pg_timeout = PGTIMEOUT_UNDEF;
+
+	FREE(buff);
 	return 0;
 }
 
@@ -848,6 +919,35 @@ mp_minio_handler(vector strvec)
 	return 0;
 }
 
+static int
+mp_pg_timeout_handler(vector strvec)
+{
+	int pg_timeout;
+	struct mpentry *mpe = VECTOR_LAST_SLOT(conf->mptable);
+	char *buff;
+
+	if (!mpe)
+		return 1;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+	if (strlen(buff) == 4 && !strcmp(buff, "none"))
+		mpe->pg_timeout = -PGTIMEOUT_NONE;
+	else if (sscanf(buff, "%d", &pg_timeout) == 1 && pg_timeout >= 0) {
+		if (pg_timeout == 0)
+			mpe->pg_timeout = -PGTIMEOUT_NONE;
+		else
+			mpe->pg_timeout = pg_timeout;
+	}
+	else
+		mpe->pg_timeout = PGTIMEOUT_UNDEF;
+
+	FREE(buff);
+	return 0;
+}
+
 /*
  * config file keywords printing
  */
@@ -967,6 +1067,22 @@ snprint_mp_rr_min_io (char * buff, int len, void * data)
 }
 
 static int
+snprint_mp_pg_timeout (char * buff, int len, void * data)
+{
+	struct mpentry * mpe = (struct mpentry *)data;
+
+	switch (mpe->pg_timeout) {
+	case PGTIMEOUT_UNDEF:
+		break;
+	case -PGTIMEOUT_NONE:
+		return snprintf(buff, len, "none");
+	default:
+		return snprintf(buff, len, "%i", mpe->pg_timeout);
+	}
+	return 0;
+}
+
+static int
 snprint_hw_vendor (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
@@ -1014,23 +1130,16 @@ snprint_hw_getuid_callout (char * buff, int len, void * data)
 }
 
 static int
-snprint_hw_prio_callout (char * buff, int len, void * data)
+snprint_hw_prio (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!conf->getprio && !hwe->getprio)
+	if (!hwe->prio)
 		return 0;
-	if (!conf->getprio && hwe->getprio)
-		return snprintf(buff, len, "%s", hwe->getprio);
-	if (conf->getprio && !hwe->getprio)
-		return snprintf(buff, len, "none");
-
-	/* conf->getprio && hwe->getprio */
-	if (strlen(hwe->getprio) == strlen(conf->getprio) &&
-	    !strcmp(hwe->getprio, conf->getprio))
+	if (hwe->prio == conf->prio)
 		return 0;
-
-	return snprintf(buff, len, "%s", hwe->getprio);
+	
+	return snprintf(buff, len, "%s", prio_name(hwe->prio));
 }
 
 static int
@@ -1168,6 +1277,27 @@ snprint_hw_rr_min_io (char * buff, int len, void * data)
 }
 
 static int
+snprint_hw_pg_timeout (char * buff, int len, void * data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	if (!hwe->pg_timeout)
+		return 0;
+	if (hwe->pg_timeout == conf->pg_timeout)
+		return 0;
+
+	switch (hwe->pg_timeout) {
+	case PGTIMEOUT_UNDEF:
+		break;
+	case -PGTIMEOUT_NONE:
+		return snprintf(buff, len, "none");
+	default:
+		return snprintf(buff, len, "%i", hwe->pg_timeout);
+	}
+	return 0;
+}
+
+static int
 snprint_hw_path_checker (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
@@ -1242,12 +1372,12 @@ snprint_def_getuid_callout (char * buff, int len, void * data)
 }
 
 static int
-snprint_def_getprio_callout (char * buff, int len, void * data)
+snprint_def_prio (char * buff, int len, void * data)
 {
-	if (!conf->getprio)
+	if (!conf->prio)
 		return 0;
 
-	return snprintf(buff, len, "%s", conf->getprio);
+	return snprintf(buff, len, "%s", prio_name(conf->prio));
 }
 
 static int
@@ -1306,6 +1436,17 @@ snprint_def_rr_min_io (char * buff, int len, void * data)
 }
 
 static int
+snprint_max_fds (char * buff, int len, void * data)
+{
+	if (!conf->max_fds)
+		return 0;
+
+	if (conf->max_fds < 0)
+		return snprintf(buff, len, "unlimited");	
+	return snprintf(buff, len, "%d", conf->max_fds);
+}
+
+static int
 snprint_def_rr_weight (char * buff, int len, void * data)
 {
 	if (!conf->rr_weight)
@@ -1334,6 +1475,23 @@ snprint_def_no_path_retry (char * buff, int len, void * data)
 	default:
 		return snprintf(buff, len, "%i",
 				conf->no_path_retry);
+	}
+	return 0;
+}
+
+static int
+snprint_def_pg_timeout (char * buff, int len, void * data)
+{
+	if (conf->pg_timeout == DEFAULT_PGTIMEOUT)
+		return 0;
+
+	switch (conf->pg_timeout) {
+	case PGTIMEOUT_UNDEF:
+		break;
+	case -PGTIMEOUT_NONE:
+		return snprintf(buff, len, "none");
+	default:
+		return snprintf(buff, len, "%i", conf->pg_timeout);
 	}
 	return 0;
 }
@@ -1384,18 +1542,19 @@ init_keywords(void)
 	install_keyword("selector", &def_selector_handler, &snprint_def_selector);
 	install_keyword("path_grouping_policy", &def_pgpolicy_handler, &snprint_def_path_grouping_policy);
 	install_keyword("getuid_callout", &def_getuid_callout_handler, &snprint_def_getuid_callout);
-	install_keyword("prio_callout", &def_prio_callout_handler, &snprint_def_getprio_callout);
+	install_keyword("prio", &def_prio_handler, &snprint_def_prio);
 	install_keyword("features", &def_features_handler, &snprint_def_features);
 	install_keyword("path_checker", &def_path_checker_handler, &snprint_def_path_checker);
 	install_keyword("failback", &default_failback_handler, &snprint_def_failback);
 	install_keyword("rr_min_io", &def_minio_handler, &snprint_def_rr_min_io);
+	install_keyword("max_fds", &max_fds_handler, &snprint_max_fds);
 	install_keyword("rr_weight", &def_weight_handler, &snprint_def_rr_weight);
 	install_keyword("no_path_retry", &def_no_path_retry_handler, &snprint_def_no_path_retry);
+	install_keyword("pg_timeout", &def_pg_timeout_handler, &snprint_def_pg_timeout);
 	install_keyword("user_friendly_names", &names_handler, &snprint_def_user_friendly_names);
 	__deprecated install_keyword("default_selector", &def_selector_handler, NULL);
 	__deprecated install_keyword("default_path_grouping_policy", &def_pgpolicy_handler, NULL);
 	__deprecated install_keyword("default_getuid_callout", &def_getuid_callout_handler, NULL);
-	__deprecated install_keyword("default_prio_callout", &def_prio_callout_handler, NULL);
 	__deprecated install_keyword("default_features", &def_features_handler, NULL);
 	__deprecated install_keyword("default_path_checker", &def_path_checker_handler, NULL);
 
@@ -1439,11 +1598,12 @@ init_keywords(void)
 	install_keyword("path_checker", &hw_path_checker_handler, &snprint_hw_path_checker);
 	install_keyword("features", &hw_features_handler, &snprint_hw_features);
 	install_keyword("hardware_handler", &hw_handler_handler, &snprint_hw_hardware_handler);
-	install_keyword("prio_callout", &prio_callout_handler, &snprint_hw_prio_callout);
+	install_keyword("prio", &hw_prio_handler, &snprint_hw_prio);
 	install_keyword("failback", &hw_failback_handler, &snprint_hw_failback);
 	install_keyword("rr_weight", &hw_weight_handler, &snprint_hw_rr_weight);
 	install_keyword("no_path_retry", &hw_no_path_retry_handler, &snprint_hw_no_path_retry);
 	install_keyword("rr_min_io", &hw_minio_handler, &snprint_hw_rr_min_io);
+	install_keyword("pg_timeout", &hw_pg_timeout_handler, &snprint_hw_pg_timeout);
 	install_sublevel_end();
 
 	install_keyword_root("multipaths", &multipaths_handler);
@@ -1457,5 +1617,6 @@ init_keywords(void)
 	install_keyword("rr_weight", &mp_weight_handler, &snprint_mp_rr_weight);
 	install_keyword("no_path_retry", &mp_no_path_retry_handler, &snprint_mp_no_path_retry);
 	install_keyword("rr_min_io", &mp_minio_handler, &snprint_mp_rr_min_io);
+	install_keyword("pg_timeout", &mp_pg_timeout_handler, &snprint_mp_pg_timeout);
 	install_sublevel_end();
 }

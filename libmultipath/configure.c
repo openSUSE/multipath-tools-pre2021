@@ -15,6 +15,7 @@
 #include <libdevmapper.h>
 
 #include <checkers.h>
+#include <libprio.h>
 
 #include "vector.h"
 #include "memory.h"
@@ -60,6 +61,7 @@ setup_map (struct multipath * mpp)
 	select_rr_weight(mpp);
 	select_minio(mpp);
 	select_no_path_retry(mpp);
+	select_pg_timeout(mpp);
 
 	/*
 	 * assign paths to path groups -- start with no groups and all paths
@@ -174,8 +176,9 @@ select_action (struct multipath * mpp, vector curmp)
 			mpp->alias);
 		return;
 	}
-	if (!mpp->no_path_retry && /* let features be handled by the daemon */
-	    strncmp(cmpp->features, mpp->features, strlen(mpp->features))) {
+	if (!mpp->no_path_retry && !mpp->pg_timeout &&
+	    (strlen(cmpp->features) != strlen(mpp->features) ||
+	     strcmp(cmpp->features, mpp->features))) {
 		mpp->action =  ACT_RELOAD;
 		condlog(3, "%s: set ACT_RELOAD (features change)",
 			mpp->alias);
@@ -323,8 +326,10 @@ domap (struct multipath * mpp)
 			return DOMAP_RETRY;
 		}
 
-		if (dm_map_present(mpp->alias))
+		if (dm_map_present(mpp->alias)) {
+			condlog(3, "%s: map already present", mpp->alias);
 			break;
+		}
 
 		r = dm_addmap(DM_DEVICE_CREATE, mpp->alias, DEFAULT_TARGET,
 			      mpp->params, mpp->size, mpp->wwid);
@@ -360,7 +365,7 @@ domap (struct multipath * mpp)
 
 	if (r) {
 		/*
-		 * DM_DEVICE_CREATE, DM_DEIVCE_RENAME, or DM_DEVICE_RELOAD
+		 * DM_DEVICE_CREATE, DM_DEVICE_RENAME, or DM_DEVICE_RELOAD
 		 * succeeded
 		 */
 #ifndef DAEMON
@@ -371,6 +376,10 @@ domap (struct multipath * mpp)
 		mpp->stat_map_loads++;
 		condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
                         mpp->size, DEFAULT_TARGET, mpp->params);
+		/*
+		 * Required action is over, reset for the stateful daemon
+		 */
+		mpp->action = ACT_NOTHING;
 #endif
 		return DOMAP_OK;
 	}
@@ -418,7 +427,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 
 		/* 1. if path has no unique id or wwid blacklisted */
 		if (memcmp(empty_buff, pp1->wwid, WWID_SIZE) == 0 ||
-		    blacklist_path(conf, pp1))
+		    filter_path(conf, pp1) > 0)
 			continue;
 
 		/* 2. if path already coalesced */
@@ -499,6 +508,12 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 				dm_queue_if_no_path(mpp->alias, 0);
 			else
 				dm_queue_if_no_path(mpp->alias, 1);
+		}
+		if (mpp->pg_timeout != PGTIMEOUT_UNDEF) {
+			if (mpp->pg_timeout == -PGTIMEOUT_NONE)
+				dm_set_pg_timeout(mpp->alias,  0);
+			else
+				dm_set_pg_timeout(mpp->alias, mpp->pg_timeout);
 		}
 
 		if (newmp) {

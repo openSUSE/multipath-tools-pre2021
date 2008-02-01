@@ -25,9 +25,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <sysfs/libsysfs.h>
 
 #include <checkers.h>
+#include <libprio.h>
 #include <vector.h>
 #include <memory.h>
 #include <libdevmapper.h>
@@ -37,6 +37,7 @@
 #include <structs.h>
 #include <structs_vec.h>
 #include <dmparser.h>
+#include <sysfs.h>
 #include <config.h>
 #include <blacklist.h>
 #include <discovery.h>
@@ -225,7 +226,7 @@ configure (void)
 	vecs.mpvec = curmp;
 
 	/*
-	 * if we have a blacklisted device parameter, exit early
+	 * dev is "/dev/" . "sysfs block dev"
 	 */
 	if (conf->dev) {
 		if (!strncmp(conf->dev, "/dev/", 5) &&
@@ -235,8 +236,12 @@ configure (void)
 			dev = conf->dev;
 	}
 	
-	if (dev && blacklist(conf->blist_devnode, conf->elist_devnode, dev))
-		goto out;
+	/*
+	 * if we have a blacklisted device parameter, exit early
+	 */
+	if (dev && 
+	    (filter_devnode(conf->blist_devnode, conf->elist_devnode, dev) > 0))
+			goto out;
 	
 	/*
 	 * scope limiting must be translated into a wwid
@@ -250,8 +255,8 @@ configure (void)
 			goto out;
 		}
 		condlog(3, "scope limited to %s", refwwid);
-
-		if (blacklist(conf->blist_wwid, conf->elist_wwid, refwwid))
+		if (filter_wwid(conf->blist_wwid, conf->elist_wwid,
+				refwwid) > 0)
 			goto out;
 	}
 
@@ -370,13 +375,13 @@ main (int argc, char *argv[])
 	if (dm_prereq(DEFAULT_TARGET, 1, 0, 3))
 		exit(1);
 
-	if (sysfs_get_mnt_path(sysfs_path, FILE_NAME_SIZE)) {
-		condlog(0, "multipath tools need sysfs mounted");
-		exit(1);
-	}
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
+	if (sysfs_init(conf->sysfs_dir, FILE_NAME_SIZE)) {
+		condlog(0, "multipath tools need sysfs mounted");
+		exit(1);
+	}
 	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:t")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
@@ -418,7 +423,7 @@ main (int argc, char *argv[])
 			if (conf->pgpolicy_flag == -1) {
 				printf("'%s' is not a valid policy\n", optarg);
 				usage(argv[0]);
-			}                
+			}
 			break;
 		case 't':
 			dump_config();
@@ -427,14 +432,14 @@ main (int argc, char *argv[])
 			usage(argv[0]);
 		case ':':
 			fprintf(stderr, "Missing option arguement\n");
-			usage(argv[0]);        
+			usage(argv[0]);
 		case '?':
 			fprintf(stderr, "Unknown switch: %s\n", optarg);
 			usage(argv[0]);
 		default:
 			usage(argv[0]);
 		}
-	}        
+	}
 	if (optind < argc) {
 		conf->dev = MALLOC(FILE_NAME_SIZE);
 
@@ -451,6 +456,7 @@ main (int argc, char *argv[])
 			conf->dev_type = DEV_DEVMAP;
 
 	}
+	dm_init();
 
 	if (conf->remove == FLUSH_ONE) {
 		if (conf->dev_type == DEV_DEVMAP)
@@ -468,6 +474,7 @@ main (int argc, char *argv[])
 		condlog(3, "restart multipath configuration process");
 	
 out:
+	sysfs_cleanup();
 	free_config(conf);
 	dm_lib_release();
 	dm_lib_exit();

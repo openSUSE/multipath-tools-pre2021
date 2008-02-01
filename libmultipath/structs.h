@@ -9,6 +9,9 @@
 #define FILE_NAME_SIZE		256
 #define CALLOUT_MAX_SIZE	128
 #define BLK_DEV_SIZE		33
+#define PATH_SIZE		512
+#define NAME_SIZE		128
+
 
 #define SCSI_VENDOR_SIZE	9
 #define SCSI_PRODUCT_SIZE	17
@@ -18,8 +21,7 @@
 #define NO_PATH_RETRY_FAIL	-1
 #define NO_PATH_RETRY_QUEUE	-2
 
-#define PRIO_UNDEF		-1
-#define PRIO_DEFAULT		1
+#define MAX_FDS_UNLIMITED	-1
 
 enum free_path_switch {
 	KEEP_PATHS,
@@ -59,6 +61,11 @@ enum pgstates {
 	PGSTATE_ACTIVE
 };
 
+enum pgtimeouts {
+	PGTIMEOUT_UNDEF,
+	PGTIMEOUT_NONE
+};
+
 struct scsi_idlun {
 	int dev_id;
 	int host_unique_id;
@@ -82,9 +89,19 @@ struct scsi_dev {
 	int host_no;
 };
 
+struct sysfs_device {
+	struct sysfs_device *parent;		/* parent device */
+	char devpath[PATH_SIZE];
+	char subsystem[NAME_SIZE];		/* $class, $bus, drivers, module */
+	char kernel[NAME_SIZE];			/* device instance name */
+	char kernel_number[NAME_SIZE];
+	char driver[NAME_SIZE];			/* device driver name */
+};
+
 struct path {
 	char dev[FILE_NAME_SIZE];
 	char dev_t[BLK_DEV_SIZE];
+	struct sysfs_device *sysdev;
 	struct scsi_idlun scsi_id;
 	struct sg_id sg_id;
 	char wwid[WWID_SIZE];
@@ -103,8 +120,7 @@ struct path {
 	int priority;
 	int pgindex;
 	char * getuid;
-	char * getprio;
-	int getprio_selected;
+	struct prio * prio;
 	struct checker checker;
 	struct multipath * mpp;
 	int fd;
@@ -131,6 +147,7 @@ struct multipath {
 	int no_path_retry; /* number of retries after all paths are down */
 	int retry_tick;    /* remaining times for retries */
 	int minio;
+	int pg_timeout;
 	unsigned long long size;
 	vector paths;
 	vector pg;
@@ -195,6 +212,6 @@ struct path * first_path (struct multipath * mpp);
 int pathcountgr (struct pathgroup *, int);
 int pathcount (struct multipath *, int);
 
-char sysfs_path[FILE_NAME_SIZE];
+extern char sysfs_path[PATH_SIZE];
 
 #endif /* _STRUCTS_H */

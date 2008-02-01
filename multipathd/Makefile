@@ -7,7 +7,7 @@ include ../Makefile.inc
 # basic flags setting
 #
 CFLAGS += -DDAEMON -I$(multipathdir) -I$(checkersdir)
-LDFLAGS = -lpthread -ldevmapper -lsysfs -lreadline -lncurses
+LDFLAGS = -lpthread -ldevmapper -lreadline -lncurses -laio
 
 #
 # debuging stuff
@@ -21,6 +21,7 @@ LDFLAGS = -lpthread -ldevmapper -lsysfs -lreadline -lncurses
 #
 OBJS = main.o pidfile.o uxlsnr.o uxclnt.o cli.o cli_handlers.o \
        $(MULTIPATHLIB)-glibc.a $(CHECKERSLIB)-glibc.a \
+       $(LIBPRIO)-glibc.a
 
 
 #
@@ -36,6 +37,9 @@ klibc:
 $(EXEC): clean $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
 
+$(LIBPRIO)-glibc.a:
+	$(MAKE) -C $(libpriodir) BUILD=glibc glibc
+
 $(CHECKERSLIB)-glibc.a:
 	$(MAKE) -C $(checkersdir) BUILD=glibc glibc
 
@@ -44,7 +48,7 @@ $(MULTIPATHLIB)-glibc.a:
 
 install:
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(rcdir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)

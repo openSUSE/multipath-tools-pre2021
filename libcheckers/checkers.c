@@ -72,7 +72,6 @@ static struct checker checkers[] = {
 		.init       = readsector0_init,
 		.free       = readsector0_free
 	},
-
 	{
 		.fd         = 0,
 		.sync       = 1,

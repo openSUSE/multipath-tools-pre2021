@@ -46,6 +46,12 @@ whenever no specific setting is given.
 This section defines which devices should be excluded from the
 multipath topology discovery.
 .TP
+.B blacklist_exceptions
+This section defines which devices should be included in the
+multipath topology discovery, despite being listed in the
+.I blacklist
+section.
+.TP
 .B multipaths
 This section defines the multipath topologies. They are indexed by a
 \fIWorld Wide Identifier\fR(wwid), which is the result of the
@@ -106,35 +112,34 @@ is
 .I /sbin/scsi_id -g -u -s
 .TP
 .B prio_callout
-The default program and args to callout to obtain a path priority
-value. The specified program will be executed and should return a
-numeric value specifying the relative priority of this path. Higher
-number have a higher priority. A '%n' in the command line will be expanded
-to the device name, a '%b' will be expanded to the device number in
-.I major:minor
-format.
-.I "none"
-is a valid value. Currently the following path priority programs are
-implemented:
+Deprecated. Path priority is now determined with built-in programs.
+.TP
+.B prio_name
+The default method to obtain a path priority value. These had to be
+built-in to avoid deadlocks.
+The following methods are available:
 .RS
 .TP 12
-.B mpath_prio_emc /dev/%n
+.B const
+Generate a constant priority for each path
+.TP
+.B emc
 Generate the path priority for EMC arrays
 .TP
-.B mpath_prio_alua /dev/%n
+.B alua
 Generate the path priority based on the SCSI-3 ALUA settings.
 .TP
-.B mpath_prio_netapp /dev/%n
+.B netapp
 Generate the path priority for NetApp arrays.
 .TP
-.B mpath_prio_tpc /dev/%n
+.B rdac
 Generate the path priority for LSI/Engenio RDAC controller.
 .TP
-.B mpath_prio_hp_sw /dev/%n
+.B hp_sw
 Generate the path priority for Compaq/HP controller in
 active/standby mode.
 .TP
-.B mpath_prio_hds_modular %b
+.B hds
 Generate the path priority for Hitachi HDS Modular storage arrays.
 .TP
 Default value is \fBnone\fR.
@@ -166,7 +171,7 @@ Query the EMC Clariion specific EVPD page 0xC0 to determine the path
 state.
 .TP
 .B hp_sw
-Check the path state for older HP storage arrays.
+Check the path state for HP storage arrays with Active/Standby firmware.
 .TP
 .B rdac
 Check the path state for LSI/Engenio RDAC storage controller.
@@ -174,7 +179,7 @@ Check the path state for LSI/Engenio RDAC storage controller.
 .B directio
 Read the first sector with direct I/O.
 .TP
-Default value is \fIreadsector0\fR.
+Default value is \fIdirectio\fR.
 .RE
 .TP
 .B failback
@@ -343,6 +348,9 @@ Hardware handler for LSI/Engenio RDAC storage controller.
 .B 1 hp_sw
 Hardware handler for Compaq/HP storage arrays in active/standby
 mode.
+.TP
+.B 1 alua
+Hardware handler for SCSI-3 ALUA compatible arrays.
 .RE
 .LP
 The following attributes are optional; if not set the default values
@@ -375,6 +383,15 @@ section:
 .RE
 .PD
 .LP
+.SH "KNOWN ISSUES"
+The usage of
+.B queue_if_no_path
+option can lead to
+.B D state
+processes being hung and not killable in situations where all the paths to the LUN go offline.
+It is advisable to use the
+.B no_path_retry
+option instead.
 .SH "SEE ALSO"
 .BR udev (8),
 .BR dmsetup (8)

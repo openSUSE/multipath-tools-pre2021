@@ -1,6 +1,6 @@
-EXEC		= mpath_prio_tpc
+EXEC		= mpath_prio_rdac
 BUILD		= glibc
-OBJS		= pp_tpc.o
+OBJS		= pp_rdac.o
 
 TOPDIR		= ../..
 include $(TOPDIR)/Makefile.inc
@@ -14,7 +14,7 @@ klibc:	$(OBJS)
 	$(CC) -static -o $(EXEC) $(OBJS)
 
 install: $(EXEC)
-	install -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
+	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)/$(EXEC)
 
 uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)

@@ -16,17 +16,19 @@ struct hwentry {
 	char * product;
 	char * revision;
 	char * getuid;
-	char * getprio;
 	char * features;
 	char * hwhandler;
 	char * selector;
 	char * checker_name;
+	char * prio_name;
 
 	int pgpolicy;
 	int pgfailback;
 	int rr_weight;
 	int no_path_retry;
 	int minio;
+	int pg_timeout;
+	struct prio * prio;
 	struct checker * checker;
 	char * bl_product;
 };
@@ -42,6 +44,7 @@ struct mpentry {
 	int rr_weight;
 	int no_path_retry;
 	int minio;
+	int pg_timeout;
 };
 
 struct config {
@@ -51,6 +54,7 @@ struct config {
 	int pgpolicy_flag;
 	int with_sysfs;
 	int pgpolicy;
+	struct prio * prio;
 	struct checker * checker;
 	enum devtypes dev_type;
 	int minio;
@@ -61,12 +65,14 @@ struct config {
 	int rr_weight;
 	int no_path_retry;
 	int user_friendly_names;
+	int pg_timeout;
+	int max_fds;
 
 	char * dev;
+	char * sysfs_dir;
 	char * udev_dir;
 	char * selector;
 	char * getuid;
-	char * getprio;
 	char * features;
 	char * hwhandler;
 	char * bindings_file;

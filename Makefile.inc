@@ -17,22 +17,27 @@ ifeq ($(strip $(BUILD)),klibc)
 	CC = klcc
 	klibcdir = /usr/lib/klibc
 	libdm    = $(klibcdir)/lib/libdevmapper.a
-	libsysfs = $(klibcdir)/lib/libsysfs.a
 endif
 
 prefix      = 
 exec_prefix = $(prefix)
 bindir      = $(exec_prefix)/sbin
+libudevdir  = ${prefix}/lib/udev
 checkersdir = $(TOPDIR)/libcheckers
+libpriodir  = $(TOPDIR)/libprio
 multipathdir = $(TOPDIR)/libmultipath
 man5dir     = $(prefix)/usr/share/man/man5
 mandir      = $(prefix)/usr/share/man/man8
+man5dir     = $(prefix)/usr/share/man/man5
 rcdir	    = $(prefix)/etc/init.d
 
 GZIP        = /bin/gzip -9 -c
 
 CHECKERSLIB = $(checkersdir)/libcheckers
 MULTIPATHLIB = $(multipathdir)/libmultipath
+LIBPRIO = $(libpriodir)/libprio
+
+INSTALL_PROGRAM = install -s
 
 OPTFLAGS     = -pipe -g -Wall -Wunused -Wstrict-prototypes
 CFLAGS	     = $(OPTFLAGS)

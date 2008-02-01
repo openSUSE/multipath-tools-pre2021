@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <checkers.h>
+#include <libprio.h>
 
 #include "vector.h"
 #include "defaults.h"
@@ -13,6 +14,7 @@
 #include "dmparser.h"
 #include "config.h"
 #include "propsel.h"
+#include "sysfs.h"
 #include "discovery.h"
 #include "waiter.h"
 
@@ -80,8 +82,7 @@ orphan_path (struct path * pp)
 	pp->mpp = NULL;
 	pp->dmstate = PSTATE_UNDEF;
 	pp->getuid = NULL;
-	pp->getprio = NULL;
-	pp->getprio_selected = 0;
+	pp->prio = NULL;
 	checker_put(&pp->checker);
 	if (pp->fd >= 0)
 		close(pp->fd);
@@ -289,6 +290,7 @@ retry:
 	select_rr_weight(mpp);
 	select_pgfailback(mpp);
 	set_no_path_retry(mpp);
+	select_pg_timeout(mpp);
 
 	return 0;
 out:
@@ -372,10 +374,10 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 		/*
 		 * see if path is in sysfs
 		 */
-		if (!pp->dev || sysfs_get_dev(sysfs_path,
-				  pp->dev, pp->dev_t, BLK_DEV_SIZE)) {
+		if (!pp->sysdev || sysfs_get_dev(pp->sysdev,
+						 pp->dev_t, BLK_DEV_SIZE)) {
 			condlog(0, "%s: failed to access path %s", mpp->alias,
-				pp->dev ? pp->dev : pp->dev_t);
+				pp->sysdev ? pp->sysdev->devpath : pp->dev_t);
 			count++;
 			vector_del_slot(mpp->paths, i);
 			i--;

@@ -8,11 +8,11 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <errno.h>
-#include <sysfs/dlist.h>
-#include <sysfs/libsysfs.h>
 
 #include <checkers.h>
+#include <libprio.h>
 
 #include "vector.h"
 #include "memory.h"
@@ -24,6 +24,7 @@
 #include "debug.h"
 #include "propsel.h"
 #include "sg_include.h"
+#include "sysfs.h"
 #include "discovery.h"
 
 struct path *
@@ -61,7 +62,8 @@ path_discover (vector pathvec, struct config * conf, char * devname, int flag)
 	if (!devname)
 		return 0;
 
-	if (blacklist(conf->blist_devnode, conf->elist_devnode, devname))
+	if (filter_devnode(conf->blist_devnode, conf->elist_devnode,
+			   devname) > 0)
 		return 0;
 
 	if(safe_sprintf(path, "%s/block/%s/device", sysfs_path,
@@ -88,127 +90,117 @@ path_discover (vector pathvec, struct config * conf, char * devname, int flag)
 int
 path_discovery (vector pathvec, struct config * conf, int flag)
 {
-	struct dlist * ls;
-	struct sysfs_class * class;
-	struct sysfs_class_device * dev;
-	int r = 1;
+	DIR *blkdir;
+	struct dirent *blkdev;
+	struct stat statbuf;
+	char devpath[PATH_MAX];
+	char *devptr;
+	int r = 0;
 
-	if (!(class = sysfs_open_class("block")))
+	if (!(blkdir = opendir("/sys/block")))
 		return 1;
 
-	if (!(ls = sysfs_get_class_devices(class)))
-		goto out;
+	strcpy(devpath,"/sys/block");
+	while ((blkdev = readdir(blkdir)) != NULL) {
+		if ((strcmp(blkdev->d_name,".") == 0) ||
+		    (strcmp(blkdev->d_name,"..") == 0))
+			continue;
 
-	r = 0;
+		devptr = devpath + 10;
+		*devptr = '\0';
+		strcat(devptr,"/");
+		strcat(devptr,blkdev->d_name);
+		if (stat(devpath, &statbuf) < 0)
+			continue;
 
-	dlist_for_each_data(ls, dev, struct sysfs_class_device)
-		r += path_discover(pathvec, conf, dev->name, flag);
+		if (S_ISDIR(statbuf.st_mode) == 0)
+			continue;
 
-out:
-	sysfs_close_class(class);
+		condlog(4, "Discover device %s", devpath);
+
+		r += path_discover(pathvec, conf, blkdev->d_name, flag);
+	}
+	closedir(blkdir);
+	condlog(4, "Discovery status %d", r);
 	return r;
 }
 
-/*
- * the daemon can race udev upon path add,
- * not multipath(8), ran by udev
- */
-#if DAEMON
-#define WAIT_MAX_SECONDS 60
-#define WAIT_LOOP_PER_SECOND 5
-
-static int
-wait_for_file (char * filename)
-{
-	int loop;
-	struct stat stats;
-	
-	loop = WAIT_MAX_SECONDS * WAIT_LOOP_PER_SECOND;
-	
-	while (--loop) {
-		if (stat(filename, &stats) == 0)
-			return 0;
-
-		if (errno != ENOENT)
-			return 1;
-
-		usleep(1000 * 1000 / WAIT_LOOP_PER_SECOND);
-	}
-	return 1;
-}
-#else
-static int
-wait_for_file (char * filename)
-{
-	return 0;
-}
-#endif
-
-#define declare_sysfs_get_str(fname, fmt) \
+#define declare_sysfs_get_str(fname) \
 extern int \
-sysfs_get_##fname (char * sysfs_path, char * dev, char * buff, int len) \
+sysfs_get_##fname (struct sysfs_device * dev, char * buff, size_t len) \
 { \
-	struct sysfs_attribute * attr; \
-	char attr_path[SYSFS_PATH_SIZE]; \
+	char *attr; \
 \
-	if (safe_sprintf(attr_path, fmt, sysfs_path, dev)) \
+	attr = sysfs_attr_get_value(dev->devpath, #fname); \
+	if (!attr) \
 		return 1; \
-\
-	if (wait_for_file(attr_path)) \
-		return 1; \
-\
-	if (!(attr = sysfs_open_attribute(attr_path))) \
-		return 1; \
-\
-	if (0 > sysfs_read_attribute(attr)) \
-		goto out; \
-\
-	if (attr->len < 2 || attr->len - 1 > len) \
-		goto out; \
-\
-	strncpy(buff, attr->value, attr->len - 1); \
+	if (strlcpy(buff, attr, len) != strlen(attr)) \
+		return 2; \
 	strchop(buff); \
-	sysfs_close_attribute(attr); \
 	return 0; \
-out: \
-	sysfs_close_attribute(attr); \
-	return 1; \
 }
 
-declare_sysfs_get_str(devtype, "%s/block/%s/device/devtype");
-declare_sysfs_get_str(cutype, "%s/block/%s/device/cutype");
-declare_sysfs_get_str(vendor, "%s/block/%s/device/vendor");
-declare_sysfs_get_str(model, "%s/block/%s/device/model");
-declare_sysfs_get_str(rev, "%s/block/%s/device/rev");
-declare_sysfs_get_str(dev, "%s/block/%s/dev");
+declare_sysfs_get_str(devtype);
+declare_sysfs_get_str(cutype);
+declare_sysfs_get_str(vendor);
+declare_sysfs_get_str(model);
+declare_sysfs_get_str(rev);
 
 int
-sysfs_get_size (char * sysfs_path, char * dev, unsigned long long * size)
+sysfs_get_dev (struct sysfs_device * dev, char * buff, size_t len)
 {
-	struct sysfs_attribute * attr;
-	char attr_path[SYSFS_PATH_SIZE];
+	char *attr;
+
+	attr = sysfs_attr_get_value(dev->devpath, "dev");
+	if (!attr) {
+		condlog(3, "%s: no 'dev' attribute in sysfs", dev->kernel);
+		return 1;
+	}
+	if (strlcpy(buff, attr, len) != strlen(attr)) {
+		condlog(3, "%s: overflow in 'dev' attribute", dev->kernel);
+		return 2;
+	}
+	return 0;
+}
+
+int
+sysfs_get_size (struct sysfs_device * dev, unsigned long long * size)
+{
+	char *attr;
 	int r;
 
-	if (safe_sprintf(attr_path, "%s/block/%s/size", sysfs_path, dev))
-		return 1;
-
-	attr = sysfs_open_attribute(attr_path);
-
+	attr = sysfs_attr_get_value(dev->devpath, "size");
 	if (!attr)
 		return 1;
 
-	if (0 > sysfs_read_attribute(attr))
-		goto out;
-
-	r = sscanf(attr->value, "%llu\n", size);
-	sysfs_close_attribute(attr);
+	r = sscanf(attr, "%llu\n", size);
 
 	if (r != 1)
 		return 1;
 
 	return 0;
-out:
-	sysfs_close_attribute(attr);
+}
+	
+int
+sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
+		       unsigned int host, unsigned int channel,
+		       unsigned int target)
+{
+	char attr_path[SYSFS_PATH_SIZE], *attr;
+
+	if (safe_sprintf(attr_path, 
+			 "/class/fc_transport/target%i:%i:%i",
+			 host, channel, target)) {
+		condlog(0, "attr_path too small");
+		return 1;
+	}
+
+	attr = sysfs_attr_get_value(attr_path, "node_name");
+	if (attr) {
+		strlcpy(node, attr, strlen(attr));
+		return 0;
+	}
+
 	return 1;
 }
 	
@@ -224,18 +216,14 @@ opennode (char * dev, int mode)
 		condlog(0, "devpath too small");
 		return -1;
 	}
-	/* Translate '!' into '/' */
+	/*
+	 * Translate '!' into '/'
+	 */
 	ptr = devpath;
 	while ((ptr = strchr(ptr, '!'))) {
 		*ptr = '/';
 		ptr++;
 	}
-
-	if (wait_for_file(devpath)) {
-		condlog(3, "failed to open %s", devpath);
-		return -1;
-	}
-
 	return open(devpath, mode);
 }
 
@@ -266,6 +254,7 @@ devt2devname (char *devname, char *devt)
 		}
 		if (r != 3)
 			continue;
+
 		if ((major == tmpmaj) && (minor == tmpmin)) {
 			sprintf(block_path, "/sys/block/%s", dev);
 			break;
@@ -286,6 +275,7 @@ devt2devname (char *devname, char *devt)
 		return 1;
 	}
 	strncpy(devname, dev, FILE_NAME_SIZE);
+
 	return 0;
 }
 
@@ -366,7 +356,6 @@ get_serial (char * str, int maxlen, int fd)
 static int
 get_inq (char * vendor, char * product, char * rev, int fd)
 {
-	int len = 0;
 	char buff[MX_ALLOC_LEN + 1] = {0};
 
 	if (fd < 0)
@@ -375,91 +364,34 @@ get_inq (char * vendor, char * product, char * rev, int fd)
 	if (0 == do_inq(fd, 0, 0, 0, buff, MX_ALLOC_LEN, 0)) {
 		memcpy(vendor, buff + 8, 8);
 		vendor[8] = '\0';
+		strchop(vendor);
 		memcpy(product, buff + 16, 16);
 		product[16] = '\0';
+		strchop(product);
 		memcpy(rev, buff + 32, 4);
 		rev[4] = '\0';
+		strchop(rev);
 		return 0;
 	}
 	return 1;
 }
 
 static int
-sysfs_get_bus (char * sysfs_path, struct path * pp)
-{
-	struct sysfs_device *sdev;
-	char attr_path[FILE_NAME_SIZE];
-	char attr_buff[FILE_NAME_SIZE];
-
-	pp->bus = SYSFS_BUS_UNDEF;
-
-	/*
-	 * This is ugly : we should be able to do a simple
-	 * get_link("%s/block/%s/device/bus", ...) but it just
-	 * won't work
-	 */
-	if(safe_sprintf(attr_path, "%s/block/%s/device",
-			sysfs_path, pp->dev)) {
-		condlog(0, "attr_path too small");
-		return 1;
-	}
-
-	if (0 > sysfs_get_link(attr_path, attr_buff, sizeof(attr_buff)))
-		return 1;
-
-#if DAEMON
-	int loop = WAIT_MAX_SECONDS * WAIT_LOOP_PER_SECOND;
-
-	while (loop--) {
-		sdev = sysfs_open_device_path(attr_buff);
-
-		if (strlen(sdev->bus))
-			break;
-
-		sysfs_close_device(sdev);
-		usleep(1000 * 1000 / WAIT_LOOP_PER_SECOND);
-	}
-#else
-	sdev = sysfs_open_device_path(attr_buff);
-#endif
-
-	if (!strncmp(sdev->bus, "scsi", 4))
-		pp->bus = SYSFS_BUS_SCSI;
-	else if (!strncmp(sdev->bus, "ide", 3))
-		pp->bus = SYSFS_BUS_IDE;
-	else if (!strncmp(sdev->bus, "ccw", 3))
-		pp->bus = SYSFS_BUS_CCW;
-	else if (!strncmp(pp->dev,"cciss", 5))
-		pp->bus = SYSFS_BUS_CCISS;
-	else
-		return 1;
-
-	sysfs_close_device(sdev);
-
-	return 0;
-}
-
-static int
-scsi_sysfs_pathinfo (struct path * pp)
+scsi_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 {
 	char attr_path[FILE_NAME_SIZE];
-	char attr_buff[FILE_NAME_SIZE];
-	struct sysfs_attribute * attr;
 
-	if (sysfs_get_vendor(sysfs_path, pp->dev,
-			     pp->vendor_id, SCSI_VENDOR_SIZE))
+	if (sysfs_get_vendor(parent, pp->vendor_id, SCSI_VENDOR_SIZE))
 		return 1;
 
 	condlog(3, "%s: vendor = %s", pp->dev, pp->vendor_id);
 
-	if (sysfs_get_model(sysfs_path, pp->dev,
-			    pp->product_id, SCSI_PRODUCT_SIZE))
+	if (sysfs_get_model(parent, pp->product_id, SCSI_PRODUCT_SIZE))
 		return 1;
 
 	condlog(3, "%s: product = %s", pp->dev, pp->product_id);
 
-	if (sysfs_get_rev(sysfs_path, pp->dev,
-			  pp->rev, SCSI_REV_SIZE))
+	if (sysfs_get_rev(parent, pp->rev, SCSI_REV_SIZE))
 		return 1;
 
 	condlog(3, "%s: rev = %s", pp->dev, pp->rev);
@@ -472,15 +404,7 @@ scsi_sysfs_pathinfo (struct path * pp)
 	/*
 	 * host / bus / target / lun
 	 */
-	if(safe_sprintf(attr_path, "%s/block/%s/device",
-			sysfs_path, pp->dev)) {
-		condlog(0, "attr_path too small");
-		return 1;
-	}
-	if (0 > sysfs_get_link(attr_path, attr_buff, sizeof(attr_buff)))
-		return 1;
-	
-	basename(attr_buff, attr_path);
+	basename(parent->devpath, attr_path);
 
 	sscanf(attr_path, "%i:%i:%i:%i",
 			&pp->sg_id.host_no,
@@ -497,35 +421,19 @@ scsi_sysfs_pathinfo (struct path * pp)
 	/*
 	 * target node name
 	 */
-	if(safe_sprintf(attr_path,
-			"%s/class/fc_transport/target%i:%i:%i/node_name",
-			sysfs_path,
-			pp->sg_id.host_no,
-			pp->sg_id.channel,
-			pp->sg_id.scsi_id)) {
-		condlog(0, "attr_path too small");
-		return 1;
+	if(!sysfs_get_fc_nodename(parent, pp->tgt_node_name,
+				 pp->sg_id.host_no,
+				 pp->sg_id.channel,
+				 pp->sg_id.scsi_id)) {
+		condlog(3, "%s: tgt_node_name = %s",
+			pp->dev, pp->tgt_node_name);
 	}
-	if (!(attr = sysfs_open_attribute(attr_path)))
-		return 0;
-
-	if (sysfs_read_attribute(attr))
-		goto err;
-
-	if (attr->len > 0)
-		strncpy(pp->tgt_node_name, attr->value, attr->len - 1);
-
-	condlog(3, "%s: tgt_node_name = %s",
-		pp->dev, pp->tgt_node_name);
 
 	return 0;
-err:
-	sysfs_close_attribute(attr);
-	return 1;
 }
 
 static int
-ccw_sysfs_pathinfo (struct path * pp)
+ccw_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 {
 	char attr_path[FILE_NAME_SIZE];
 	char attr_buff[FILE_NAME_SIZE];
@@ -534,8 +442,7 @@ ccw_sysfs_pathinfo (struct path * pp)
 
 	condlog(3, "%s: vendor = %s", pp->dev, pp->vendor_id);
 
-	if (sysfs_get_devtype(sysfs_path, pp->dev,
-			      attr_buff, FILE_NAME_SIZE))
+	if (sysfs_get_devtype(parent, attr_buff, FILE_NAME_SIZE))
 		return 1;
 
 	if (!strncmp(attr_buff, "3370", 4)) {
@@ -555,16 +462,8 @@ ccw_sysfs_pathinfo (struct path * pp)
 
 	/*
 	 * host / bus / target / lun
-	 */
-	if(safe_sprintf(attr_path, "%s/block/%s/device",
-			sysfs_path, pp->dev)) {
-		condlog(0, "attr_path too small");
-		return 1;
-	}
-	if (0 > sysfs_get_link(attr_path, attr_buff, sizeof(attr_buff)))
-		return 1;
-	
-	basename(attr_buff, attr_path);
+	 */	
+	basename(parent->devpath, attr_path);
 	pp->sg_id.lun = 0;
 	sscanf(attr_path, "%i.%i.%x",
 			&pp->sg_id.host_no,
@@ -581,14 +480,14 @@ ccw_sysfs_pathinfo (struct path * pp)
 }
 
 static int
-cciss_sysfs_pathinfo (struct path * pp)
+cciss_sysfs_pathinfo (struct path * pp, struct sysfs_device * dev)
 {
 	char attr_path[FILE_NAME_SIZE];
 
 	/*
 	 * host / bus / target / lun
 	 */
-	basename(pp->dev, attr_path);
+	basename(dev->devpath, attr_path);
 	pp->sg_id.lun = 0;
 	pp->sg_id.channel = 0;
 	sscanf(attr_path, "cciss!c%id%i",
@@ -600,25 +499,24 @@ cciss_sysfs_pathinfo (struct path * pp)
 			pp->sg_id.channel,
 			pp->sg_id.scsi_id,
 			pp->sg_id.lun);
-
 	return 0;
 }
 
 static int
-common_sysfs_pathinfo (struct path * pp)
+common_sysfs_pathinfo (struct path * pp, struct sysfs_device *dev)
 {
-	if (sysfs_get_bus(sysfs_path, pp))
-		return 1;
+	char *attr;
 
-	condlog(3, "%s: bus = %i", pp->dev, pp->bus);
-
-	if (sysfs_get_dev(sysfs_path, pp->dev,
-			  pp->dev_t, BLK_DEV_SIZE))
+	attr = sysfs_attr_get_value(dev->devpath, "dev");
+	if (!attr) {
+		condlog(3, "%s: no 'dev' attribute in sysfs", pp->dev);
 		return 1;
+	}
+	strlcpy(pp->dev_t, attr, BLK_DEV_SIZE);
 
 	condlog(3, "%s: dev_t = %s", pp->dev, pp->dev_t);
 
-	if (sysfs_get_size(sysfs_path, pp->dev, &pp->size))
+	if (sysfs_get_size(dev, &pp->size))
 		return 1;
 
 	condlog(3, "%s: size = %llu", pp->dev, pp->size);
@@ -626,22 +524,53 @@ common_sysfs_pathinfo (struct path * pp)
 	return 0;
 }
 
+struct sysfs_device *sysfs_device_from_path(struct path *pp)
+{
+	char sysdev[FILE_NAME_SIZE];
+
+	strlcpy(sysdev,"/block/", FILE_NAME_SIZE);
+	strlcat(sysdev,pp->dev, FILE_NAME_SIZE);
+
+	return sysfs_device_get(sysdev);
+}
+
 extern int
 sysfs_pathinfo(struct path * pp)
 {
-	if (common_sysfs_pathinfo(pp))
+	struct sysfs_device *parent;
+
+	pp->sysdev = sysfs_device_from_path(pp);
+	if (!pp->sysdev) {
+		condlog(1, "%s: failed to get sysfs information", pp->dev);
 		return 1;
+	}
+
+	if (common_sysfs_pathinfo(pp, pp->sysdev))
+		return 1;
+
+	parent = sysfs_device_get_parent(pp->sysdev);
+	if (!parent)
+		parent = pp->sysdev;
+
+	condlog(3, "%s: subsystem = %s", pp->dev, parent->subsystem);
+
+	if (!strncmp(parent->subsystem, "scsi",4))
+		pp->bus = SYSFS_BUS_SCSI;
+	if (!strncmp(parent->subsystem, "ccw",3))
+		pp->bus = SYSFS_BUS_CCW;
+	if (!strncmp(pp->dev,"cciss",5))
+		pp->bus = SYSFS_BUS_CCISS;
 
 	if (pp->bus == SYSFS_BUS_UNDEF)
 		return 0;
 	else if (pp->bus == SYSFS_BUS_SCSI) {
-		if (scsi_sysfs_pathinfo(pp))
+		if (scsi_sysfs_pathinfo(pp, parent))
 			return 1;
 	} else if (pp->bus == SYSFS_BUS_CCW) {
-		if (ccw_sysfs_pathinfo(pp))
+		if (ccw_sysfs_pathinfo(pp, parent))
 			return 1;
 	} else if (pp->bus == SYSFS_BUS_CCISS) {
-		if (cciss_sysfs_pathinfo(pp))
+		if (cciss_sysfs_pathinfo(pp, pp->sysdev))
 			return 1;
 	}
 	return 0;
@@ -671,8 +600,8 @@ cciss_ioctl_pathinfo (struct path * pp, int mask)
 		 */
 		pp->hwe = find_hwe(conf->hwtable, pp->vendor_id,
 				   pp->product_id, pp->rev);
-	}
 
+	}
 	return 0;
 }
 
@@ -703,27 +632,22 @@ get_state (struct path * pp)
 static int
 get_prio (struct path * pp)
 {
-	char buff[CALLOUT_MAX_SIZE];
-	char prio[16];
+	if (!pp)
+		return 0;
 
-	if (!pp->getprio_selected) {
-		select_getprio(pp);
-		pp->getprio_selected = 1;
+	if (!pp->prio) {
+		select_prio(pp);
+		if (!pp->prio)
+			return 1;
 	}
-	if (!pp->getprio) {
-		pp->priority = PRIO_DEFAULT;
-	} else if (apply_format(pp->getprio, &buff[0], pp)) {
-		condlog(0, "error formatting prio callout command");
+	pp->priority = prio_getprio(pp->prio, pp);
+	if (pp->priority < 0) {
+		condlog(0, "%s: %s prio error", pp->dev, prio_name(pp->prio));
 		pp->priority = PRIO_UNDEF;
 		return 1;
-	} else if (execute_program(buff, prio, 16)) {
-		condlog(0, "error calling out %s", buff);
-		pp->priority = PRIO_UNDEF;
-		return 1;
-	} else
-		pp->priority = atoi(prio);
-
-	condlog(3, "%s: prio = %u", pp->dev, pp->priority);
+	}
+	condlog(3, "%s: %s prio = %u",
+		pp->dev, prio_name(pp->prio), pp->priority);
 	return 0;
 }
 
@@ -782,7 +706,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		goto blank;
 
 	 /*
-	  * Retrieve path priority for even PATH_DOWN paths if it has never
+	  * Retrieve path priority, even for PATH_DOWN paths if it has never
 	  * been successfully obtained before.
 	  */
 	if (mask & DI_PRIO &&
@@ -792,6 +716,10 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	if (mask & DI_WWID && !strlen(pp->wwid))
 		get_uid(pp);
 
+#ifndef DAEMON
+	close(pp->fd);
+	pp->fd = -1;
+#endif
 	return 0;
 
 blank:
@@ -800,5 +728,11 @@ blank:
 	 */
 	memset(pp->wwid, 0, WWID_SIZE);
 	pp->state = PATH_DOWN;
+#ifndef DAEMON
+	if (pp->fd > 0){
+		close(pp->fd);
+		pp->fd = -1;
+	}
+#endif
 	return 0;
 }
