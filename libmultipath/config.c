@@ -136,6 +136,9 @@ free_hwe (struct hwentry * hwe)
 	if (hwe->getuid)
 		FREE(hwe->getuid);
 
+	if (hwe->getprio)
+		FREE(hwe->getprio);
+
 	if (hwe->features)
 		FREE(hwe->features);
 
@@ -316,6 +319,9 @@ free_config (struct config * conf)
 
 	if (conf->getuid)
 		FREE(conf->getuid);
+
+	if (conf->getprio)
+		FREE(conf->getprio);
 
 	if (conf->features)
 		FREE(conf->features);
