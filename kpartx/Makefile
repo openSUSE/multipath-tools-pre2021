@@ -10,11 +10,11 @@ CFLAGS += -I. -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
 ifeq ($(strip $(BUILD)),klibc)
 	OBJS = bsd.o dos.o kpartx.o solaris.o unixware.o gpt.o crc32.o \
-	       lopart.o xstrncpy.o devmapper.o dasd.o mac.o sun.o \
+	       lopart.o xstrncpy.o devmapper.o dasd.o mac.o \
 	       $(MULTIPATHLIB)-$(BUILD).a $(libdm)
 else
 	LDFLAGS = -ldevmapper
-	OBJS = bsd.o dos.o kpartx.o solaris.o unixware.o dasd.o sun.o \
+	OBJS = bsd.o dos.o kpartx.o solaris.o unixware.o dasd.o \
 	       gpt.o mac.o crc32.o lopart.o xstrncpy.o devmapper.o
 endif
 
@@ -36,11 +36,7 @@ $(MULTIPATHLIB)-$(BUILD).a:
 
 install: $(EXEC) $(EXEC).8
 	install -d $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
-	install -d $(DESTDIR)$(libudevdir)
-	install -m 755 kpartx_id $(DESTDIR)$(libudevdir)
-	install -d $(DESTDIR)/etc/udev/rules.d
-	install -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/
+	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
