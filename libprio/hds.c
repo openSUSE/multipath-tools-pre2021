@@ -87,7 +87,7 @@
 int hds_modular_prio (const char *dev, int fd)
 {
 	int k;
-	char vendor[8];
+	char vendor[32];
 	char product[32];
 	char serial[32];
 	char ldev[32];

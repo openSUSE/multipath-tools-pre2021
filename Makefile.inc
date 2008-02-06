@@ -26,7 +26,6 @@ libudevdir  = ${prefix}/lib/udev
 checkersdir = $(TOPDIR)/libcheckers
 libpriodir  = $(TOPDIR)/libprio
 multipathdir = $(TOPDIR)/libmultipath
-man5dir     = $(prefix)/usr/share/man/man5
 mandir      = $(prefix)/usr/share/man/man8
 man5dir     = $(prefix)/usr/share/man/man5
 rcdir	    = $(prefix)/etc/init.d
