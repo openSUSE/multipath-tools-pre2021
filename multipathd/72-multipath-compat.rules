@@ -1,0 +1,10 @@
+#
+# SLES9 compability symlinks for multipathed devices
+#
+
+# Devices
+ENV{ID_DMTYPE}=="multipath", ENV{ID_MPATH}=="?*", \
+	SYMLINK+="disk/by-name/$env{ID_MPATH}"
+# Partitions
+ENV{ID_DMTYPE}=="linear", ENV{ID_MPATH}=="?*", \
+	SYMLINK+="disk/by-name/$env{ID_MPATH}"

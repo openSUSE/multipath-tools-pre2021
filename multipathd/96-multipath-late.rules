@@ -1,0 +1,3 @@
+# event to be catched by multipathd
+RUN+="socket:/org/kernel/dm/multipath_event"
+

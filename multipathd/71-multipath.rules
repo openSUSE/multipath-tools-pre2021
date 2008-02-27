@@ -1,0 +1,37 @@
+#
+# multipath and multipath partitions nodes are created in /dev/mapper/
+#
+
+KERNEL!="dm-*", GOTO="multipath_end"
+ACTION=="offline|remove", GOTO="multipath_end"
+
+ENV{DM_STATE}!="ACTIVE", GOTO="multipath_end"
+
+PROGRAM="/sbin/dmsetup table -j %M -m %m", \
+	RESULT=="*multipath*", ENV{ID_DMTYPE}="multipath"
+RESULT=="", GOTO="multipath_end"
+
+RESULT=="*linear*", PROGRAM="/sbin/kpartx_id %M %m", RESULT=="*", ENV{ID_DMTYPE}="linear"
+
+ENV{ID_DMTYPE}=="linear|multipath", IMPORT{program}="/sbin/mpath_id %M %m"
+
+# Create persistent links for the multipath table
+ENV{ID_DMTYPE}=="multipath", ENV{ID_MPATH}=="?*", \
+	SYMLINK+="disk/by-id/$env{ID_BUS}-$env{ID_MPATH}"
+
+# Create dm tables for partitions on multipath devices
+ENV{ID_DMTYPE}=="multipath", ENV{ID_MPATH}=="?*", \
+	RUN+="/sbin/kpartx -a -p -part /dev/$kernel"
+
+# Create persistent links for the partition
+ENV{ID_DMTYPE}=="linear", ENV{ID_MPATH}=="?*", \
+	SYMLINK+="disk/by-id/$env{ID_BUS}-$env{ID_MPATH}"
+
+# Delete partition tables
+# This doesn't work; we're never seeing any remove events as the
+# tables for partitions keep this one busy
+# ACTION=="offline", \
+#	RUN+="/sbin/kpartx_delete %M %m"
+
+LABEL="multipath_end"
+

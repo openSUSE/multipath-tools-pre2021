@@ -52,6 +52,10 @@ install:
 	install -d $(DESTDIR)$(rcdir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	install -d $(DESTDIR)$(udevdir)
+	install -m 644 71-multipath.rules $(DESTDIR)$(udevdir)
+	install -m 644 72-multipath-compat.rules $(DESTDIR)$(udevdir)
+	install -m 644 96-multipath-late.rules $(DESTDIR)$(udevdir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
