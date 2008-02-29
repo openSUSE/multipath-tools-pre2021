@@ -13,7 +13,7 @@
 #include "hp_sw.h"
 #include "alua.h"
 #include "emc.h"
-#include "netapp.h"
+#include "ontap.h"
 #include "hds.h"
 #include "rdac.h"
 #include "command.h"

@@ -501,7 +501,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
-		.prio_name     = PRIO_NETAPP,
+		.prio_name     = PRIO_ONTAP,
 	},
 	/*
 	 * IBM NSeries (NETAPP) controller family
@@ -522,7 +522,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
-		.prio_name     = PRIO_NETAPP,
+		.prio_name     = PRIO_ONTAP,
 	},
 	/*
 	 * Pillar Data controller family

@@ -25,8 +25,8 @@ static struct prio prioritizers[] = {
 		.getprio = prio_rdac
 	},
 	{
-		.name    = PRIO_NETAPP,
-		.getprio = prio_netapp
+		.name    = PRIO_ONTAP,
+		.getprio = prio_ontap
 	},
 	{
 		.name    = PRIO_HDS,
