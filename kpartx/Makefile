@@ -39,6 +39,7 @@ install: $(EXEC) $(EXEC).8
 	install -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	install -m 755 kpartx_id $(DESTDIR)$(bindir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)

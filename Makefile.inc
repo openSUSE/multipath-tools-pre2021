@@ -22,6 +22,7 @@ endif
 prefix      = 
 exec_prefix = $(prefix)
 bindir      = $(exec_prefix)/sbin
+udevdir	    = $(prefix)/etc/udev/rules.d
 libudevdir  = ${prefix}/lib/udev
 checkersdir = $(TOPDIR)/libcheckers
 libpriodir  = $(TOPDIR)/libprio

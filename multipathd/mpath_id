@@ -1,0 +1,57 @@
+#!/bin/sh
+
+major=$1
+minor=$2
+
+# Check for linear (kpartx) tables first
+mptbl=$(/sbin/dmsetup table -j $major -m $minor --target linear)
+if [ "$mptbl" ] ; then
+    set -- $mptbl
+    mpathmajor=${4%%:*}
+    mpathminor=${4##*:}
+    if [ "$mpathmajor" -ne "$major" ] ; then
+	 # Not a device mapper device, exit
+	exit 1
+    fi
+else
+    mpathmajor=$major
+    mpathminor=$minor
+fi
+
+mpstatus=$(/sbin/dmsetup status -j $mpathmajor -m $mpathminor --target multipath)
+if [ "$mpstatus" ]; then
+    set -- $mpstatus
+    while [ $# -gt 0 ] ; do
+	: $1
+	case $1 in
+	    *:*)
+		devmajor=${1%%:*}
+		devminor=${1##*:}
+		line=$(sed -n "/ *$devmajor *$devminor .*/p" /proc/partitions)
+		devname=${line##* }
+		;;
+	esac
+	[ "$devname" ] && break
+	shift
+    done
+
+    case "$devname" in
+	dasd*)
+	    echo ID_BUS=\"ccw\" ;;
+	*)
+	    echo ID_BUS=\"scsi\" ;;
+    esac
+else
+    # Not a multipath device, exit
+    exit 1
+fi
+
+mpid=$(/sbin/dmsetup info -c --noopencount --noheadings -o name -j $major -m $minor)
+
+if [ -z "$mpid" ]; then
+	exit 1
+fi
+echo ID_MPATH=\"$mpid\"
+
+exit 0
+

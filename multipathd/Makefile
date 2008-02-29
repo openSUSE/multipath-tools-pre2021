@@ -56,11 +56,16 @@ install:
 	install -m 644 71-multipath.rules $(DESTDIR)$(udevdir)
 	install -m 644 72-multipath-compat.rules $(DESTDIR)$(udevdir)
 	install -m 644 96-multipath-late.rules $(DESTDIR)$(udevdir)
+	install -m 755 mpath_id $(DESTDIR)$(bindir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
 	rm -f $(DESTDIR)$(rcdir)/$(EXEC)
 	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
+	rm -f $(DESTDIR)$(udevdir)/71-multipath.rules
+	rm -f $(DESTDIR)$(udevdir)/72-multipath-compat.rules
+	rm -f $(DESTDIR)$(udevdir)/96-multipath-late.rules
+	rm -f $(DESTDIR)$(udevdir)/mpath_id
 
 clean:
 	$(MAKE) -C $(multipathdir) prepare DAEMON=1
