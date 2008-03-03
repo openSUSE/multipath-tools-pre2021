@@ -25,7 +25,7 @@ else
 	CLEAN = $(shell if [ ! "x$(PREVBUILD)" = "x" ]; then echo clean; fi)
 endif
 
-LIBDM_API_FLUSH = $(shell objdump -T /lib/libdevmapper.so.* | grep -c dm_task_no_flush)
+LIBDM_API_FLUSH = $(shell if test -d /lib64 ; then objdump -T /lib64/libdevmapper.so.* ; else objdump -T /lib/libdevmapper.so.* ; fi | grep -c dm_task_no_flush)
 
 ifeq ($(strip $(LIBDM_API_FLUSH)),1)
 	CFLAGS += -DLIBDM_API_FLUSH

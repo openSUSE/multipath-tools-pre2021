@@ -149,7 +149,7 @@ open_bindings_file(char *file, int *can_write)
 	}
 	if (*can_write && lock_bindings_file(fd) < 0)
 		goto fail;
-	
+
 	memset(&s, 0, sizeof(s));
 	if (fstat(fd, &s) < 0){
 		condlog(0, "Cannot stat bindings file : %s", strerror(errno));
@@ -161,17 +161,19 @@ open_bindings_file(char *file, int *can_write)
 		/* If bindings file is empty, write the header */
 		size_t len = strlen(BINDINGS_FILE_HEADER);
 		if (write_all(fd, BINDINGS_FILE_HEADER, len) != len) {
+			int r;
+
 			condlog(0,
 				"Cannot write header to bindings file : %s",
 				strerror(errno));
-			/* cleanup partially written header */
-			ftruncate(fd, 0);
+			/* cleanup partially written header, ignore  */
+			r = ftruncate(fd, 0);
 			goto fail;
 		}
 		fsync(fd);
 		condlog(3, "Initialized new bindings file [%s]", file);
 	}
-	
+
 	return fd;
 
 fail:
@@ -333,10 +335,12 @@ allocate_binding(int fd, char *wwid, int id)
 		return NULL;
 	}
 	if (write_all(fd, buf, strlen(buf)) != strlen(buf)){
+		int r;
+
 		condlog(0, "Cannot write binding to bindings file : %s",
 			strerror(errno));
-		/* clear partial write */
-		ftruncate(fd, offset);
+		/* clear partial write; error can be ignored */
+		r = ftruncate(fd, offset);
 		return NULL;
 	}
 	c = strchr(buf, ' ');
