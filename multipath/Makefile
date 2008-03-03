@@ -41,18 +41,18 @@ $(MULTIPATHLIB)-$(BUILD).a:
 install:
 	install -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)/
-	install -d $(DESTDIR)/etc/udev/rules.d
-	install -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	install -d $(DESTDIR)$(man5dir)
 	install -m 644 $(EXEC).conf.5 $(DESTDIR)$(man5dir)
+	install -d $(DESTDIR)$(rcdir)
+	install -m 755 multipath.init.suse $(DESTDIR)$(rcdir)/boot.multipath
 
 uninstall:
-	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules
 	rm $(DESTDIR)$(bindir)/$(EXEC)
 	rm $(DESTDIR)$(mandir)/$(EXEC).8
 	rm $(DESTDIR)$(man5dir)/$(EXEC).conf.5
+	rm $(DESTDIR)$(rcdir)/boot.multipath
 
 clean:
 	rm -f core *.o $(EXEC)

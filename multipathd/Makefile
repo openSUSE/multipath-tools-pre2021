@@ -50,6 +50,7 @@ install:
 	install -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(rcdir)
+	install -m 755 multipathd.init.suse $(DESTDIR)$(rcdir)/multipathd
 	install -d $(DESTDIR)$(mandir)
 	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	install -d $(DESTDIR)$(udevdir)
@@ -66,6 +67,7 @@ uninstall:
 	rm -f $(DESTDIR)$(udevdir)/72-multipath-compat.rules
 	rm -f $(DESTDIR)$(udevdir)/96-multipath-late.rules
 	rm -f $(DESTDIR)$(udevdir)/mpath_id
+	rm -f $(DESTDIR)$(rcdir)/multipathd
 
 clean:
 	$(MAKE) -C $(multipathdir) prepare DAEMON=1
