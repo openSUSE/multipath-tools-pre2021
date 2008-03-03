@@ -260,6 +260,16 @@ select_getuid (struct path * pp)
 extern int
 select_prio (struct path * pp)
 {
+	struct mpentry * mpe;
+
+	if (mpe = find_mpe(pp->wwid)) {
+		if (mpe->getprio) {
+			pp->getprio = mpe->getprio;
+			condlog(3, "%s: getprio = %s (LUN setting)",
+				pp->dev, pp->getprio);
+			return 0;
+		}
+	}
 	if (pp->hwe && pp->hwe->prio) {
 		pp->prio = pp->hwe->prio;
 		condlog(3, "%s: prio = %s (controller setting)",

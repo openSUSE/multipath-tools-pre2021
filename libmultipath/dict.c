@@ -986,9 +986,31 @@ mp_pg_timeout_handler(vector strvec)
 	return 0;
 }
 
+static int
+mp_prio_callout_handler(vector strvec)
+{
+         struct mpentry * mpe = VECTOR_LAST_SLOT(conf->mptable);
+
+         if(!mpe)
+                return 1;
+
+         mpe->getprio = set_value(strvec);
+
+         if(!mpe->getprio)
+                return 1;
+
+         if (strlen(mpe->getprio) == 4 && !strcmp(mpe->getprio, "none")) {
+                FREE(mpe->getprio);
+                mpe->getprio = NULL;
+         }
+
+         return 0;
+}
+
 /*
  * config file keywords printing
  */
+
 static int
 snprint_mp_wwid (char * buff, int len, void * data)
 {
@@ -1118,6 +1140,17 @@ snprint_mp_pg_timeout (char * buff, int len, void * data)
 		return snprintf(buff, len, "%i", mpe->pg_timeout);
 	}
 	return 0;
+}
+
+static int
+snprint_mp_prio_callout(char * buff, int len, void * data)
+{
+        struct mpentry * mpe = (struct mpentry *)data;
+
+        if (!mpe->getprio)
+                return 0;
+
+        return snprintf(buff, len, "%s", mpe->getprio);
 }
 
 static int
@@ -1682,6 +1715,7 @@ init_keywords(void)
 	install_keyword("alias", &alias_handler, &snprint_mp_alias);
 	install_keyword("path_grouping_policy", &mp_pgpolicy_handler, &snprint_mp_path_grouping_policy);
 	install_keyword("path_selector", &mp_selector_handler, &snprint_mp_selector);
+	install_keyword("prio_callout", &mp_prio_callout_handler, &snprint_mp_prio_callout);
 	install_keyword("failback", &mp_failback_handler, &snprint_mp_failback);
 	install_keyword("rr_weight", &mp_weight_handler, &snprint_mp_rr_weight);
 	install_keyword("no_path_retry", &mp_no_path_retry_handler, &snprint_mp_no_path_retry);
