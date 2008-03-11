@@ -212,6 +212,10 @@ for immediate failure (no queueing),
 .I queue
 for never stop queueing. Default is 0.
 .TP
+.B pg_timeout
+Number of seconds before attempting path switchover or 'none'.
+Default is 'none'.
+.TP
 .B user_friendly_names
 If set to 
 .I yes
@@ -310,6 +314,8 @@ section:
 .TP
 .B no_path_retry
 .TP
+.B pg_timeout
+.TP
 .B rr_min_io
 .RE
 .PD
@@ -378,6 +384,8 @@ section:
 .B rr_weight
 .TP
 .B no_path_retry
+.TP
+.B pg_timeout
 .TP
 .B rr_min_io
 .RE
