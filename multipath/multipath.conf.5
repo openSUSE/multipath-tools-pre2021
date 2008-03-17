@@ -111,12 +111,8 @@ identifier. Should be specified with an absolute path. Default value
 is
 .I /sbin/scsi_id -g -u -s
 .TP
-.B prio_callout
-Deprecated. Path priority is now determined with built-in programs.
-.TP
 .B prio_name
-The default method to obtain a path priority value. These had to be
-built-in to avoid deadlocks.
+Built-in default method to obtain a path priority value.
 The following methods are available:
 .RS
 .TP 12
@@ -145,6 +141,50 @@ Generate the path priority for Hitachi HDS Modular storage arrays.
 Default value is \fBnone\fR.
 .RE
 .TP
+.B prio_callout
+Deprecated. Path priority should now determined with built-in
+prio_name. Using prio_callout may lead to deadlocks if multipathing
+is used on the root device.
+The specified program will be executed and should return a
+numeric value specifying the relative priority of this path. Higher
+number have a higher priority. A '%n' in the command line will be expanded
+to the device name, a '%b' will be expanded to the device number in
+.I major:minor
+format.
+.I "none"
+is a valid value. Currently the following path priority programs are
+implemented:
+.RS
+.TP 12
+.B mpath_prio_emc /dev/%n
+Generate the path priority for EMC arrays
+.TP
+.B mpath_prio_alua /dev/%n
+Generate the path priority based on the SCSI-3 ALUA settings.
+.TP
+.B mpath_prio_netapp /dev/%n
+Generate the path priority for NetApp arrays.
+.TP
+.B mpath_prio_tpc /dev/%n
+Generate the path priority for LSI/Engenio RDAC controller.
+.TP
+.B mpath_prio_hp_sw /dev/%n
+Generate the path priority for Compaq/HP controller in
+active/standby mode.
+.TP
+.B mpath_prio_hds_modular /dev/%n
+Generate the path priority for Hitachi HDS Modular storage arrays.
+.TP
+.B mpath_prio_pref_path <pref> /dev/%n
+Generate the path priority relative to the preferred path given by
+.I <pref>
+which is the path name of the preferred path. The path identical to
+the preferred path will be assigned a priority of '1', all others a
+priority of '0'.
+.TP
+Default value is \fBnone\fR.
+.RE
+.TP
 .B features
 Specify any device-mapper features to be used. The most common of
 these features is
@@ -158,8 +198,8 @@ The default method used to determine the paths' state. Possible values
 are
 .RS
 .TP 12
-.B readsector0
-Read the first sector of the device
+.B directio
+Read the first sector with direct I/O.
 .TP
 .B tur
 Issue a
@@ -176,10 +216,12 @@ Check the path state for HP storage arrays with Active/Standby firmware.
 .B rdac
 Check the path state for LSI/Engenio RDAC storage controller.
 .TP
-.B directio
-Read the first sector with direct I/O.
-.TP
-Default value is \fIdirectio\fR.
+.B readsector0
+(Deprecated) Read the first sector of the device.
+.TP 0
+Default value is \fIdirectio\fR. Using \fIreadsector0\fR as
+path_checker is deprecated as it's reported to not work correctly on
+certain devices.
 .RE
 .TP
 .B failback
