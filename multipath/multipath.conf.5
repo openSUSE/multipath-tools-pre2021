@@ -111,7 +111,7 @@ identifier. Should be specified with an absolute path. Default value
 is
 .I /sbin/scsi_id -g -u -s
 .TP
-.B prio_name
+.B prio
 Built-in default method to obtain a path priority value.
 The following methods are available:
 .RS
@@ -125,7 +125,7 @@ Generate the path priority for EMC arrays
 .B alua
 Generate the path priority based on the SCSI-3 ALUA settings.
 .TP
-.B netapp
+.B ontap
 Generate the path priority for NetApp arrays.
 .TP
 .B rdac
@@ -162,7 +162,7 @@ Generate the path priority for EMC arrays
 .B mpath_prio_alua /dev/%n
 Generate the path priority based on the SCSI-3 ALUA settings.
 .TP
-.B mpath_prio_netapp /dev/%n
+.B mpath_prio_ontap /dev/%n
 Generate the path priority for NetApp arrays.
 .TP
 .B mpath_prio_tpc /dev/%n
@@ -215,6 +215,9 @@ Check the path state for HP storage arrays with Active/Standby firmware.
 .TP
 .B rdac
 Check the path state for LSI/Engenio RDAC storage controller.
+.TP
+.B cciss_tur
+Check the path state for HP SmartArray storage controller.
 .TP
 .B readsector0
 (Deprecated) Read the first sector of the device.
@@ -418,6 +421,8 @@ section:
 .B path_checker
 .TP
 .B features
+.TP
+.B prio
 .TP
 .B prio_callout
 .TP
