@@ -8,9 +8,10 @@
 #	selector		"round-robin 0"
 #	path_grouping_policy	multibus
 #	getuid_callout		"/lib/udev/scsi_id -g -u -s /block/%n"
-#	prio_callout		/bin/true
+#	prio			const
 #	path_checker		directio
 #	rr_min_io		100
+#	max_fds			8192
 #	rr_weight		priorities
 #	failback		immediate
 #	no_path_retry		fail

@@ -21,6 +21,7 @@ LDFLAGS = -lpthread -ldevmapper -lreadline -lncurses -laio
 #
 OBJS = main.o pidfile.o uxlsnr.o uxclnt.o cli.o cli_handlers.o \
        $(MULTIPATHLIB)-glibc.a $(CHECKERSLIB)-glibc.a \
+       $(LIBPRIO)-glibc.a
 
 
 #
@@ -35,6 +36,9 @@ klibc:
 
 $(EXEC): clean $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
+
+$(LIBPRIO)-glibc.a:
+	$(MAKE) -C $(libpriodir) BUILD=glibc glibc
 
 $(CHECKERSLIB)-glibc.a:
 	$(MAKE) -C $(checkersdir) BUILD=glibc glibc

@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <ctype.h>
@@ -82,7 +83,7 @@ initpts(void)
 	addpts("sun", read_sun_pt);
 }
 
-static char short_opts[] = "ladgvnp:t:";
+static char short_opts[] = "ladgvp:t:";
 
 /* Used in gpt.c */
 int force_gpt=0;
@@ -94,6 +95,7 @@ usage(void) {
 	printf("\t-d del partition devmappings\n");
 	printf("\t-l list partitions devmappings that would be added by -a\n");
 	printf("\t-p set device name-partition number delimiter\n");
+	printf("\t-g force GUID partition table (GPT)\n");
 	printf("\t-v verbose\n");
 	return 1;
 }
@@ -187,8 +189,7 @@ main(int argc, char **argv){
 	struct slice all;
 	struct pt *ptp;
 	enum action what = LIST;
-	char *p, *type, *diskdevice, *device, *progname;
-	int lower, upper;
+	char *type, *diskdevice, *device, *progname;
 	int verbose = 0;
 	char partname[PARTNAME_SIZE], params[PARTNAME_SIZE + 16];
 	char * loopdev = NULL;
@@ -202,7 +203,6 @@ main(int argc, char **argv){
 	initpts();
 	init_crc32();
 
-	lower = upper = 0;
 	type = device = diskdevice = NULL;
 	memset(&all, 0, sizeof(all));
 	memset(&partname, 0, sizeof(partname));
@@ -238,14 +238,6 @@ main(int argc, char **argv){
 			break;
 		case 'v':
 			verbose = 1;
-			break;
-		case 'n':
-			p = optarg;
-			lower = atoi(p);
-			if ((p[1] == '-') && p[2])
-				upper = atoi(p+2);
-			else
-				upper = lower;
 			break;
 		case 'p':
 			delim = optarg;
@@ -331,8 +323,6 @@ main(int argc, char **argv){
 		perror(device);
 		exit(1);
 	}
-	if (!lower)
-		lower = 1;
 
 	/* add/remove partitions to the kernel devmapper tables */
 	for (i = 0; i < ptct; i++) {
@@ -366,16 +356,16 @@ main(int argc, char **argv){
 
 				slices[j].minor = m++;
 
-				printf("%s%s%d : 0 %lu %s %lu\n",
+				printf("%s%s%d : 0 %" PRIu64 " %s %" PRIu64"\n",
 				       mapname, delim, j+1,
-				       (unsigned long) slices[j].size, device,
-				       (unsigned long) slices[j].start);
+				       slices[j].size, device,
+				       slices[j].start);
 			}
 			/* Loop to resolve contained slices */
 			d = c;
 			while (c) {
 				for (j = 0; j < n; j++) {
-					unsigned long start;
+					uint64_t start;
 					int k = slices[j].container - 1;
 
 					if (slices[j].size == 0)
@@ -387,10 +377,10 @@ main(int argc, char **argv){
 					slices[j].minor = m++;
 
 					start = slices[j].start - slices[k].start;
-					printf("%s%s%d : 0 %lu %s%s%d %lu\n",
+					printf("%s%s%d : 0 %" PRIu64 " /dev/dm-%d %" PRIu64 "\n",
 					       mapname, delim, j+1,
-					       (unsigned long) slices[j].size,
-					       mapname, delim, k, start);
+					       slices[j].size,
+					       slices[k].minor, start);
 					c--;
 				}
 				/* Terminate loop if nothing more to resolve */
@@ -401,7 +391,7 @@ main(int argc, char **argv){
 			break;
 
 		case DELETE:
-			for (j = 0; j < n; j++) {
+			for (j = n-1; j >= 0; j--) {
 				if (safe_sprintf(partname, "%s%s%d",
 					     mapname, delim, j+1)) {
 					fprintf(stderr, "partname too small\n");
@@ -448,8 +438,8 @@ main(int argc, char **argv){
 				}
 				strip_slash(partname);
 
-				if (safe_sprintf(params, "%s %lu", device,
-					     (unsigned long)slices[j].start)) {
+				if (safe_sprintf(params, "%s %" PRIu64 ,
+						 device, slices[j].start)) {
 					fprintf(stderr, "params too small\n");
 					exit(1);
 				}
@@ -468,7 +458,7 @@ main(int argc, char **argv){
 					&slices[j].minor);
 
 				if (verbose)
-					printf("add map %s (%d:%d): 0 %lu %s %s\n",
+					printf("add map %s (%d:%d): 0 %" PRIu64 " %s %s\n",
 					       partname, slices[j].major,
 					       slices[j].minor, slices[j].size,
 					       DM_TARGET, params);
@@ -503,11 +493,10 @@ main(int argc, char **argv){
 					}
 					strip_slash(partname);
 
-					start = slices[j].start - slices[k].start;
-					if (safe_sprintf(params, "%d:%d %lu",
+					if (safe_sprintf(params, "%d:%d %" PRIu64,
 							 slices[k].major,
 							 slices[k].minor,
-							 start)) {
+							 slices[j].start)) {
 						fprintf(stderr, "params too small\n");
 						exit(1);
 					}
@@ -526,12 +515,9 @@ main(int argc, char **argv){
 						&slices[j].minor);
 
 					if (verbose)
-						printf("add map %s (%d:%d): 0 %lu %s\n",
-						       partname, 
-						       slices[j].major,
-						       slices[j].minor,
-						       slices[j].size,
-						       params);
+						printf("add map %s : 0 %" PRIu64 " %s %s\n",
+						       partname, slices[j].size,
+						       DM_TARGET, params);
 					c--;
 				}
 				/* Terminate loop */

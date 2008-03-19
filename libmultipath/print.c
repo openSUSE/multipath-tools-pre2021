@@ -21,6 +21,7 @@
 #include "defaults.h"
 #include "parser.h"
 #include "blacklist.h"
+#include "switchgroup.h"
 
 #define MAX(x,y) (x > y) ? x : y
 #define TAIL     (line + len - 1 - c)
@@ -89,8 +90,8 @@ snprint_sysfs (char * buff, size_t len, struct multipath * mpp)
 {
 	if (mpp->dmi)
 		return snprintf(buff, len, "dm-%i", mpp->dmi->minor);
-
-	return 0;
+	else
+		return snprintf(buff, len, "n/a");
 }
 
 static int
@@ -221,6 +222,16 @@ snprint_multipath_uuid (char * buff, size_t len, struct multipath * mpp)
 }
 
 static int
+snprint_multipath_vpr (char * buff, size_t len, struct multipath * mpp)
+{
+	struct path * pp = first_path(mpp);
+	if (!pp)
+		return 0;
+	return snprintf(buff, len, "%s,%s",
+		        pp->vendor_id, pp->product_id);
+}
+
+static int
 snprint_action (char * buff, size_t len, struct multipath * mpp)
 {
 	switch (mpp->action) {
@@ -340,6 +351,13 @@ snprint_pg_selector (char * buff, size_t len, struct pathgroup * pgp)
 static int
 snprint_pg_pri (char * buff, size_t len, struct pathgroup * pgp)
 {
+	/*
+	 * path group priority is not updated for every path prio change,
+	 * but only on switch group code path.
+	 *
+	 * Printing is another reason to update.
+	 */
+	path_group_prio_update(pgp);
 	return snprint_int(buff, len, pgp->priority);
 }
 
@@ -381,6 +399,7 @@ struct multipath_data mpd[] = {
 	{'2', "map_loads",     0, snprint_map_loads},
 	{'3', "total_q_time",  0, snprint_total_q_time},
 	{'4', "q_timeouts",    0, snprint_q_timeouts},
+	{'s', "vend/prod/rev", 0, snprint_multipath_vpr},
 	{0, NULL, 0 , NULL}
 };
 
@@ -683,10 +702,9 @@ snprint_multipath_topology (char * buff, int len, struct multipath * mpp,
 	c += sprintf(c, "%%n");
 	
 	if (strncmp(mpp->alias, mpp->wwid, WWID_SIZE))
-		c += sprintf(c, " (%%w) ");
+		c += sprintf(c, " (%%w)");
 
-	c += sprintf(c, "%%d ");
-	c += snprint_vpr(c, 24, first_path(mpp));
+	c += sprintf(c, " %%d %%s");
 
 	fwd += snprint_multipath(buff + fwd, len - fwd, style, mpp);
 	if (fwd > len)
@@ -1118,15 +1136,16 @@ snprint_devices (char * buff, int len, struct vectors *vecs)
 		return len;
 	fwd += snprintf(buff + fwd, len - fwd, "available block devices:\n");
 
-	strcpy(devpath,"/sys/block");
-	devptr = devpath + 10;
+	strcpy(devpath,"/sys/block/");
 	while ((blkdev = readdir(blkdir)) != NULL) {
 		if ((strcmp(blkdev->d_name,".") == 0) ||
 		    (strcmp(blkdev->d_name,"..") == 0))
 			continue;
 
-		strcat(devptr,blkdev->d_name);
-		if (stat(devptr, &statbuf) < 0)
+		devptr = devpath + 11;
+		*devptr = '\0';
+		strncat(devptr, blkdev->d_name, PATH_MAX-12);
+		if (stat(devpath, &statbuf) < 0)
 			continue;
 
 		if (S_ISDIR(statbuf.st_mode) == 0)
@@ -1135,18 +1154,20 @@ snprint_devices (char * buff, int len, struct vectors *vecs)
 		if ((len - fwd - threshold)  <= 0)
 			return len;
 
-		fwd += snprintf(buff + fwd, len - fwd, "    %s", devpath);
-		pp = find_path_by_dev(vecs->pathvec, devpath);
+		fwd += snprintf(buff + fwd, len - fwd, "    %s", devptr);
+		pp = find_path_by_dev(vecs->pathvec, devptr);
 		if (!pp) {
 			r = filter_devnode(conf->blist_devnode,
-					   conf->elist_devnode, devpath);
+					   conf->elist_devnode, devptr);
 			if (r > 0)
 				fwd += snprintf(buff + fwd, len - fwd,
-						" (blacklisted)");
+						" devnode blacklisted, unmonitored");
 			else if (r < 0)
 				fwd += snprintf(buff + fwd, len - fwd,
-						" (whitelisted)");
-		}
+						" devnode whitelisted, unmonitored");
+		} else
+			fwd += snprintf(buff + fwd, len - fwd,
+					" devnode whitelisted, monitored");
 		fwd += snprintf(buff + fwd, len - fwd, "\n");
 	}
 	closedir(blkdir);
