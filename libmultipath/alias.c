@@ -214,7 +214,7 @@ scan_devname(char *alias)
 		i = *c - 'a';
 		n = ( n * 26 ) + i;
 		c++;
-		if (*c < 'a' || *c >= 'z')
+		if (*c < 'a' || *c > 'z')
 			break;
 		n++;
 	}
