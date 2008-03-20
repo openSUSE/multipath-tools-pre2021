@@ -1417,15 +1417,28 @@ daemonize(void)
 	}
 
 	close(STDIN_FILENO);
-	dup(in_fd);
+	if (dup(in_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/null for input"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(STDOUT_FILENO);
-	dup(out_fd);
+	if (dup(out_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/console for output"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(STDERR_FILENO);
-	dup(out_fd);
-
+	if (dup(out_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/console for error"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(in_fd);
 	close(out_fd);
-	chdir("/");
+	if (chdir("/") < 0)
+		fprintf(stderr, "cannot chdir to '/', continuing\n");
+
 	umask(0);
 	return 0;
 }
@@ -1447,7 +1460,9 @@ main (int argc, char *argv[])
 	}
 
 	/* make sure we don't lock any path */
-	chdir("/");
+	if (chdir("/") < 0)
+		fprintf(stderr, "couldn't chdir to '/', continuing\n");
+
 	umask(umask(077) | 022);
 
 	conf = alloc_config();

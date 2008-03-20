@@ -246,7 +246,7 @@ devt2devname (char *devname, char *devt)
 	while (!feof(fd)) {
 		int r = fscanf(fd,"%u %u %*d %s",&tmpmaj, &tmpmin, dev);
 		if (!r) {
-			fscanf(fd,"%*s\n");
+			r = fscanf(fd,"%*s\n");
 			continue;
 		}
 		if (r != 3)
