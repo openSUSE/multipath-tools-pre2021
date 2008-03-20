@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
 
@@ -33,7 +34,7 @@ int execute_program(char *path, char *value, int len)
 	int retval;
 	int count;
 	int status;
-	int fds[2];
+	int fds[2], null_fd;
 	pid_t pid;
 	char *pos;
 	char arg[PROGRAM_SIZE];
@@ -78,6 +79,14 @@ int execute_program(char *path, char *value, int len)
 		/* dup write side of pipe to STDOUT */
 		if (dup(fds[1]) < 0)
 			return -1;
+
+		/* Ignore writes to stderr */
+		null_fd = open("/dev/null", O_WRONLY);
+		if (null_fd > 0){
+			close(STDERR_FILENO);
+			dup(null_fd);
+			close(null_fd);
+		}
 
 		retval = execvp(argv[0], argv);
 
