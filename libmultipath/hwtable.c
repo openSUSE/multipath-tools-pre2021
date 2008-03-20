@@ -140,7 +140,7 @@ static struct hwentry default_hw[] = {
 	{
 		/* EVA 3000/5000 with new firmware, EVA 4000/6000/8000 */
 		.vendor        = "(COMPAQ|HP)",
-		.product       = "HSV1[01]1 \(C\)COMPAQ|HSV[23][01]0",
+		.product       = "HSV1[01]1 .C.COMPAQ|HSV[23][01]0",
 		.getuid        = DEFAULT_GETUID,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
@@ -157,7 +157,7 @@ static struct hwentry default_hw[] = {
 		/* HP MSA2000 product family */
 		.vendor        = "HP",
 		.product       = "MSA2[02]12*",
-		.getuid        = "/sbin/scsi_id -g -u -s /block/%n",
+		.getuid        = DEFAULT_GETUID,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
