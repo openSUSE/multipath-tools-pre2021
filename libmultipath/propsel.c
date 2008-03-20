@@ -265,6 +265,7 @@ select_prio (struct path * pp)
 	if (mpe = find_mpe(pp->wwid)) {
 		if (mpe->getprio) {
 			pp->getprio = mpe->getprio;
+			pp->prio = prio_lookup(PRIO_COMMAND);
 			condlog(3, "%s: getprio = %s (LUN setting)",
 				pp->dev, pp->getprio);
 			return 0;
