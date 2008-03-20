@@ -29,7 +29,7 @@
 #define PAD(x)   while ((int)(c - s) < (x) && (c < (line + len - 1))) \
 			*c++ = ' '; s = c
 #define PRINT(var, size, format, args...)      \
-	         fwd = snprintf(var, size, format, ##args); \
+		fwd = snprintf(var, size, format, ##args); \
 		 c += (fwd >= size) ? size : fwd;
 
 /*
@@ -60,7 +60,7 @@ snprint_size (char * buff, size_t len, unsigned long long size)
 	char fmt[6] = {};
 	char units[] = {'K','M','G','T','P'};
 	char *u = units;
-	
+
 	while (s >= 1024 && *u != 'P') {
 		s = s / 1024;
 		u++;
@@ -101,7 +101,7 @@ snprint_progress (char * buff, size_t len, int cur, int total)
 	int j = PROGRESS_LEN - i;
 	char * c = buff;
 	char * end = buff + len;
-	
+
 	while (i-- > 0) {
 		c += snprintf(c, len, "X");
 		if ((len = (end - c)) <= 1) goto out;
@@ -118,7 +118,7 @@ out:
 	buff[c - buff + 1] = '\0';
 	return (c - buff + 1);
 }
-	
+
 static int
 snprint_failback (char * buff, size_t len, struct multipath * mpp)
 {
@@ -228,7 +228,7 @@ snprint_multipath_vpr (char * buff, size_t len, struct multipath * mpp)
 	if (!pp)
 		return 0;
 	return snprintf(buff, len, "%s,%s",
-		        pp->vendor_id, pp->product_id);
+			pp->vendor_id, pp->product_id);
 }
 
 static int
@@ -324,7 +324,7 @@ static int
 snprint_vpr (char * buff, size_t len, struct path * pp)
 {
 	return snprintf(buff, len, "%s,%s",
-		        pp->vendor_id, pp->product_id);
+			pp->vendor_id, pp->product_id);
 }
 
 static int
@@ -512,10 +512,10 @@ snprint_multipath_header (char * line, int len, char * format)
 			continue;
 		}
 		f++;
-		
+
 		if (!(data = mpd_lookup(*f)))
 			break; /* unknown wildcard */
-		
+
 		PRINT(c, TAIL, data->header);
 		PAD(data->width);
 	} while (*f++);
@@ -547,10 +547,10 @@ snprint_multipath (char * line, int len, char * format,
 			continue;
 		}
 		f++;
-		
+
 		if (!(data = mpd_lookup(*f)))
 			break;
-		
+
 		data->snprint(buff, MAX_FIELD_LEN, mpp);
 		PRINT(c, TAIL, buff);
 		PAD(data->width);
@@ -582,10 +582,10 @@ snprint_path_header (char * line, int len, char * format)
 			continue;
 		}
 		f++;
-		
+
 		if (!(data = pd_lookup(*f)))
 			break; /* unknown wildcard */
-		
+
 		PRINT(c, TAIL, data->header);
 		PAD(data->width);
 	} while (*f++);
@@ -617,10 +617,10 @@ snprint_path (char * line, int len, char * format,
 			continue;
 		}
 		f++;
-		
+
 		if (!(data = pd_lookup(*f)))
 			break;
-		
+
 		data->snprint(buff, MAX_FIELD_LEN, pp);
 		PRINT(c, TAIL, buff);
 		PAD(data->width);
@@ -653,10 +653,10 @@ snprint_pathgroup (char * line, int len, char * format,
 			continue;
 		}
 		f++;
-		
+
 		if (!(data = pgd_lookup(*f)))
 			break;
-		
+
 		data->snprint(buff, MAX_FIELD_LEN, pgp);
 		PRINT(c, TAIL, buff);
 		PAD(data->width);
@@ -700,7 +700,7 @@ snprint_multipath_topology (char * buff, int len, struct multipath * mpp,
 			c += sprintf(c, "%%A: ");
 
 	c += sprintf(c, "%%n");
-	
+
 	if (strncmp(mpp->alias, mpp->wwid, WWID_SIZE))
 		c += sprintf(c, " (%%w)");
 
@@ -872,7 +872,6 @@ snprint_defaults (char * buff, int len)
 	if (fwd > len)
 		return len;
 	return fwd;
-	
 }
 
 static int
@@ -938,7 +937,7 @@ snprint_blacklist_report (char * buff, int len)
 	if ((len - fwd - threshold) <= 0)
 		return len;
 	fwd += snprintf(buff + fwd, len - fwd, "device node rules:\n"
-			                       "- blacklist:\n");
+					       "- blacklist:\n");
 	if (!snprint_blacklist_group(buff, len, &fwd, &conf->blist_devnode))
 		return len;
 
@@ -951,7 +950,7 @@ snprint_blacklist_report (char * buff, int len)
 	if ((len - fwd - threshold) <= 0)
 		return len;
 	fwd += snprintf(buff + fwd, len - fwd, "wwid rules:\n"
-			                       "- blacklist:\n");
+					       "- blacklist:\n");
 	if (snprint_blacklist_group(buff, len, &fwd, &conf->blist_wwid) == 0)
 		return len;
 
@@ -964,7 +963,7 @@ snprint_blacklist_report (char * buff, int len)
 	if ((len - fwd - threshold) <= 0)
 		return len;
 	fwd += snprintf(buff + fwd, len - fwd, "device rules:\n"
-			                       "- blacklist:\n");
+					       "- blacklist:\n");
 	if (snprint_blacklist_devgroup(buff, len, &fwd, &conf->blist_device) == 0)
 		return len;
 
@@ -1234,7 +1233,7 @@ print_all_paths (vector pathvec, int banner)
 			fprintf(stdout, "===== no paths =====\n");
 		return;
 	}
-	
+
 	if (banner)
 		fprintf(stdout, "===== paths list =====\n");
 

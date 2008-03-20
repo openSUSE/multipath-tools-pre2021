@@ -247,31 +247,31 @@ store_hwe (vector hwtable, struct hwentry * dhwe)
 
 	if (find_hwe_strmatch(hwtable, dhwe->vendor, dhwe->product, dhwe->revision))
 		return 0;
-	
+
 	if (!(hwe = alloc_hwe()))
 		return 1;
 
 	if (!dhwe->vendor || !(hwe->vendor = set_param_str(dhwe->vendor)))
 		goto out;
-	
+
 	if (!dhwe->product || !(hwe->product = set_param_str(dhwe->product)))
 		goto out;
-	
+
 	if (dhwe->revision && !(hwe->revision = set_param_str(dhwe->revision)))
 		goto out;
-	
+
 	if (dhwe->getuid && !(hwe->getuid = set_param_str(dhwe->getuid)))
 		goto out;
 
 	if (dhwe->features && !(hwe->features = set_param_str(dhwe->features)))
 		goto out;
-	
+
 	if (dhwe->hwhandler && !(hwe->hwhandler = set_param_str(dhwe->hwhandler)))
 		goto out;
 
 	if (dhwe->selector && !(hwe->selector = set_param_str(dhwe->selector)))
 		goto out;
-				
+
 	hwe->pgpolicy = dhwe->pgpolicy;
 	hwe->pgfailback = dhwe->pgfailback;
 	hwe->rr_weight = dhwe->rr_weight;
@@ -370,35 +370,30 @@ load_config (char * file)
 	} else {
 	    init_keywords();
 	}
-	
+
 	/*
 	 * fill the voids left in the config file
 	 */
 	if (conf->hwtable == NULL) {
 		conf->hwtable = vector_alloc();
-		
 		if (!conf->hwtable)
 			goto out;
-		
 	}
 	if (setup_default_hwtable(conf->hwtable))
 		goto out;
 
 	if (conf->blist_devnode == NULL) {
 		conf->blist_devnode = vector_alloc();
-		
 		if (!conf->blist_devnode)
 			goto out;
 	}
 	if (conf->blist_wwid == NULL) {
 		conf->blist_wwid = vector_alloc();
-		
 		if (!conf->blist_wwid)
 			goto out;
 	}
 	if (conf->blist_device == NULL) {
 		conf->blist_device = vector_alloc();
-		
 		if (!conf->blist_device)
 			goto out;
 	}
@@ -406,28 +401,24 @@ load_config (char * file)
 		goto out;
 
 	if (conf->elist_devnode == NULL) {
-                conf->elist_devnode = vector_alloc();
-
-                if (!conf->elist_devnode)
+		conf->elist_devnode = vector_alloc();
+		if (!conf->elist_devnode)
 			goto out;
 	}
 	if (conf->elist_wwid == NULL) {
 		conf->elist_wwid = vector_alloc();
-
-                if (!conf->elist_wwid)
+		if (!conf->elist_wwid)
 			goto out;
 	}
 
 	if (conf->elist_device == NULL) {
 		conf->elist_device = vector_alloc();
-		
 		if (!conf->elist_device)
 			goto out;
 	}
 
 	if (conf->mptable == NULL) {
 		conf->mptable = vector_alloc();
-
 		if (!conf->mptable)
 			goto out;
 	}
@@ -446,7 +437,7 @@ load_config (char * file)
 	if (conf->hwhandler == NULL)
 		conf->hwhandler = set_default(DEFAULT_HWHANDLER);
 
-	if (!conf->selector  || !conf->udev_dir         ||
+	if (!conf->selector  || !conf->udev_dir ||
 	    !conf->getuid    || !conf->features ||
 	    !conf->hwhandler)
 		goto out;

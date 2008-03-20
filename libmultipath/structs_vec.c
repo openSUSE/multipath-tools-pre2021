@@ -63,7 +63,7 @@ adopt_paths (vector pathvec, struct multipath * mpp)
 			condlog(3, "%s: ownership set to %s",
 				pp->dev, mpp->alias);
 			pp->mpp = mpp;
-			
+
 			if (!mpp->paths && !(mpp->paths = vector_alloc()))
 				return 1;
 
@@ -249,13 +249,13 @@ setup_multipath (struct vectors * vecs, struct multipath * mpp)
 retry:
 	if (dm_get_info(mpp->alias, &mpp->dmi)) {
 		/* Error accessing table */
-		condlog(3, "%s: cannot access table", mpp->alias); 
+		condlog(3, "%s: cannot access table", mpp->alias);
 		goto out;
 	}
 
 	if (!dm_map_present(mpp->alias)) {
 		/* Table has been removed */
-		condlog(3, "%s: table does not exist", mpp->alias); 
+		condlog(3, "%s: table does not exist", mpp->alias);
 		goto out;
 	}
 
@@ -267,7 +267,7 @@ retry:
 		char new_alias[WWID_SIZE];
 
 		/*
-	 	 * detect an external rename of the multipath device
+		 * detect an external rename of the multipath device
 		 */
 		if (dm_get_name(mpp->wwid, DEFAULT_TARGET, new_alias)) {
 			condlog(3, "%s multipath mapped device name has "
@@ -275,7 +275,7 @@ retry:
 				mpp->alias, new_alias);
 			strcpy(mpp->alias, new_alias);
 #if DAEMON
-			if (mpp->waiter) 
+			if (mpp->waiter)
 				strncpy(((struct event_thread *)mpp->waiter)->mapname,
 					new_alias, WWID_SIZE);
 #endif
@@ -315,7 +315,7 @@ add_map_without_path (struct vectors * vecs,
 
 	if (adopt_paths(vecs->pathvec, mpp))
 		goto out;
-	
+
 	if (!vector_alloc_slot(vecs->mpvec))
 		goto out;
 

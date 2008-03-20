@@ -48,7 +48,7 @@ dm_write_log (int level, const char *file, int line, const char *f, ...)
 	if (thres <= 3 || level > thres)
 		return;
 
-        va_start(ap, f);
+	va_start(ap, f);
 #if DAEMON
 	if (!logsink) {
 		time_t t = time(NULL);
@@ -71,7 +71,7 @@ dm_write_log (int level, const char *file, int line, const char *f, ...)
 	vfprintf(stdout, f, ap);
 	fprintf(stdout, "\n");
 #endif
-        va_end(ap);
+	va_end(ap);
 
 	return;
 }
@@ -170,9 +170,9 @@ dm_simplecmd (int task, const char *name) {
 		goto out;
 
 	dm_task_no_open_count(dmt);
-	dm_task_skip_lockfs(dmt);       /* for DM_DEVICE_RESUME */
+	dm_task_skip_lockfs(dmt);	/* for DM_DEVICE_RESUME */
 #ifdef LIBDM_API_FLUSH
-	dm_task_no_flush(dmt);          /* for DM_DEVICE_SUSPEND/RESUME */
+	dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
 
 	r = dm_task_run (dmt);
@@ -297,11 +297,11 @@ dm_get_uuid(char *name, char *uuid)
 	if (!dmt)
 		return 1;
 
-        if (!dm_task_set_name (dmt, name))
-                goto uuidout;
+	if (!dm_task_set_name (dmt, name))
+		goto uuidout;
 
 	if (!dm_task_run(dmt))
-                goto uuidout;
+		goto uuidout;
 
 	uuidtmp = dm_task_get_uuid(dmt);
 	if (uuidtmp) {
@@ -423,7 +423,7 @@ out:
 	dm_task_destroy(dmt);
 	return r;
 }
-	
+
 int
 dm_get_opencount (char * mapname)
 {
@@ -448,7 +448,7 @@ out:
 	dm_task_destroy(dmt);
 	return r;
 }
-	
+
 int
 dm_get_minor (char * mapname)
 {
@@ -473,7 +473,7 @@ out:
 	dm_task_destroy(dmt);
 	return r;
 }
-	
+
 extern int
 dm_flush_map (char * mapname, char * type)
 {
@@ -491,7 +491,7 @@ dm_flush_map (char * mapname, char * type)
 	if (dm_get_opencount(mapname)) {
 		condlog(2, "%s: map in use", mapname);
 		return 1;
-	}	
+	}
 
 	r = dm_simplecmd(DM_DEVICE_REMOVE, mapname);
 
@@ -703,8 +703,8 @@ dm_get_maps (vector mp, char * type)
 		vector_set_slot(mp, mpp);
 		mpp = NULL;
 next:
-                next = names->next;
-                names = (void *) names + next;
+		next = names->next;
+		names = (void *) names + next;
 	} while (next);
 
 	r = 0;
@@ -884,7 +884,7 @@ dm_remove_partmaps (char * mapname)
 		     */
 		    strstr(params, dev_t)
 		   ) {
-		    		/*
+				/*
 				 * then it's a kpartx generated partition.
 				 * remove it.
 				 */
@@ -914,7 +914,7 @@ dm_get_info (char * mapname, struct dm_info ** dmi)
 {
 	int r = 1;
 	struct dm_task *dmt = NULL;
-	
+
 	if (!mapname)
 		return 1;
 
@@ -1002,7 +1002,7 @@ dm_rename_partmaps (char * old, char * new)
 		     */
 		    strstr(buff, dev_t)
 		   ) {
-		    		/*
+				/*
 				 * then it's a kpartx generated partition.
 				 * Rename it.
 				 */
@@ -1040,7 +1040,7 @@ dm_rename (char * old, char * new)
 
 	if (!dm_task_set_newname(dmt, new))
 		goto out;
-	
+
 	dm_task_no_open_count(dmt);
 
 	if (!dm_task_run(dmt))

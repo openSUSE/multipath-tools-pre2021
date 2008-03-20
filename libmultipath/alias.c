@@ -86,7 +86,7 @@ lock_bindings_file(int fd)
 	sigset_t set, oldset;
 	struct flock lock;
 	int err;
-	
+
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
@@ -149,7 +149,7 @@ open_bindings_file(char *file, int *can_write)
 	}
 	if (*can_write && lock_bindings_file(fd) < 0)
 		goto fail;
-	
+
 	memset(&s, 0, sizeof(s));
 	if (fstat(fd, &s) < 0){
 		condlog(0, "Cannot stat bindings file : %s", strerror(errno));
@@ -171,7 +171,7 @@ open_bindings_file(char *file, int *can_write)
 		fsync(fd);
 		condlog(3, "Initialized new bindings file [%s]", file);
 	}
-	
+
 	return fd;
 
 fail:
@@ -221,7 +221,7 @@ lookup_binding(FILE *f, char *map_wwid, char **map_alias)
 	}
 	condlog(3, "No matching wwid [%s] in bindings file.", map_wwid);
 	return id;
-}	
+}
 
 static int
 rlookup_binding(FILE *f, char **map_wwid, char *map_alias)
@@ -264,7 +264,7 @@ rlookup_binding(FILE *f, char **map_wwid, char *map_alias)
 	}
 	condlog(3, "No matching alias [%s] in bindings file.", map_alias);
 	return id;
-}	
+}
 
 static char *
 allocate_binding(int fd, char *wwid, int id)
@@ -272,12 +272,12 @@ allocate_binding(int fd, char *wwid, int id)
 	char buf[LINE_MAX];
 	off_t offset;
 	char *alias, *c;
-	
+
 	if (id < 0) {
 		condlog(0, "Bindings file full. Cannot allocate new binding");
 		return NULL;
 	}
-	
+
 	snprintf(buf, LINE_MAX, "mpath%d %s\n", id, wwid);
 	buf[LINE_MAX - 1] = '\0';
 
@@ -304,7 +304,7 @@ allocate_binding(int fd, char *wwid, int id)
 		condlog(3, "Created new binding [%s] for WWID [%s]", alias,
 			wwid);
 	return alias;
-}		
+}
 
 char *
 get_user_friendly_alias(char *wwid, char *file)

@@ -28,7 +28,7 @@ void dlog (int sink, int prio, const char * fmt, ...)
 			time_t t = time(NULL);
 			struct tm *tb = localtime(&t);
 			char buff[16];
-			
+
 			strftime(buff, sizeof(buff), "%b %d %H:%M:%S", tb);
 			buff[sizeof(buff)-1] = '\0';
 
