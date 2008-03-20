@@ -958,19 +958,25 @@ check_path (struct vectors * vecs, struct path * pp)
 			enable_group(pp);
 	}
 	else if (newstate == PATH_UP || newstate == PATH_GHOST) {
-		LOG_MSG(4, checker_message(&pp->checker));
-		/*
-		 * double the next check delay.
-		 * max at conf->max_checkint
-		 */
-		if (pp->checkint < (conf->max_checkint / 2))
-			pp->checkint = 2 * pp->checkint;
-		else
-			pp->checkint = conf->max_checkint;
+		if (pp->dmstate == PSTATE_FAILED ||
+		    pp->dmstate == PSTATE_UNDEF) {
+			/* Clear IO errors */
+			reinstate_path(pp, 0);
+		} else {
+			LOG_MSG(4, checker_message(&pp->checker));
+			/*
+			 * double the next check delay.
+			 * max at conf->max_checkint
+			 */
+			if (pp->checkint < (conf->max_checkint / 2))
+				pp->checkint = 2 * pp->checkint;
+			else
+				pp->checkint = conf->max_checkint;
 
-		pp->tick = pp->checkint;
-		condlog(4, "%s: delay next check %is",
+			pp->tick = pp->checkint;
+			condlog(4, "%s: delay next check %is",
 				pp->dev_t, pp->tick);
+		}
 	}
 	else if (newstate == PATH_DOWN)
 		LOG_MSG(2, checker_message(&pp->checker));
