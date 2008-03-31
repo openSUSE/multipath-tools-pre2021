@@ -79,7 +79,7 @@ case "$1" in
 	$PROGRAM -v 0
 
 	# Create all partitions which might have been missing
-	for map in $(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | sort +1 | sed -n 's/.*, \(.*\))/\1/p' ) ; do
+	for map in $(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | sort -n +2 | sed -n 's/.*, \(.*\))/\1/p' ) ; do
 	    wait=5
 	    while [ $wait -gt 0 ] ; do
 		[ -e /dev/dm-$map ] && break
