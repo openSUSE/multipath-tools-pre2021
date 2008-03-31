@@ -1374,8 +1374,6 @@ child (void * param)
 	vecs->lock = NULL;
 	FREE(vecs);
 	vecs = NULL;
-	free_config(conf);
-	conf = NULL;
 
 	condlog(2, "--------shut down-------");
 
@@ -1384,6 +1382,14 @@ child (void * param)
 
 	dm_lib_release();
 	dm_lib_exit();
+
+	/*
+	 * Freeing config must be done after condlog() and dm_lib_exit(),
+	 * because logging functions like dlog() and dm_write_log()
+	 * reference the config.
+	 */
+	free_config(conf);
+	conf = NULL;
 
 #ifdef _DEBUG_
 	dbg_free_final(NULL);
