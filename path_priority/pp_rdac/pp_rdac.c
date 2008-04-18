@@ -68,7 +68,7 @@ int rdac_prio(const char *dev)
 		 * This volume was owned by the controller receiving
 		 * the inquiry command.
 		 */
-		ret |= 0x01;
+		ret |= 0x04;
 	}
 
 	/* Volume Preferred Path Priority */
@@ -86,7 +86,8 @@ int rdac_prio(const char *dev)
 		 * as a secondary path. Typically this path would be used
 		 * for fail-over situations.
 		 */
-		/* Fallthrough */
+		ret |= 0x01;
+		break;
 	default:
 		/* Reserved values */
 		break;
