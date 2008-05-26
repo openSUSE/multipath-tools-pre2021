@@ -329,6 +329,9 @@ free_config (struct config * conf)
 	if (conf->hwhandler)
 		FREE(conf->hwhandler);
 
+	if (conf->bindings_file)
+		FREE(conf->bindings_file);
+
 	free_blacklist(conf->blist_devnode);
 	free_blacklist(conf->blist_wwid);
 	free_blacklist_device(conf->blist_device);
@@ -361,7 +364,6 @@ load_config (char * file)
 	conf->dev_type = DEV_NONE;
 	conf->minio = 1000;
 	conf->max_fds = 0;
-	conf->bindings_file = DEFAULT_BINDINGS_FILE;
 
 	/*
 	 * read the config file
@@ -376,7 +378,7 @@ load_config (char * file)
 	} else {
 	    init_keywords();
 	}
-	
+
 	/*
 	 * fill the voids left in the config file
 	 */
@@ -452,9 +454,12 @@ load_config (char * file)
 	if (conf->hwhandler == NULL)
 		conf->hwhandler = set_default(DEFAULT_HWHANDLER);
 
+	if (conf->bindings_file == NULL)
+		conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
+
 	if (!conf->selector  || !conf->udev_dir         ||
 	    !conf->getuid    || !conf->features ||
-	    !conf->hwhandler)
+	    !conf->hwhandler || !conf->bindings_file)
 		goto out;
 
 	if (!conf->prio)
