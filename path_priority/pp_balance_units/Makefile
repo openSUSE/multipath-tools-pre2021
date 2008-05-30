@@ -3,16 +3,15 @@
 # Copyright (C) 2003 Christophe Varoqui, <christophe.varoqui@free.fr>
 #
 BUILD = glibc
-DEBUG = 0
 
 TOPDIR	= ../..
 include $(TOPDIR)/Makefile.inc
 
 ifeq ($(strip $(BUILD)),klibc)
-	CFLAGS += -I/usr/include -DDEBUG=$(DEBUG)
+	CFLAGS += -I/usr/include
 	OBJS = pp_balance_units.o $(MULTIPATHLIB)-$(BUILD).a
 else
-	CFLAGS += -I$(multipathdir) -DDEBUG=$(DEBUG)
+	CFLAGS += -I$(multipathdir)
 	LDFLAGS = -ldevmapper
 	OBJS = pp_balance_units.o $(MULTIPATHLIB)-$(BUILD).a
 endif

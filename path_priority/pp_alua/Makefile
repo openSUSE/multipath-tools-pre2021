@@ -14,8 +14,6 @@
 #==============================================================================
 EXEC		= mpath_prio_alua
 BUILD		= glibc
-DEBUG		= 0
-DEBUG_DUMPHEX	= 0
 OBJS		= main.o rtpg.o
 INSTALL		= install -D
 
@@ -24,8 +22,6 @@ TOPDIR	= ../..
 ifneq ($(shell ls $(TOPDIR)/Makefile.inc 2>/dev/null),)
 include $(TOPDIR)/Makefile.inc
 endif
-
-CFLAGS += -DDEBUG=$(DEBUG)
 
 all: $(BUILD)
 

@@ -137,7 +137,7 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 			}
 			else {
 				dm_lib_release();
-				condlog(3, "%s devmap removed", ompp->alias);
+				condlog(2, "%s devmap removed", ompp->alias);
 			}
 		}
 	}
@@ -195,7 +195,7 @@ flush_map(struct multipath * mpp, struct vectors * vecs)
 	}
 	else {
 		dm_lib_release();
-		condlog(3, "%s: devmap removed", mpp->alias);
+		condlog(2, "%s: devmap removed", mpp->alias);
 	}
 
 	orphan_paths(vecs->pathvec, mpp);
@@ -433,7 +433,7 @@ rescan:
 	    start_waiter_thread(mpp, vecs))
 			goto out;
 
-	condlog(3, "%s path added to devmap %s", devname, mpp->alias);
+	condlog(2, "%s path added to devmap %s", devname, mpp->alias);
 	return 0;
 
 out:
@@ -1030,12 +1030,15 @@ checkerloop (void *ap)
 		lock(vecs->lock);
 		condlog(4, "tick");
 
-		vector_foreach_slot (vecs->pathvec, pp, i) {
-			check_path(vecs, pp);
+		if (vecs->pathvec) {
+			vector_foreach_slot (vecs->pathvec, pp, i) {
+				check_path(vecs, pp);
+			}
 		}
-		defered_failback_tick(vecs->mpvec);
-		retry_count_tick(vecs->mpvec);
-
+		if (vecs->mpvec) {
+			defered_failback_tick(vecs->mpvec);
+			retry_count_tick(vecs->mpvec);
+		}
 		if (count)
 			count--;
 		else {
@@ -1368,6 +1371,7 @@ child (void * param)
 
 	lock(vecs->lock);
 	free_pathvec(vecs->pathvec, FREE_PATHS);
+	vecs->pathvec = NULL;
 	unlock(vecs->lock);
 	pthread_mutex_destroy(vecs->lock);
 	FREE(vecs->lock);

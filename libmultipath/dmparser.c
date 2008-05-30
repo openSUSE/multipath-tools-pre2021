@@ -329,6 +329,7 @@ out1:
 	FREE(word);
 out:
 	free_pgvec(mpp->pg, KEEP_PATHS);
+	mpp->pg = NULL;
 	return 1;
 }
 

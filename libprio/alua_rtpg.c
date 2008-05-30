@@ -160,6 +160,7 @@ get_target_port_group_support(int fd)
 	struct inquiry_data	inq;
 	int			rc;
 
+	memset((unsigned char *)&inq, 0, sizeof(inq));
 	rc = do_inquiry(fd, 0, 0x00, &inq, sizeof(inq));
 	if (!rc) {
 		rc = inquiry_data_get_tpgs(&inq);
@@ -176,6 +177,7 @@ get_target_port_group(int fd)
 	struct vpd83_dscr *	dscr;
 	int			rc;
 
+	memset(buf, 0, 128);
 	rc = do_inquiry(fd, 1, 0x83, buf, sizeof(buf));
 	if (!rc) {
 		vpd83 = (struct vpd83_data *) buf;
@@ -261,6 +263,7 @@ get_asymmetric_access_state(int fd, unsigned int tpg)
 			"%u bytes\n", buflen);
 		return -RTPG_RTPG_FAILED;
 	}
+	memset(buf, 0, buflen);
 	rc = do_rtpg(fd, buf, buflen);
 	if (rc < 0)
 		return rc;
@@ -274,11 +277,11 @@ get_asymmetric_access_state(int fd, unsigned int tpg)
 			return -RTPG_RTPG_FAILED;
 		}
 		buflen = scsi_buflen;
+		memset(buf, 0, buflen);
 		rc = do_rtpg(fd, buf, buflen);
 		if (rc < 0)
 			goto out;
 	}
-		
 
 	tpgd = (struct rtpg_data *) buf;
 	rc   = -RTPG_TPG_NOT_FOUND;
@@ -289,7 +292,6 @@ get_asymmetric_access_state(int fd, unsigned int tpg)
 					"more than one entry with same port "
 					"group.\n");
 			} else {
-				PRINT_DEBUG("pref=%i\n", dscr->pref);
 				rc = rtpg_tpg_dscr_get_aas(dscr);
 			}
 		}

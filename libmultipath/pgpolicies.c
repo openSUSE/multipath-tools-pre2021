@@ -127,6 +127,7 @@ out1:
 	FREE(bitmap);
 out:
 	free_pgvec(mp->pg, KEEP_PATHS);
+	mp->pg = NULL;
 	return 1;
 }
 
@@ -198,6 +199,7 @@ out1:
 	FREE(bitmap);
 out:
 	free_pgvec(mp->pg, KEEP_PATHS);
+	mp->pg = NULL;
 	return 1;
 }
 
@@ -232,6 +234,7 @@ one_path_per_group (struct multipath * mp)
 	return 0;
 out:
 	free_pgvec(mp->pg, KEEP_PATHS);
+	mp->pg = NULL;
 	return 1;
 }
 
@@ -264,6 +267,7 @@ one_group (struct multipath * mp)	/* aka multibus */
 	return 0;
 out:
 	free_pgvec(mp->pg, KEEP_PATHS);
+	mp->pg = NULL;
 	return 1;
 }
 
@@ -338,6 +342,7 @@ group_by_prio (struct multipath * mp)
 	return 0;
 out:
 	free_pgvec(mp->pg, KEEP_PATHS);
+	mp->pg = NULL;
 	return 1;
 
 }

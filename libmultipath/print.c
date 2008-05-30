@@ -700,7 +700,7 @@ snprint_multipath_topology (char * buff, int len, struct multipath * mpp,
 			c += sprintf(c, "%%A: ");
 
 	c += sprintf(c, "%%n");
-	
+
 	if (strncmp(mpp->alias, mpp->wwid, WWID_SIZE))
 		c += sprintf(c, " (%%w)");
 

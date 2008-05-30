@@ -53,13 +53,18 @@ get_alua_info(int fd)
 		return -ALUA_PRIO_GETAAS_FAILED;
 
 	condlog(3, "aas = [%s]",
-		(aas_string[rc]) ? aas_string[rc] : "invalid/reserved");
+		(rc < 4) ? aas_string[rc] : "invalid/reserved");
 	return rc;
 }
 
 int prio_alua(struct path * pp)
 {
-	int rc = get_alua_info(pp->fd);
+	int rc;
+
+	if (pp->fd < 0)
+		return -5;
+
+	rc = get_alua_info(pp->fd);
 	if (rc >= 0) {
 		switch(rc) {
 			case AAS_OPTIMIZED:

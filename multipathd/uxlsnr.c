@@ -122,7 +122,7 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 
 		/* most of our life is spent in this call */
 		poll_count = poll(polls, i, SLEEP_TIME);
-		
+
 		if (poll_count == -1) {
 			if (errno == EINTR)
 				continue;
@@ -168,5 +168,6 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 		}
 	}
 
+	close(ux_sock);
 	return NULL;
 }
