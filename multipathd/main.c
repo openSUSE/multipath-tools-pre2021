@@ -151,6 +151,9 @@ sync_map_state(struct multipath *mpp)
 	struct path *pp;
 	unsigned int i, j;
 
+	if (!mpp->pg)
+		return;
+
 	vector_foreach_slot (mpp->pg, pgp, i){
 		vector_foreach_slot (pgp->paths, pp, j){
 			if (pp->state <= PATH_UNCHECKED)
@@ -475,7 +478,7 @@ ev_remove_path (char * devname, struct vectors * vecs)
 		/*
 		 * remove the map IFF removing the last path
 		 */
-		if (pathcount(mpp, PATH_WILD) > 1) {
+		if (pathcount(mpp, PATH_WILD) > 0) {
 			/*
 			 * transform the mp->pg vector of vectors of paths
 			 * into a mp->params string to feed the device-mapper

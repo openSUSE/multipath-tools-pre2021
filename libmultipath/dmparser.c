@@ -146,6 +146,8 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 			FREE(word);
 			return 1;
 		}
+		setup_feature(mpp, word);
+
 		FREE(word);
 	}
 
@@ -183,11 +185,12 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 	num_pg = atoi(word);
 	FREE(word);
 
-	if (num_pg > 0 && !mpp->pg)
+	if (num_pg > 0 && !mpp->pg) {
 		mpp->pg = vector_alloc();
-	
-	if (!mpp->pg)
-		return 1;
+		if (!mpp->pg)
+			return 1;
+	}
+
 	/*
 	 * first pg to try
 	 */
@@ -219,7 +222,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 				goto out;
 
 			num_pg_args = atoi(word);
-			
+
 			if (merge_words(&mpp->selector, word, 1)) {
 				FREE(word);
 				goto out1;
@@ -237,7 +240,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 		 * paths
 		 */
 		pgp = alloc_pathgroup();
-		
+
 		if (!pgp)
 			goto out;
 
@@ -398,6 +401,9 @@ disassemble_status (char * params, struct multipath * mpp)
 
 	num_pg = atoi(word);
 	FREE(word);
+
+	if (num_pg == 0)
+		return 0;
 
 	/*
 	 * next pg to try

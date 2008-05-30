@@ -365,9 +365,10 @@ pathcount (struct multipath * mpp, int state)
 	int count = 0;
 	int i;
 
-	vector_foreach_slot (mpp->pg, pgp, i)
-		count += pathcountgr(pgp, state);
-
+	if (mpp->pg) {
+		vector_foreach_slot (mpp->pg, pgp, i)
+			count += pathcountgr(pgp, state);
+	}
 	return count;
 }
 
@@ -380,4 +381,11 @@ first_path (struct multipath * mpp)
 	pgp = VECTOR_SLOT(mpp->pg, 0);
 
 	return pgp?VECTOR_SLOT(pgp->paths, 0):NULL;
+}
+
+extern void
+setup_feature(struct multipath * mpp, char *feature)
+{
+	if (!strncmp(feature, "queue_if_no_path", 16))
+		mpp->no_path_retry = NO_PATH_RETRY_QUEUE;
 }

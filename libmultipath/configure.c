@@ -163,7 +163,7 @@ select_action (struct multipath * mpp, vector curmp)
 			mpp->alias);
 		return;
 	}
-		
+
 	if (pathcount(mpp, PATH_UP) == 0) {
 		mpp->action = ACT_NOTHING;
 		condlog(3, "%s: set ACT_NOTHING (no usable path)",
@@ -184,14 +184,14 @@ select_action (struct multipath * mpp, vector curmp)
 			mpp->alias);
 		return;
 	}
-	if (strncmp(cmpp->hwhandler, mpp->hwhandler,
+	if (!cmpp->selector || strncmp(cmpp->hwhandler, mpp->hwhandler,
 		    strlen(mpp->hwhandler))) {
 		mpp->action = ACT_RELOAD;
 		condlog(3, "%s: set ACT_RELOAD (hwhandler change)",
 			mpp->alias);
 		return;
 	}
-	if (strncmp(cmpp->selector, mpp->selector,
+	if (!cmpp->selector || strncmp(cmpp->selector, mpp->selector,
 		    strlen(mpp->selector))) {
 		mpp->action = ACT_RELOAD;
 		condlog(3, "%s: set ACT_RELOAD (selector change)",
@@ -204,7 +204,7 @@ select_action (struct multipath * mpp, vector curmp)
 			mpp->alias, cmpp->minio, mpp->minio);
 		return;
 	}
-	if (VECTOR_SIZE(cmpp->pg) != VECTOR_SIZE(mpp->pg)) {
+	if (!cmpp->pg || VECTOR_SIZE(cmpp->pg) != VECTOR_SIZE(mpp->pg)) {
 		mpp->action = ACT_RELOAD;
 		condlog(3, "%s: set ACT_RELOAD (path group number change)",
 			mpp->alias);
@@ -404,7 +404,7 @@ deadmap (struct multipath * mpp)
 			if (strlen(pp->dev))
 				return 0; /* alive */
 	}
-	
+
 	return 1; /* dead */
 }
 
@@ -456,13 +456,13 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 			remove_map(mpp, vecs, NULL, 0);
 			continue;
 		}
-		
+
 		for (i = k + 1; i < VECTOR_SIZE(pathvec); i++) {
 			pp2 = VECTOR_SLOT(pathvec, i);
 
 			if (strcmp(pp1->wwid, pp2->wwid))
 				continue;
-			
+
 			if (!pp2->size)
 				continue;
 
