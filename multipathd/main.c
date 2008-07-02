@@ -45,6 +45,7 @@
 #include <switchgroup.h>
 #include <print.h>
 #include <configure.h>
+#include <prio.h>
 
 #include "main.h"
 #include "pidfile.h"
@@ -63,6 +64,8 @@
 
 pthread_cond_t exit_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t exit_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int logsink;
 
 /*
  * global copy of vecs for use in sig handlers
@@ -199,7 +202,7 @@ flush_map(struct multipath * mpp, struct vectors * vecs)
 	}
 
 	orphan_paths(vecs->pathvec, mpp);
-	remove_map(mpp, vecs, stop_waiter_thread, 1);
+	remove_map_and_stop_waiter(mpp, vecs, 1);
 
 	return 0;
 }
@@ -255,8 +258,7 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 	/*
 	 * now we can register the map
 	 */
-	if (map_present && (mpp = add_map_without_path(vecs, minor, alias,
-					start_waiter_thread))) {
+	if (map_present && (mpp = add_map_without_path(vecs, minor, alias))) {
 		sync_map_state(mpp);
 		condlog(3, "%s: devmap %s added", alias, dev->kernel);
 		return 0;
@@ -264,7 +266,7 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 	refwwid = get_refwwid(dev->kernel, DEV_DEVMAP, vecs->pathvec);
 
 	if (refwwid) {
-		r = coalesce_paths(vecs, NULL, refwwid);
+		r = coalesce_paths(vecs, NULL, refwwid, 0);
 		dm_lib_release();
 	}
 
@@ -437,7 +439,7 @@ rescan:
 	return 0;
 
 out:
-	remove_map(mpp, vecs, NULL, 1);
+	remove_map(mpp, vecs, 1);
 	return 1;
 }
 
@@ -563,7 +565,7 @@ ev_remove_path (char * devname, struct vectors * vecs)
 	return 0;
 
 out:
-	remove_map(mpp, vecs, stop_waiter_thread, 1);
+	remove_map_and_stop_waiter(mpp, vecs, 1);
 	return 1;
 }
 
@@ -811,7 +813,7 @@ mpvec_garbage_collector (struct vectors * vecs)
 	vector_foreach_slot (vecs->mpvec, mpp, i) {
 		if (mpp && mpp->alias && !dm_map_present(mpp->alias)) {
 			condlog(2, "%s: remove dead map", mpp->alias);
-			remove_map(mpp, vecs, stop_waiter_thread, 1);
+			remove_map_and_stop_waiter(mpp, vecs, 1);
 			i--;
 		}
 	}
@@ -1084,7 +1086,7 @@ configure (struct vectors * vecs, int start_waiters)
 	/*
 	 * create new set of maps & push changed ones into dm
 	 */
-	if (coalesce_paths(vecs, mpvec, NULL))
+	if (coalesce_paths(vecs, mpvec, NULL, 0))
 		return 1;
 
 	/*
@@ -1101,7 +1103,7 @@ configure (struct vectors * vecs, int start_waiters)
 	/*
 	 * purge dm of old maps
 	 */
-	remove_maps(vecs, NULL);
+	remove_maps(vecs);
 
 	/*
 	 * save new set of maps formed by considering current path state
@@ -1131,7 +1133,7 @@ reconfigure (struct vectors * vecs)
 	 * free old map and path vectors ... they use old conf state
 	 */
 	if (VECTOR_SIZE(vecs->mpvec))
-		remove_maps(vecs, stop_waiter_thread);
+		remove_maps_and_stop_waiters(vecs);
 
 	if (VECTOR_SIZE(vecs->pathvec))
 		free_pathvec(vecs->pathvec, FREE_PATHS);
@@ -1281,6 +1283,15 @@ child (void * param)
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
+	if (init_checkers()) {
+		condlog(0, "failed to initialize checkers");
+		exit(1);
+	}
+	if (init_prio()) {
+		condlog(0, "failed to initialize prioritizers");
+		exit(1);
+	}
+
 	setlogmask(LOG_UPTO(conf->verbosity + 3));
 
 	/*
@@ -1350,7 +1361,7 @@ child (void * param)
 	 * exit path
 	 */
 	lock(vecs->lock);
-	remove_maps(vecs, stop_waiter_thread);
+	remove_maps_and_stop_waiters(vecs);
 	free_pathvec(vecs->pathvec, FREE_PATHS);
 
 	pthread_cancel(check_thr);
@@ -1371,8 +1382,6 @@ child (void * param)
 	vecs->lock = NULL;
 	FREE(vecs);
 	vecs = NULL;
-	free_config(conf);
-	conf = NULL;
 
 	condlog(2, "--------shut down-------");
 
@@ -1381,6 +1390,14 @@ child (void * param)
 
 	dm_lib_release();
 	dm_lib_exit();
+
+	/*
+	 * Freeing config must be done after condlog() and dm_lib_exit(),
+	 * because logging functions like dlog() and dm_write_log()
+	 * reference the config.
+	 */
+	free_config(conf);
+	conf = NULL;
 
 #ifdef _DEBUG_
 	dbg_free_final(NULL);

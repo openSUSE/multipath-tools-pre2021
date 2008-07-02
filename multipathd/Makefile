@@ -1,4 +1,3 @@
-BUILD = glibc
 EXEC = multipathd
 
 include ../Makefile.inc
@@ -6,8 +5,9 @@ include ../Makefile.inc
 #
 # basic flags setting
 #
-CFLAGS += -DDAEMON -I$(multipathdir) -I$(checkersdir)
-LDFLAGS = -lpthread -ldevmapper -lreadline -lncurses -laio
+CFLAGS += -I$(multipathdir) -Wl,-rpath,$(libdir)
+LDFLAGS += -lpthread -ldevmapper -lreadline -lncurses -laio -ldl \
+	   -lmultipath -L$(multipathdir)
 
 #
 # debuging stuff
@@ -19,45 +19,29 @@ LDFLAGS = -lpthread -ldevmapper -lreadline -lncurses -laio
 #
 # object files
 #
-OBJS = main.o pidfile.o uxlsnr.o uxclnt.o cli.o cli_handlers.o \
-       $(MULTIPATHLIB)-glibc.a $(CHECKERSLIB)-glibc.a \
-       $(LIBPRIO)-glibc.a
+OBJS = main.o pidfile.o uxlsnr.o uxclnt.o cli.o cli_handlers.o
 
 
 #
 # directives
 #
-all : $(BUILD)
+all : $(EXEC)
 
-glibc: $(EXEC)
-
-klibc:
-	$(MAKE) BUILD=glibc glibc
-
-$(EXEC): clean $(OBJS)
-	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-
-$(LIBPRIO)-glibc.a:
-	$(MAKE) -C $(libpriodir) BUILD=glibc glibc
-
-$(CHECKERSLIB)-glibc.a:
-	$(MAKE) -C $(checkersdir) BUILD=glibc glibc
-
-$(MULTIPATHLIB)-glibc.a:
-	$(MAKE) -C $(multipathdir) DAEMON=1 BUILD=glibc glibc
+$(EXEC): $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(EXEC) $(OBJS)
+	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
 
 install:
-	install -d $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
-	install -d $(DESTDIR)$(rcdir)
-	install -d $(DESTDIR)$(mandir)
-	install -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)$(rcdir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
 	rm -f $(DESTDIR)$(rcdir)/$(EXEC)
 
 clean:
-	$(MAKE) -C $(multipathdir) prepare DAEMON=1
-	rm -f core *.o $(EXEC)
+	rm -f core *.o $(EXEC) *.gz
 

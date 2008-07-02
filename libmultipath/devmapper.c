@@ -14,8 +14,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <checkers.h>
-
+#include "checkers.h"
 #include "vector.h"
 #include "structs.h"
 #include "debug.h"
@@ -23,11 +22,9 @@
 #include "devmapper.h"
 #include "config.h"
 
-#if DAEMON
 #include "log_pthread.h"
 #include <sys/types.h>
 #include <time.h>
-#endif
 
 #define MAX_WAIT 5
 #define LOOPS_PER_SEC 5
@@ -49,7 +46,6 @@ dm_write_log (int level, const char *file, int line, const char *f, ...)
 		return;
 
 	va_start(ap, f);
-#if DAEMON
 	if (!logsink) {
 		time_t t = time(NULL);
 		struct tm *tb = localtime(&t);
@@ -66,11 +62,6 @@ dm_write_log (int level, const char *file, int line, const char *f, ...)
 		condlog(level, "libdevmapper: %s(%i): ", file, line);
 		log_safe(level + 3, f, ap);
 	}
-#else
-	fprintf(stdout, "libdevmapper: %s(%i): ", file, line);
-	vfprintf(stdout, f, ap);
-	fprintf(stdout, "\n");
-#endif
 	va_end(ap);
 
 	return;

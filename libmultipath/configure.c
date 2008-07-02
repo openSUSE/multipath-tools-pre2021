@@ -14,9 +14,7 @@
 #include <errno.h>
 #include <libdevmapper.h>
 
-#include <checkers.h>
-#include <libprio.h>
-
+#include "checkers.h"
 #include "vector.h"
 #include "memory.h"
 #include "devmapper.h"
@@ -35,6 +33,7 @@
 #include "pgpolicies.h"
 #include "dict.h"
 #include "alias.h"
+#include "prio.h"
 
 extern int
 setup_map (struct multipath * mpp)
@@ -131,7 +130,7 @@ pgcmp (struct multipath * mpp, struct multipath * cmpp)
 }
 
 static void
-select_action (struct multipath * mpp, vector curmp)
+select_action (struct multipath * mpp, vector curmp, int force_reload)
 {
 	struct multipath * cmpp;
 
@@ -167,6 +166,12 @@ select_action (struct multipath * mpp, vector curmp)
 	if (pathcount(mpp, PATH_UP) == 0) {
 		mpp->action = ACT_NOTHING;
 		condlog(3, "%s: set ACT_NOTHING (no usable path)",
+			mpp->alias);
+		return;
+	}
+	if (force_reload) {
+		mpp->action = ACT_RELOAD;
+		condlog(3, "%s: set ACT_RELOAD (forced by user)",
 			mpp->alias);
 		return;
 	}
@@ -368,19 +373,21 @@ domap (struct multipath * mpp)
 		 * DM_DEVICE_CREATE, DM_DEVICE_RENAME, or DM_DEVICE_RELOAD
 		 * succeeded
 		 */
-#ifndef DAEMON
-		dm_switchgroup(mpp->alias, mpp->bestpg);
-		if (mpp->action != ACT_NOTHING)
-			print_multipath_topology(mpp, conf->verbosity);
-#else
-		mpp->stat_map_loads++;
-		condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
-                        mpp->size, DEFAULT_TARGET, mpp->params);
-		/*
-		 * Required action is over, reset for the stateful daemon
-		 */
-		mpp->action = ACT_NOTHING;
-#endif
+		if (!mpp->waiter) {
+			/* multipath client mode */
+			dm_switchgroup(mpp->alias, mpp->bestpg);
+			if (mpp->action != ACT_NOTHING)
+				print_multipath_topology(mpp, conf->verbosity);
+		} else  {
+			/* multipath daemon mode */
+			mpp->stat_map_loads++;
+			condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
+				mpp->size, DEFAULT_TARGET, mpp->params);
+			/*
+			 * Required action is over, reset for the stateful daemon
+			 */
+			mpp->action = ACT_NOTHING;
+		}
 		return DOMAP_OK;
 	}
 	return DOMAP_FAIL;
@@ -409,7 +416,7 @@ deadmap (struct multipath * mpp)
 }
 
 extern int
-coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
+coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_reload)
 {
 	int r = 1;
 	int k, i;
@@ -422,6 +429,11 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 
 	memset(empty_buff, 0, WWID_SIZE);
 
+	if (force_reload) {
+		vector_foreach_slot (pathvec, pp1, k) {
+			pp1->mpp = NULL;
+		}
+	}
 	vector_foreach_slot (pathvec, pp1, k) {
 		/* skip this path for some reason */
 
@@ -445,7 +457,8 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 		/*
 		 * at this point, we know we really got a new mp
 		 */
-		if ((mpp = add_map_with_path(vecs, pp1, 0)) == NULL)
+		mpp = add_map_with_path(vecs, pp1, 0);
+		if (!mpp)
 			return 1;
 
 		if (pp1->priority == PRIO_UNDEF)
@@ -453,7 +466,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 
 		if (!mpp->paths) {
 			condlog(0, "%s: skip coalesce (no paths)", mpp->alias);
-			remove_map(mpp, vecs, NULL, 0);
+			remove_map(mpp, vecs, 0);
 			continue;
 		}
 		
@@ -481,12 +494,12 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 		verify_paths(mpp, vecs, NULL);
 		
 		if (setup_map(mpp)) {
-			remove_map(mpp, vecs, NULL, 0);
+			remove_map(mpp, vecs, 0);
 			continue;
 		}
 
 		if (mpp->action == ACT_UNDEF)
-			select_action(mpp, curmp);
+			select_action(mpp, curmp, force_reload);
 
 		r = domap(mpp);
 
@@ -495,7 +508,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 				   "for create/reload map",
 				mpp->alias, r);
 			if (r == DOMAP_FAIL) {
-				remove_map(mpp, vecs, NULL, 0);
+				remove_map(mpp, vecs, 0);
 				continue;
 			} else /* if (r == DOMAP_RETRY) */
 				return r;
@@ -523,7 +536,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 				vector_set_slot(newmp, mpp);
 			}
 			else
-				remove_map(mpp, vecs, NULL, 0);
+				remove_map(mpp, vecs, 0);
 		}
 	}
 	/*
@@ -543,7 +556,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 			if ((j = find_slot(newmp, (void *)mpp)) != -1)
 				vector_del_slot(newmp, j);
 
-			remove_map(mpp, vecs, NULL, 0);
+			remove_map(mpp, vecs, 0);
 
 			if (dm_flush_map(mpp->alias, DEFAULT_TARGET))
 				condlog(2, "%s: remove failed (dead)",

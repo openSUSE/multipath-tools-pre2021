@@ -4,9 +4,7 @@
  * Copyright (c) 2005 Benjamin Marzinski, Redhat
  * Copyright (c) 2005 Kiyoshi Ueda, NEC
  */
-#include <checkers.h>
-#include <libprio.h>
-
+#include "checkers.h"
 #include "vector.h"
 #include "hwtable.h"
 #include "structs.h"
@@ -17,6 +15,7 @@
 #include "pgpolicies.h"
 #include "blacklist.h"
 #include "defaults.h"
+#include "prio.h"
 
 /*
  * default block handlers
@@ -39,6 +38,17 @@ udev_dir_handler(vector strvec)
 	conf->udev_dir = set_value(strvec);
 
 	if (!conf->udev_dir)
+		return 1;
+
+	return 0;
+}
+
+static int
+multipath_dir_handler(vector strvec)
+{
+	conf->multipath_dir = set_value(strvec);
+
+	if (!conf->multipath_dir)
 		return 1;
 
 	return 0;
@@ -85,14 +95,11 @@ def_getuid_callout_handler(vector strvec)
 static int
 def_prio_handler(vector strvec)
 {
-	char * buff;
+	conf->prio_name = set_value(strvec);
 
-	buff = set_value(strvec);
-	if (!buff)
+	if (!conf->prio_name)
 		return 1;
 
-	conf->prio = prio_lookup(buff);
-	FREE(buff);
 	return 0;
 }
 
@@ -110,16 +117,11 @@ def_features_handler(vector strvec)
 static int
 def_path_checker_handler(vector strvec)
 {
-	char * buff;
+	conf->checker_name = set_value(strvec);
 
-	buff = set_value(strvec);
-
-	if (!buff)
+	if (!conf->checker_name)
 		return 1;
-
-	conf->checker = checker_lookup(buff);
-	FREE(buff);
-
+	
 	return 0;
 }
 
@@ -416,7 +418,8 @@ ble_except_product_handler(vector strvec)
 static int
 devices_handler(vector strvec)
 {
-	conf->hwtable = vector_alloc();
+	if (!conf->hwtable)
+		conf->hwtable = vector_alloc();
 
 	if (!conf->hwtable)
 		return 1;
@@ -539,20 +542,16 @@ hw_selector_handler(vector strvec)
 static int
 hw_path_checker_handler(vector strvec)
 {
-	char * buff;
 	struct hwentry * hwe = VECTOR_LAST_SLOT(conf->hwtable);
 
 	if (!hwe)
 		return 1;
 
-	buff = set_value(strvec);
+	hwe->checker_name = set_value(strvec);
 
-	if (!buff)
+	if (!hwe->checker_name)
 		return 1;
-
-	hwe->checker = checker_lookup(buff);
-	FREE(buff);
-
+	
 	return 0;
 }
 
@@ -592,17 +591,15 @@ static int
 hw_prio_handler(vector strvec)
 {
 	struct hwentry * hwe = VECTOR_LAST_SLOT(conf->hwtable);
-	char * buff;
 
 	if (!hwe)
 		return 1;
 
-	buff = set_value(strvec);
-	if (!buff)
+	hwe->prio_name = set_value(strvec);
+
+	if (!hwe->prio_name)
 		return 1;
 
-	hwe->prio = prio_lookup(buff);
-	FREE(buff);
 	return 0;
 }
 
@@ -1090,7 +1087,7 @@ snprint_hw_vendor (char * buff, int len, void * data)
 	if (!hwe->vendor)
 		return 0;
 
-	return snprintf(buff, len, "%s", hwe->vendor);
+	return snprintf(buff, len, "\"%s\"", hwe->vendor);
 }
 
 static int
@@ -1101,7 +1098,7 @@ snprint_hw_product (char * buff, int len, void * data)
 	if (!hwe->product)
 		return 0;
 
-	return snprintf(buff, len, "%s", hwe->product);
+	return snprintf(buff, len, "\"%s\"", hwe->product);
 }
 
 static int
@@ -1112,7 +1109,7 @@ snprint_hw_bl_product (char * buff, int len, void * data)
 	if (!hwe->bl_product)
 		return 0;
 
-	return snprintf(buff, len, "%s", hwe->bl_product);
+	return snprintf(buff, len, "\"%s\"", hwe->bl_product);
 }
 
 static int
@@ -1126,7 +1123,7 @@ snprint_hw_getuid_callout (char * buff, int len, void * data)
 	    !strcmp(hwe->getuid, conf->getuid))
 		return 0;
 
-	return snprintf(buff, len, "%s", hwe->getuid);
+	return snprintf(buff, len, "\"%s\"", hwe->getuid);
 }
 
 static int
@@ -1134,12 +1131,12 @@ snprint_hw_prio (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->prio)
+	if (!hwe->prio_name)
 		return 0;
-	if (hwe->prio == conf->prio)
+	if (!strcmp(hwe->prio_name, conf->prio_name))
 		return 0;
-
-	return snprintf(buff, len, "%s", prio_name(hwe->prio));
+	
+	return snprintf(buff, len, "%s", hwe->prio_name);
 }
 
 static int
@@ -1153,7 +1150,7 @@ snprint_hw_features (char * buff, int len, void * data)
 	    !strcmp(hwe->features, conf->features))
 		return 0;
 
-	return snprintf(buff, len, "%s", hwe->features);
+	return snprintf(buff, len, "\"%s\"", hwe->features);
 }
 
 static int
@@ -1167,7 +1164,7 @@ snprint_hw_hardware_handler (char * buff, int len, void * data)
 	    !strcmp(hwe->hwhandler, conf->hwhandler))
 		return 0;
 
-	return snprintf(buff, len, "%s", hwe->hwhandler);
+	return snprintf(buff, len, "\"%s\"", hwe->hwhandler);
 }
 
 static int
@@ -1302,14 +1299,12 @@ snprint_hw_path_checker (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->checker)
+	if (!hwe->checker_name)
 		return 0;
-	if (!checker_selected(hwe->checker))
+	if (!strcmp(hwe->checker_name, conf->checker_name))
 		return 0;
-	if (hwe->checker == conf->checker)
-		return 0;
-
-	return snprintf(buff, len, "%s", checker_name(hwe->checker));
+	
+	return snprintf(buff, len, "%s", hwe->checker_name);
 }
 
 static int
@@ -1329,7 +1324,19 @@ snprint_def_udev_dir (char * buff, int len, void * data)
 	    !strcmp(conf->udev_dir, DEFAULT_UDEVDIR))
 		return 0;
 
-	return snprintf(buff, len, "%s", conf->udev_dir);
+	return snprintf(buff, len, "\"%s\"", conf->udev_dir);
+}
+
+static int
+snprint_def_multipath_dir (char * buff, int len, void * data)
+{
+	if (!conf->udev_dir)
+		return 0;
+	if (strlen(DEFAULT_MULTIPATHDIR) == strlen(conf->multipath_dir) &&
+	    !strcmp(conf->multipath_dir, DEFAULT_MULTIPATHDIR))
+		return 0;
+
+	return snprintf(buff, len, "\"%s\"", conf->multipath_dir);
 }
 
 static int
@@ -1368,16 +1375,20 @@ snprint_def_getuid_callout (char * buff, int len, void * data)
 	    !strcmp(conf->getuid, DEFAULT_GETUID))
 		return 0;
 
-	return snprintf(buff, len, "%s", conf->getuid);
+	return snprintf(buff, len, "\"%s\"", conf->getuid);
 }
 
 static int
 snprint_def_prio (char * buff, int len, void * data)
 {
-	if (!conf->prio)
+	if (!conf->prio_name)
 		return 0;
 
-	return snprintf(buff, len, "%s", prio_name(conf->prio));
+	if (strlen(conf->prio_name) == strlen(DEFAULT_PRIO) &&
+	    !strcmp(conf->prio_name, DEFAULT_PRIO))
+		return 0;
+	
+	return snprintf(buff, len, "%s", conf->prio_name);
 }
 
 static int
@@ -1389,18 +1400,19 @@ snprint_def_features (char * buff, int len, void * data)
 	    !strcmp(conf->features, DEFAULT_FEATURES))
 		return 0;
 
-	return snprintf(buff, len, "%s", conf->features);
+	return snprintf(buff, len, "\"%s\"", conf->features);
 }
 
 static int
 snprint_def_path_checker (char * buff, int len, void * data)
 {
-	if (!conf->checker)
+	if (!conf->checker_name)
 		return 0;
-	if (conf->checker == checker_default())
+	if (strlen(conf->checker_name) == strlen(DEFAULT_CHECKER) &&
+	    !strcmp(conf->checker_name, DEFAULT_CHECKER))
 		return 0;
-
-	return snprintf(buff, len, "%s", checker_name(conf->checker));
+	
+	return snprintf(buff, len, "%s", conf->checker_name);
 }
 
 static int
@@ -1512,7 +1524,7 @@ snprint_ble_simple (char * buff, int len, void * data)
 {
 	struct blentry * ble = (struct blentry *)data;
 
-	return snprintf(buff, len, "%s", ble->str);
+	return snprintf(buff, len, "\"%s\"", ble->str);
 }
 
 static int
@@ -1520,7 +1532,7 @@ snprint_bled_vendor (char * buff, int len, void * data)
 {
 	struct blentry_device * bled = (struct blentry_device *)data;
 
-	return snprintf(buff, len, "%s", bled->vendor);
+	return snprintf(buff, len, "\"%s\"", bled->vendor);
 }
 
 static int
@@ -1528,7 +1540,7 @@ snprint_bled_product (char * buff, int len, void * data)
 {
 	struct blentry_device * bled = (struct blentry_device *)data;
 
-	return snprintf(buff, len, "%s", bled->product);
+	return snprintf(buff, len, "\"%s\"", bled->product);
 }
 
 #define __deprecated
@@ -1539,12 +1551,14 @@ init_keywords(void)
 	install_keyword_root("defaults", NULL);
 	install_keyword("polling_interval", &polling_interval_handler, &snprint_def_polling_interval);
 	install_keyword("udev_dir", &udev_dir_handler, &snprint_def_udev_dir);
+	install_keyword("multipath_dir", &multipath_dir_handler, &snprint_def_multipath_dir);
 	install_keyword("selector", &def_selector_handler, &snprint_def_selector);
 	install_keyword("path_grouping_policy", &def_pgpolicy_handler, &snprint_def_path_grouping_policy);
 	install_keyword("getuid_callout", &def_getuid_callout_handler, &snprint_def_getuid_callout);
 	install_keyword("prio", &def_prio_handler, &snprint_def_prio);
 	install_keyword("features", &def_features_handler, &snprint_def_features);
 	install_keyword("path_checker", &def_path_checker_handler, &snprint_def_path_checker);
+	install_keyword("checker", &def_path_checker_handler, &snprint_def_path_checker);
 	install_keyword("failback", &default_failback_handler, &snprint_def_failback);
 	install_keyword("rr_min_io", &def_minio_handler, &snprint_def_rr_min_io);
 	install_keyword("max_fds", &max_fds_handler, &snprint_max_fds);
@@ -1596,6 +1610,7 @@ init_keywords(void)
 	install_keyword("getuid_callout", &hw_getuid_callout_handler, &snprint_hw_getuid_callout);
 	install_keyword("path_selector", &hw_selector_handler, &snprint_hw_selector);
 	install_keyword("path_checker", &hw_path_checker_handler, &snprint_hw_path_checker);
+	install_keyword("checker", &hw_path_checker_handler, &snprint_hw_path_checker);
 	install_keyword("features", &hw_features_handler, &snprint_hw_features);
 	install_keyword("hardware_handler", &hw_handler_handler, &snprint_hw_hardware_handler);
 	install_keyword("prio", &hw_prio_handler, &snprint_hw_prio);

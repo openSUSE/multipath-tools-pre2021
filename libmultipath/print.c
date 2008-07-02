@@ -8,8 +8,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-#include <checkers.h>
-
+#include "checkers.h"
 #include "vector.h"
 #include "structs.h"
 #include "structs_vec.h"
@@ -92,6 +91,17 @@ snprint_sysfs (char * buff, size_t len, struct multipath * mpp)
 		return snprintf(buff, len, "dm-%i", mpp->dmi->minor);
 	else
 		return snprintf(buff, len, "n/a");
+}
+
+static int
+snprint_ro (char * buff, size_t len, struct multipath * mpp)
+{
+	if (!mpp->dmi)
+		return snprintf(buff, len, "n/a");
+	if (mpp->dmi->read_only)
+		return snprintf(buff, len, "ro");
+	else
+		return snprintf(buff, len, "rw");
 }
 
 static int
@@ -389,6 +399,7 @@ struct multipath_data mpd[] = {
 	{'F', "failback",      0, snprint_failback},
 	{'Q', "queueing",      0, snprint_queueing},
 	{'N', "paths",         0, snprint_nb_paths},
+	{'r', "write_prot",    0, snprint_ro},
 	{'t', "dm-st",         0, snprint_dm_map_state},
 	{'S', "size",          0, snprint_multipath_size},
 	{'f', "features",      0, snprint_features},
@@ -424,14 +435,17 @@ struct pathgroup_data pgd[] = {
 };
 
 void
-get_path_layout (vector pathvec)
+get_path_layout (vector pathvec, int header)
 {
 	int i, j;
 	char buff[MAX_FIELD_LEN];
 	struct path * pp;
 
 	for (j = 0; pd[j].header; j++) {
-		pd[j].width = strlen(pd[j].header);
+		if (header)
+			pd[j].width = strlen(pd[j].header);
+		else
+			pd[j].width = 0;
 
 		vector_foreach_slot (pathvec, pp, i) {
 			pd[j].snprint(buff, MAX_FIELD_LEN, pp);
@@ -441,14 +455,17 @@ get_path_layout (vector pathvec)
 }
 
 void
-get_multipath_layout (vector mpvec)
+get_multipath_layout (vector mpvec, int header)
 {
 	int i, j;
 	char buff[MAX_FIELD_LEN];
 	struct multipath * mpp;
 
 	for (j = 0; mpd[j].header; j++) {
-		mpd[j].width = strlen(mpd[j].header);
+		if (header)
+			mpd[j].width = strlen(mpd[j].header);
+		else
+			mpd[j].width = 0;
 
 		vector_foreach_slot (mpvec, mpp, i) {
 			mpd[j].snprint(buff, MAX_FIELD_LEN, mpp);
@@ -710,7 +727,7 @@ snprint_multipath_topology (char * buff, int len, struct multipath * mpp,
 	if (fwd > len)
 		return len;
 	fwd += snprint_multipath(buff + fwd, len - fwd,
-				 "[size=%S][features=%f][hwhandler=%h]", mpp);
+				 "[size=%S][features=%f][hwhandler=%h][%r]", mpp);
 	if (fwd > len)
 		return len;
 
@@ -1224,6 +1241,12 @@ print_map (struct multipath * mpp)
 extern void
 print_all_paths (vector pathvec, int banner)
 {
+	print_all_paths_custo(pathvec, banner, PRINT_PATH_LONG);
+}
+
+extern void
+print_all_paths_custo (vector pathvec, int banner, char *fmt)
+{
 	int i;
 	struct path * pp;
 	char line[MAX_LINE_LEN];
@@ -1237,11 +1260,11 @@ print_all_paths (vector pathvec, int banner)
 	if (banner)
 		fprintf(stdout, "===== paths list =====\n");
 
-	get_path_layout(pathvec);
-	snprint_path_header(line, MAX_LINE_LEN, PRINT_PATH_LONG);
+	get_path_layout(pathvec, 1);
+	snprint_path_header(line, MAX_LINE_LEN, fmt);
 	fprintf(stdout, "%s", line);
 
 	vector_foreach_slot (pathvec, pp, i)
-		print_path(pp, PRINT_PATH_LONG);
+		print_path(pp, fmt);
 }
 

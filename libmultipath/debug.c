@@ -5,11 +5,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#if DAEMON
 #include "log_pthread.h"
 #include <sys/types.h>
 #include <time.h>
-#endif
 
 #include "vector.h"
 #include "config.h"
@@ -23,7 +21,6 @@ void dlog (int sink, int prio, const char * fmt, ...)
 	thres = (conf) ? conf->verbosity : 0;
 
 	if (prio <= thres) {
-#if DAEMON
 		if (!sink) {
 			time_t t = time(NULL);
 			struct tm *tb = localtime(&t);
@@ -37,9 +34,6 @@ void dlog (int sink, int prio, const char * fmt, ...)
 		}
 		else
 			log_safe(prio + 3, fmt, ap);
-#else
-		vfprintf(stdout, fmt, ap);
-#endif
 	}
 	va_end(ap);
 }

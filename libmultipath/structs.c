@@ -6,9 +6,7 @@
 #include <unistd.h>
 #include <libdevmapper.h>
 
-#include <checkers.h>
-#include <libprio.h>
-
+#include "checkers.h"
 #include "memory.h"
 #include "vector.h"
 #include "util.h"
@@ -18,6 +16,7 @@
 #include "structs_vec.h"
 #include "blacklist.h"
 #include "waiter.h"
+#include "prio.h"
 
 struct path *
 alloc_path (void)
@@ -172,13 +171,11 @@ free_multipath (struct multipath * mpp, int free_paths)
 	if (mpp->dmi)
 		FREE(mpp->dmi);
 
-#if DAEMON
 	/*
 	 * better own vecs->lock here
 	 */
 	if (mpp->waiter)
 		((struct event_thread *)mpp->waiter)->mpp = NULL;
-#endif
 
 	free_pathvec(mpp->paths, free_paths);
 	free_pgvec(mpp->pg, free_paths);

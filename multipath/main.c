@@ -27,7 +27,7 @@
 #include <ctype.h>
 
 #include <checkers.h>
-#include <libprio.h>
+#include <prio.h>
 #include <vector.h>
 #include <memory.h>
 #include <libdevmapper.h>
@@ -48,6 +48,8 @@
 #include <configure.h>
 #include <pgpolicies.h>
 #include <version.h>
+
+int logsink;
 
 static int
 filter_pathvec (vector pathvec, char * refwwid)
@@ -73,35 +75,39 @@ static void
 usage (char * progname)
 {
 	fprintf (stderr, VERSION_STRING);
-	fprintf (stderr, "Usage: %s\t[-v level] [-d] [-h|-l|-ll|-f|-F|-t]\n",
-		progname);
+	fprintf (stderr, "Usage:\n");
+	fprintf (stderr, "  %s [-d] [-r] [-v lvl] [-p pol] [-b fil] [dev]\n", progname);
+	fprintf (stderr, "  %s -l|-ll|-f [-v lvl] [-b fil] [dev]\n", progname);
+	fprintf (stderr, "  %s -F [-v lvl]\n", progname);
+	fprintf (stderr, "  %s -h\n", progname);
 	fprintf (stderr,
-		"\t\t\t[-p failover|multibus|group_by_serial|group_by_prio]\n" \
-		"\t\t\t[device]\n" \
-		"\n" \
-		"\t-v level\tverbosity level\n" \
-		"\t   0\t\t\tno output\n" \
-		"\t   1\t\t\tprint created devmap names only\n" \
-		"\t   2\t\t\tdefault verbosity\n" \
-		"\t   3\t\t\tprint debug information\n" \
-		"\t-h\t\tprint this usage text\n" \
-		"\t-b file\t\tbindings file location\n" \
-		"\t-d\t\tdry run, do not create or update devmaps\n" \
-		"\t-l\t\tshow multipath topology (sysfs and DM info)\n" \
-		"\t-ll\t\tshow multipath topology (maximum info)\n" \
-		"\t-f\t\tflush a multipath device map\n" \
-		"\t-F\t\tflush all multipath device maps\n" \
-		"\t-t\t\tprint internal hardware table\n" \
-		"\t-p policy\tforce all maps to specified policy :\n" \
-		"\t   failover\t\t1 path per priority group\n" \
-		"\t   multibus\t\tall paths in 1 priority group\n" \
-		"\t   group_by_serial\t1 priority group per serial\n" \
-		"\t   group_by_prio\t1 priority group per priority lvl\n" \
-		"\t   group_by_node_name\t1 priority group per target node\n" \
-		"\n" \
-		"\tdevice\t\tlimit scope to the device's multipath\n" \
-		"\t\t\t(udev-style $DEVNAME reference, eg /dev/sdb\n" \
-		"\t\t\tor major:minor or a device map name)\n" \
+		"\n"
+		"Where:\n"
+		"  -h      print this usage text\n" \
+		"  -l      show multipath topology (sysfs and DM info)\n" \
+		"  -ll     show multipath topology (maximum info)\n" \
+		"  -f      flush a multipath device map\n" \
+		"  -F      flush all multipath device maps\n" \
+		"  -d      dry run, do not create or update devmaps\n" \
+		"  -r      force devmap reload\n" \
+		"  -p      policy failover|multibus|group_by_serial|group_by_prio\n" \
+		"  -b fil  bindings file location\n" \
+		"  -p pol  force all maps to specified path grouping policy :\n" \
+		"          . failover            one path per priority group\n" \
+		"          . multibus            all paths in one priority group\n" \
+		"          . group_by_serial     one priority group per serial\n" \
+		"          . group_by_prio       one priority group per priority lvl\n" \
+		"          . group_by_node_name  one priority group per target node\n" \
+		"  -v lvl  verbosity level\n" \
+		"          . 0 no output\n" \
+		"          . 1 print created devmap names only\n" \
+		"          . 2 default verbosity\n" \
+		"          . 3 print debug information\n" \
+		"  dev     action limited to:\n" \
+		"          . multipath named 'dev' (ex: mpath0) or\n" \
+		"          . multipath whose wwid is 'dev' (ex: 60051..)\n" \
+		"          . multipath including the path named 'dev' (ex: /dev/sda)\n" \
+		"          . multipath including the path with maj:min 'dev' (ex: 8:0)\n" \
 		);
 
 	exit(1);
@@ -282,7 +288,7 @@ configure (void)
 	if (conf->verbosity > 2)
 		print_all_paths(pathvec, 1);
 
-	get_path_layout(pathvec);
+	get_path_layout(pathvec, 1);
 
 	if (get_dm_mpvec(curmp, pathvec, refwwid))
 		goto out;
@@ -297,7 +303,7 @@ configure (void)
 	/*
 	 * core logic entry point
 	 */
-	r = coalesce_paths(&vecs, NULL, NULL);
+	r = coalesce_paths(&vecs, NULL, NULL, conf->force_reload);
 
 out:
 	if (refwwid)
@@ -377,11 +383,19 @@ main (int argc, char *argv[])
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
+	if (init_checkers()) {
+		condlog(0, "failed to initialize checkers");
+		exit(1);
+	}
+	if (init_prio()) {
+		condlog(0, "failed to initialize prioritizers");
+		exit(1);
+	}
 	if (sysfs_init(conf->sysfs_dir, FILE_NAME_SIZE)) {
 		condlog(0, "multipath tools need sysfs mounted");
 		exit(1);
 	}
-	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:t")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:r")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -424,9 +438,9 @@ main (int argc, char *argv[])
 				usage(argv[0]);
 			}                
 			break;
-		case 't':
-			dump_config();
-			goto out;
+		case 'r':
+			conf->force_reload = 1;
+			break;
 		case 'h':
 			usage(argv[0]);
 		case ':':
@@ -474,9 +488,17 @@ main (int argc, char *argv[])
 	
 out:
 	sysfs_cleanup();
-	free_config(conf);
 	dm_lib_release();
 	dm_lib_exit();
+
+	/*
+	 * Freeing config must be done after dm_lib_exit(), because
+	 * the logging function (dm_write_log()), which is called there,
+	 * references the config.
+	 */
+	free_config(conf);
+	conf = NULL;
+
 #ifdef _DEBUG_
 	dbg_free_final(NULL);
 #endif

@@ -7,8 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <checkers.h>
-
+#include "checkers.h"
 #include "vector.h"
 #include "memory.h"
 #include "structs.h"
@@ -278,10 +277,9 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 				strncpy(pp->dev_t, word, BLK_DEV_SIZE);
 
-#ifndef DAEMON
-				if (store_path(pathvec, pp))
+				/* Only call this in multipath client mode */
+				if (!mpp->waiter && store_path(pathvec, pp))
 					goto out;
-#endif
 			}
 			FREE(word);
 
