@@ -15,23 +15,20 @@ all: $(EXEC)
 
 $(EXEC): $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
-	
+
 install: $(EXEC) $(EXEC).8
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -m 755 kpartx_id $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/etc/udev/rules.d
-	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/
+	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
-	$(INSTALL_PROGRAM) -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
-	rm -f $(DESTDIR)$(bindir)/activate_dm_linear
 	rm -f $(DESTDIR)$(libudevdir)/kpartx_id
-	rm -f $(DESTDIR)$(libudevdir)/dm_linear
 	rm -f $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
 	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
 

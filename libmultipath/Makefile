@@ -25,9 +25,8 @@ all: $(LIBS)
 $(LIBS): $(OBJS)
 	$(CC) $(SHARED_FLAGS) $(CFLAGS) -o $@ $(OBJS)
 
-install:
-	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)$(libdir)
-	$(INSTALL_PROGRAM) -m 755 $(LIBS) $(DESTDIR)$(libdir)/$(LIBS)
+install: $(LIBS)
+	$(INSTALL_PROGRAM) -D $(LIBS) $(DESTDIR)$(libdir)/$(LIBS)
 
 uninstall:
 	rm -f $(DESTDIR)$(libdir)/$(LIBS)

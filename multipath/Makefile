@@ -16,18 +16,16 @@ all: $(EXEC)
 
 $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
-	$(GZIP) $(EXEC).conf.5 > $(EXEC).conf.5.gz
 
 install:
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)/
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/etc/udev/rules.d
-	$(INSTALL_PROGRAM) -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/
+	$(INSTALL_PROGRAM) -m 644 multipath.rules $(DESTDIR)/etc/udev/rules.d/71-multipath.rules
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
-	$(INSTALL_PROGRAM) -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(man5dir)
-	$(INSTALL_PROGRAM) -m 644 $(EXEC).conf.5.gz $(DESTDIR)$(man5dir)
+	$(INSTALL_PROGRAM) -m 644 $(EXEC).conf.5 $(DESTDIR)$(man5dir)
 
 uninstall:
 	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules

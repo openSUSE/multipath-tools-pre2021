@@ -13,7 +13,7 @@ ifeq ($(TOPDIR),)
 	TOPDIR	= ..
 endif
 
-prefix      = 
+prefix      =
 exec_prefix = $(prefix)
 bindir      = $(exec_prefix)/sbin
 libudevdir  = ${prefix}/lib/udev
