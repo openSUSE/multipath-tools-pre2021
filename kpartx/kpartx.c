@@ -321,9 +321,14 @@ main(int argc, char **argv){
 
 	if (!uuid)
 		uuid = device + off;
-		
+
 	if (!mapname)
 		mapname = device + off;
+	else if (dm_no_partitions((unsigned int)MAJOR(buf.st_rdev),
+				  (unsigned int)MINOR(buf.st_rdev))) {
+		/* Feature 'no_partitions' is set, return */
+		return 0;
+	}
 
 	fd = open(device, O_RDONLY);
 
@@ -340,7 +345,7 @@ main(int argc, char **argv){
 
 		if (type && strcmp(type, ptp->type))
 			continue;
-		
+
 		/* here we get partitions */
 		n = ptp->fn(fd, all, slices, SIZE(slices));
 
