@@ -51,8 +51,6 @@ rc_reset
 # with force-reload (in case signalling is not supported) are
 # considered a success.
 
-maplist=$(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | cut -f 1)
-
 case "$1" in
     start)
 	echo -n "Creating multipath targets:"
@@ -67,9 +65,7 @@ case "$1" in
 	modprobe dm-multipath
 	
 	# Be a chicken and flush all existing maps
-	for map in  $maplist ; do
-	    $PROGRAM -f $map
-	done
+	$PROGRAM -F
 
 	# Clear /dev/disk/by-name/ prior to start-up; multipath will
 	# recreate them.
@@ -84,7 +80,20 @@ case "$1" in
 	$PROGRAM -v 0
 
 	# Create all partitions which might have been missing
-	/sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -a -p -part"
+	for map in $(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | sort -n +2 | sed -n 's/.*, \(.*\))/\1/p' ) ; do
+	    wait=5
+	    while [ $wait -gt 0 ] ; do
+		[ -e /dev/dm-$map ] && break
+		wait=$((wait - 1))
+		sleep 1;
+	    done
+	    if [ $wait -le 0 ] ; then
+		echo -n "timeout waiting for devices"
+		rc_failed 1
+		break;
+	    fi
+	    /sbin/kpartx -a -p _part /dev/dm-$map
+	done
 
 	# Remember status and be verbose
 	rc_status -v
@@ -95,13 +104,11 @@ case "$1" in
 
 	# Remove all partition mappings
 	if /sbin/dmsetup ls | sed '/No devices/d' | grep -q -- -part; then
-	    /sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -d -p -part" 2> /dev/null
+	    /sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -d -p _part" 2> /dev/null
 	fi
 
 	# Flush all existing maps
-	for map in $maplist ; do
-	    $PROGRAM -f $map
-	done
+	$PROGRAM -F
 
 	rc_failed 0
 	rc_status -v
