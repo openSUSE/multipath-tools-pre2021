@@ -48,29 +48,25 @@ for link in $(udevinfo -q symlink -p /block/$dev) ; do
     esac
 done
 if [ "$atalink" ] ; then
-    serial="$atalink"
-    bus="ata"
+    # Remove existing rules
+    echo "/$atalink/d
+w
+q
+" | ed $RULE > /dev/null 2>&1
+    [ "$remove_only" = 1 ] && exit 0
+    cat >> $RULE <<EOF
+ACTION=="add", KERNEL=="sd*[!0-9]", ENV{ID_VENDOR}=="ATA", ENV{ID_ATA_COMPAT}=="$atalink", RUN+="/bin/bash -c 'echo 0 $blksize linear \$major:\$minor 0 | /sbin/dmsetup create ata-\$env{ID_ATA_COMPAT} -u linear-ata-\$env{ID_ATA_COMPAT}'"
+EOF
 fi
 if [ "$scsilink" ] ; then
-    unset atalink
-    serial="$scsilink"
-    bus="scsi"
-fi
-if [ "$serial" ]; then
     # Remove existing rules
-    echo "/$serial/d
+    echo "/$scsilink/d
 w
 q
 " | ed $RULE > /dev/null 2>&1
     [ "$remove_only" = 1 ] && exit 0
     # And create a new one
-    if [ "$atalink" ] ; then
-	cat >> $RULE <<EOF
-ACTION=="add", KERNEL=="sd*[!0-9]", ENV{ID_VENDOR}=="ATA", ENV{ID_ATA_COMPAT}=="$serial", RUN+="dm_linear /dev/\$kernel $blksize ata-\$env{ID_ATA_COMPAT}"
+    cat >> $RULE <<EOF
+ACTION=="add", KERNEL=="sd*[!0-9]", ENV{ID_BUS}=="scsi", ENV{ID_SERIAL}=="$scsilink", RUN+="/bin/bash -c 'echo 0 $blksize linear \$major:\$minor 0 | /sbin/dmsetup create \$env{ID_BUS}-\$env{ID_SERIAL} -u linear-\$env{ID_BUS}-\$env{ID_SERIAL}'"
 EOF
-    else
-	cat >> $RULE <<EOF
-ACTION=="add", KERNEL=="sd*[!0-9]", ENV{ID_BUS}=="$bus", ENV{ID_SERIAL}=="$serial", RUN+="dm_linear \$kernel /dev/$blksize \$env{ID_BUS}-\$env{ID_SERIAL}"
-EOF
-    fi
 fi
