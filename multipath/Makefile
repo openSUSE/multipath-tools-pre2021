@@ -26,10 +26,15 @@ install:
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(man5dir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).conf.5 $(DESTDIR)$(man5dir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
+	$(INSTALL_PROGRAM) -m 644 boot-multipath.sh $(DESTDIR)/lib/mkinitrd/scripts
+	$(INSTALL_PROGRAM) -m 644 setup-multipath.sh $(DESTDIR)/lib/mkinitrd/scripts
 
 uninstall:
 	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules
 	rm $(DESTDIR)$(bindir)/$(EXEC)
+	rm -f $(DESTDIR)/lib/mkinitrd/scripts/boot-multipath.sh
+	rm -f $(DESTDIR)/lib/mkinitrd/scripts/setup-multipath.sh
 
 clean:
 	rm -f core *.o $(EXEC)
