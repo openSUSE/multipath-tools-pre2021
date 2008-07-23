@@ -134,6 +134,15 @@
 #	# default : no
 #	user_friendly_names no
 #
+#	#
+#	# name    : bindings_file
+#	# scope   : multipath
+#	# desc    : The location of the bindings file that is used with
+#	#           the user_friendly_names option.
+#	# values  : <full_pathname>
+#	# default : "/var/lib/multipath/bindings"
+#	bindings_file "/etc/multipath_bindings"
+#
 #}
 #	
 ##
