@@ -51,9 +51,9 @@ int rdac_prio(const char *dev)
 	}
 
 	close(fd);
-	
+
 	if (/* Verify the code page - right page & page identifier */
-	    sense_buffer[1] != 0xc9 || 
+	    sense_buffer[1] != 0xc9 ||
 	    sense_buffer[3] != 0x2c ||
 	    sense_buffer[4] != 'v' ||
 	    sense_buffer[5] != 'a' ||
@@ -61,24 +61,24 @@ int rdac_prio(const char *dev)
 		fprintf(stderr, "Volume access control page in unknown format");
 		goto out;
 	}
-	
+
 	if ( /* Current Volume Path Bit */
 		( sense_buffer[8] & 0x01) == 0x01 ) {
-		/* 
+		/*
 		 * This volume was owned by the controller receiving
 		 * the inquiry command.
 		 */
-		ret |= 0x04;
+		ret |= 0x02;
 	}
 
 	/* Volume Preferred Path Priority */
 	switch ( sense_buffer[9] & 0x0F ) {
 	case 0x01:
-		/* 
+		/*
 		 * Access to this volume is most preferred through
 		 * this path and other paths with this value.
 		 */
-		ret |= 0x02;
+		ret |= 0x04;
 		break;
 	case 0x02:
 		/*
@@ -92,7 +92,7 @@ int rdac_prio(const char *dev)
 		/* Reserved values */
 		break;
 	}
-	
+
 out:
 	return(ret);
 }

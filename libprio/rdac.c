@@ -57,17 +57,17 @@ int rdac_prio(const char *dev, int fd)
 		 * This volume was owned by the controller receiving
 		 * the inquiry command.
 		 */
-		ret |= 0x04;
+		ret |= 0x02;
 	}
 
 	/* Volume Preferred Path Priority */
 	switch ( sense_buffer[9] & 0x0F ) {
 	case 0x01:
-		/* 
+		/*
 		 * Access to this volume is most preferred through
 		 * this path and other paths with this value.
 		 */
-		ret |= 0x02;
+		ret |= 0x04;
 		break;
 	case 0x02:
 		/*
