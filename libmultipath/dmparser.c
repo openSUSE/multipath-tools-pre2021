@@ -184,11 +184,11 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 	num_pg = atoi(word);
 	FREE(word);
 
-	if (num_pg > 0 && !mpp->pg) {
+	if (num_pg > 0 && !mpp->pg)
 		mpp->pg = vector_alloc();
-		if (!mpp->pg)
-			return 1;
-	}
+
+	if (!mpp->pg)
+		return 1;
 
 	/*
 	 * first pg to try
