@@ -310,3 +310,5 @@ dm_no_partitions(int major, int minor)
 		ptr = strchr(ptr, ' ');
 	}
 	return 0;
+}
+

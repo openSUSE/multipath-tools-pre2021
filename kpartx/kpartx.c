@@ -314,9 +314,9 @@ main(int argc, char **argv){
 	if (!uuid)
 		uuid = device + off;
 
-	if (!mapname)
+	if (!mapname) {
 		mapname = device + off;
-	else if (dm_no_partitions((unsigned int)MAJOR(buf.st_rdev),
+	} else if (dm_no_partitions((unsigned int)MAJOR(buf.st_rdev),
 				  (unsigned int)MINOR(buf.st_rdev))) {
 		/* Feature 'no_partitions' is set, return */
 		return 0;

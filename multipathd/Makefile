@@ -34,6 +34,7 @@ install:
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(rcdir)
+	$(INSTALL_PROGRAM) -m 755 multipathd.init.suse $(DESTDIR)$(rcdir)/multipathd
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 

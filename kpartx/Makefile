@@ -27,8 +27,8 @@ install: $(EXEC) $(EXEC).8
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
-	$(INSTALL_PROGRAM) -m 644 boot-kpartx.sh $(DESTDIR)/lib/mkinitrd/scripts
-	$(INSTALL_PROGRAM) -m 644 setup-kpartx.sh $(DESTDIR)/lib/mkinitrd/scripts
+	$(INSTALL_PROGRAM) -m 755 boot-kpartx.sh $(DESTDIR)/lib/mkinitrd/scripts
+	$(INSTALL_PROGRAM) -m 755 setup-kpartx.sh $(DESTDIR)/lib/mkinitrd/scripts
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
