@@ -1347,9 +1347,7 @@ child (void * param)
 	/*
 	 * exit path
 	 */
-	lock(vecs->lock);
 	remove_maps_and_stop_waiters(vecs);
-	free_pathvec(vecs->pathvec, FREE_PATHS);
 
 	pthread_cancel(check_thr);
 	pthread_cancel(uevent_thr);
@@ -1363,6 +1361,9 @@ child (void * param)
 	handlers = NULL;
 	free_polls();
 
+	lock(vecs->lock);
+	free_pathvec(vecs->pathvec, FREE_PATHS);
+	vecs->pathvec = NULL;
 	unlock(vecs->lock);
 	pthread_mutex_destroy(vecs->lock);
 	FREE(vecs->lock);
