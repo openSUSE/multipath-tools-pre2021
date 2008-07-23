@@ -172,7 +172,7 @@ static struct hwentry default_hw[] = {
 		/* HP Smart Array */
 		.vendor        = "HP",
 		.product       = "LOGICAL VOLUME.*",
-		.getuid        = "/lib/udev/scsi_id -n -g -u -s /block/%n",
+		.getuid        = "/lib/udev/scsi_id -n -g -u /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -214,7 +214,7 @@ static struct hwentry default_hw[] = {
 	{
 		.vendor        = "EMC",
 		.product       = "SYMMETRIX",
-		.getuid        = "/lib/udev/scsi_id -g -u -ppre-spc3-83 -s /block/%n",
+		.getuid        = "/lib/udev/scsi_id -g -u -ppre-spc3-83 /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
@@ -533,7 +533,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
-		.prio_name     = PRIO_NETAPP,
+		.prio_name     = PRIO_ONTAP,
 	},
 	/*
 	 * IBM NSeries (NETAPP) controller family
@@ -554,7 +554,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
-		.prio_name     = PRIO_NETAPP,
+		.prio_name     = PRIO_ONTAP,
 	},
 	/*
 	 * Pillar Data controller family
@@ -749,6 +749,8 @@ setup_default_hwtable (vector hw)
 	struct hwentry * hwe = default_hw;
 
 	while (hwe->vendor) {
+		hwe->checker = checker_lookup(hwe->checker_name);
+		hwe->prio = prio_lookup(hwe->prio_name);
 		r += store_hwe(hw, hwe);
 		hwe++;
 	}
