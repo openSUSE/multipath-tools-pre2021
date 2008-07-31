@@ -92,7 +92,7 @@ static struct hwentry default_hw[] = {
 	},
 	{
 		/* MSA 1000/MSA1500 EVA 3000/5000 with old firmware */
-		.vendor        = "(COMPAQ|HP)",
+		.vendor        = "COMPAQ",
 		.product       = "MSA|HSV1.0.*",
 		.getuid        = DEFAULT_GETUID,
 		.features      = "1 queue_if_no_path",
