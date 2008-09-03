@@ -54,7 +54,6 @@ int ux_socket_listen(const char *name)
 	int fd;
 	struct sockaddr_un addr;
 
-
 	/* get rid of any old socket */
 	unlink(name);
 
