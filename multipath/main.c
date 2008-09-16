@@ -448,7 +448,7 @@ main (int argc, char *argv[])
 
 		strncpy(conf->dev, argv[optind], FILE_NAME_SIZE);
 
-		if (filepresent(conf->dev))
+		if (is_blockdev(conf->dev))
 			conf->dev_type = DEV_DEVNODE;
 		else if (sscanf(conf->dev, "%d:%d", &i, &i) == 2)
 			conf->dev_type = DEV_DEVT;

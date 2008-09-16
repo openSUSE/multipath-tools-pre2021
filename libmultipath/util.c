@@ -62,6 +62,16 @@ filepresent (char * run) {
 }
 
 int
+is_blockdev (char * node) {
+	struct stat buf;
+
+	if (!stat(node, &buf) && S_ISBLK(buf.st_mode))
+		return 1;
+
+	return 0;
+}
+
+int
 get_word (char * sentence, char ** word)
 {
 	char * p;
