@@ -155,6 +155,7 @@ load_keys (void)
 	r += add_key(keys, "resume", RESUME, 0);
 	r += add_key(keys, "reinstate", REINSTATE, 0);
 	r += add_key(keys, "fail", FAIL, 0);
+	r += add_key(keys, "resize", RESIZE, 0);
 	r += add_key(keys, "paths", PATHS, 0);
 	r += add_key(keys, "maps", MAPS, 0);
 	r += add_key(keys, "multipaths", MAPS, 0);

@@ -150,7 +150,7 @@ dm_prereq (void)
 }
 
 extern int
-dm_simplecmd (int task, const char *name) {
+dm_simplecmd (int task, const char *name, int no_flush) {
 	int r = 0;
 	struct dm_task *dmt;
 
@@ -163,7 +163,8 @@ dm_simplecmd (int task, const char *name) {
 	dm_task_no_open_count(dmt);
 	dm_task_skip_lockfs(dmt);	/* for DM_DEVICE_RESUME */
 #ifdef LIBDM_API_FLUSH
-	dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
+	if (no_flush)
+	    dm_task_no_flush(dmt);	/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
 
 	r = dm_task_run (dmt);
@@ -536,7 +537,7 @@ dm_flush_map (const char * mapname)
 		return 1;
 	}
 
-	r = dm_simplecmd(DM_DEVICE_REMOVE, mapname);
+	r = dm_simplecmd(DM_DEVICE_REMOVE, mapname, 0);
 
 	if (r) {
 		condlog(4, "multipath map %s removed", mapname);
@@ -933,7 +934,7 @@ dm_remove_partmaps (const char * mapname)
 				 */
 				condlog(4, "partition map %s removed",
 					names->name);
-				dm_simplecmd(DM_DEVICE_REMOVE, names->name);
+				dm_simplecmd(DM_DEVICE_REMOVE, names->name, 0);
 		   }
 
 		next = names->next;

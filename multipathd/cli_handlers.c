@@ -14,6 +14,7 @@
 #include <debug.h>
 #include <print.h>
 #include <sysfs.h>
+#include <errno.h>
 
 #include "main.h"
 #include "cli.h"
@@ -362,12 +363,139 @@ cli_del_map (void * v, char ** reply, int * len, void * data)
 }
 
 int
+reload_paths(struct multipath *mpp, struct vectors * vecs)
+{
+	struct pathgroup *pgp;
+	struct path *pp;
+	int i, j, err = 1;
+	char *dev;
+	vector path_names;
+
+	path_names = vector_alloc();
+	if (!path_names){
+		condlog(0, "%s: unable to allcoate space for pathnames vector",
+			mpp->alias);
+		return 1;
+	}
+	vector_foreach_slot(mpp->pg, pgp, i) {
+		vector_foreach_slot(pgp->paths, pp, j) {
+
+			dev = strdup(pp->dev);
+			if (!dev) {
+				condlog(0, "%s: unable to allocate path name",
+					mpp->alias);
+				goto out;
+			}
+			if (!vector_alloc_slot(path_names)){
+				condlog(0, "%s: unable to allocate path name slot", 
+					mpp->alias);
+				free(dev);
+				goto out;
+			}
+			vector_set_slot(path_names, dev);
+		}
+	}
+	vector_foreach_slot(path_names, dev, i) {
+		err = ev_remove_path(dev, vecs);
+		if (err) {
+			condlog(0, "%s: couldn't remove path '%s' : %s",
+				mpp->alias, dev, strerror(errno));
+			goto out;
+		}
+		err = ev_add_path(dev, vecs);
+		if (err)
+			condlog(0, "%s: couldn't add path '%s' : %s",
+				mpp->alias, dev, strerror(errno));
+	}
+out:
+	vector_foreach_slot(path_names, dev, i)
+		free(dev);
+	vector_free(path_names);
+	return err;
+}
+
+int resize_map(struct multipath *mpp, unsigned long long size,
+	       struct vectors * vecs)
+{
+	mpp->size = size;
+	update_mpp_paths(mpp, vecs->pathvec);
+	setup_map(mpp);
+	mpp->action = ACT_RESIZE;
+	if (domap(mpp) <= 0) {
+		condlog(0, "%s: failed to resize map : %s", mpp->alias,
+			strerror(errno));
+		return 1;
+	}
+	return 0;
+}
+
+int
+cli_resize(void *v, char **reply, int *len, void *data)
+{
+	struct vectors * vecs = (struct vectors *)data;
+	char * mapname = get_keyparam(v, MAP);
+	struct multipath *mpp;
+	int minor;
+	unsigned long long size;
+	struct pathgroup *pgp;
+	struct path *pp;
+
+	condlog(2, "%s: resize map (operator)", mapname);
+	if (sscanf(mapname, "dm-%d", &minor) == 1)
+		mpp = find_mp_by_minor(vecs->mpvec, minor);
+	else
+		mpp = find_mp_by_alias(vecs->mpvec, mapname);
+
+	if (!mpp) {
+		condlog(0, "%s: invalid map name. cannot resize", mapname);
+		return 1;
+	}
+
+	pgp = VECTOR_SLOT(mpp->pg, 0);
+	pp = VECTOR_SLOT(pgp->paths, 0);
+	if (sysfs_get_size(pp->sysdev, &size)) {
+		condlog(0, "%s: couldn't get size for sysfs. cannot resize",
+			mapname);
+		return 1;
+	}
+	if (size == mpp->size) {
+		condlog(0, "%s: map is still the same size (%llu)", mapname,
+			mpp->size);
+		return 0;
+	}
+	condlog(3, "%s old size is %llu, new size is %llu", mapname, mpp->size,
+		size);
+	if (size > mpp->size) {
+		if (reload_paths(mpp, vecs) != 0) {
+			condlog(0, "%s: failed to reload paths", mapname);
+			return 1;
+		}
+		if (resize_map(mpp, size, vecs) != 0)
+			return 1;
+	}
+	else {
+		if (resize_map(mpp, size, vecs) != 0)
+			return 1;
+		if (reload_paths(mpp, vecs) != 0) {
+			condlog(0, "%s: failed to reload paths", mapname);
+			return 1;
+		}
+	}
+	dm_lib_release();
+	setup_multipath(vecs, mpp);
+	sync_map_state(mpp);
+
+	return 0;
+}
+
+int
 cli_switch_group(void * v, char ** reply, int * len, void * data)
 {
 	char * mapname = get_keyparam(v, MAP);
 	int groupnum = atoi(get_keyparam(v, GROUP));
-	
-	condlog(2, "%s: switch to path group #%i (operator)", mapname, groupnum);
+
+	condlog(2, "%s: switch to path group #%i (operator)",
+		mapname, groupnum);
 
 	return dm_switchgroup(mapname, groupnum);
 }
@@ -376,7 +504,7 @@ int
 cli_reconfigure(void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
-			
+
 	condlog(2, "reconfigure (operator)");
 
 	return reconfigure(vecs);
@@ -387,18 +515,17 @@ cli_suspend(void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
-	int r = dm_simplecmd(DM_DEVICE_SUSPEND, param);
+	int r = dm_simplecmd(DM_DEVICE_SUSPEND, param, 1);
+	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	condlog(2, "%s: suspend (operator)", param);
 
 	if (!r) /* error */
 		return 1;
-	
-	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	if (!mpp)
 		return 1;
-	
+
 	dm_get_info(param, &mpp->dmi);
 	return 0;
 }
@@ -408,18 +535,17 @@ cli_resume(void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
-	int r = dm_simplecmd(DM_DEVICE_RESUME, param);
+	int r = dm_simplecmd(DM_DEVICE_RESUME, param, 1);
+	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	condlog(2, "%s: resume (operator)", param);
 
 	if (!r) /* error */
 		return 1;
-	
-	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	if (!mpp)
 		return 1;
-	
+
 	dm_get_info(param, &mpp->dmi);
 	return 0;
 }
@@ -430,7 +556,7 @@ cli_reinstate(void * v, char ** reply, int * len, void * data)
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, PATH);
 	struct path * pp;
-	
+
 	pp = find_path_by_dev(vecs->pathvec, param);
 
 	if (!pp)
@@ -453,7 +579,7 @@ cli_fail(void * v, char ** reply, int * len, void * data)
 	char * param = get_keyparam(v, PATH);
 	struct path * pp;
 	int r;
-	
+
 	pp = find_path_by_dev(vecs->pathvec, param);
 
 	if (!pp)
@@ -477,67 +603,67 @@ cli_fail(void * v, char ** reply, int * len, void * data)
 int
 show_blacklist (char ** r, int * len)
 {
-        char *c = NULL;
-        char *reply = NULL;
-        unsigned int maxlen = INITIAL_REPLY_LEN;
-        int again = 1;
+	char *c = NULL;
+	char *reply = NULL;
+	unsigned int maxlen = INITIAL_REPLY_LEN;
+	int again = 1;
 
-        while (again) {
+	while (again) {
 		reply = MALLOC(maxlen);
 		if (!reply)
 			return 1;
 
-                c = reply;
-                c += snprint_blacklist_report(c, maxlen);
-                again = ((c - reply) == maxlen);
-                if (again) {
+		c = reply;
+		c += snprint_blacklist_report(c, maxlen);
+		again = ((c - reply) == maxlen);
+		if (again) {
 			maxlen  *= 2;
 			FREE(reply);
-                        continue;
-                }
-        }
+			continue;
+		}
+	}
 
-        *r = reply;
-        *len = (int)(c - reply + 1);
+	*r = reply;
+	*len = (int)(c - reply + 1);
 
-        return 0;
+	return 0;
 }
 
 int
 cli_list_blacklist (void * v, char ** reply, int * len, void * data)
 {
-        condlog(3, "list blacklist (operator)");
+	condlog(3, "list blacklist (operator)");
 
-        return show_blacklist(reply, len);
+	return show_blacklist(reply, len);
 }
 
 int
 show_devices (char ** r, int * len, struct vectors *vecs)
 {
-        char *c = NULL;
-        char *reply = NULL;
-        unsigned int maxlen = INITIAL_REPLY_LEN;
-        int again = 1;
+	char *c = NULL;
+	char *reply = NULL;
+	unsigned int maxlen = INITIAL_REPLY_LEN;
+	int again = 1;
 
-        while (again) {
-                reply = MALLOC(maxlen);
-                if (!reply)
-                        return 1;
+	while (again) {
+		reply = MALLOC(maxlen);
+		if (!reply)
+			return 1;
 
-                c = reply;
-                c += snprint_devices(c, maxlen, vecs);
-                again = ((c - reply) == maxlen);
-                if (again) {
-                        maxlen  *= 2;
-                        FREE(reply);
-                        continue;
-                }
-        }
+		c = reply;
+		c += snprint_devices(c, maxlen, vecs);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			maxlen  *= 2;
+			FREE(reply);
+			continue;
+		}
+	}
 
-        *r = reply;
-        *len = (int)(c - reply + 1);
+	*r = reply;
+	*len = (int)(c - reply + 1);
 
-        return 0;
+	return 0;
 }
 
 int
@@ -545,7 +671,7 @@ cli_list_devices (void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
 
-        condlog(3, "list devices (operator)");
+	condlog(3, "list devices (operator)");
 
-        return show_devices(reply, len, vecs);
+	return show_devices(reply, len, vecs);
 }
