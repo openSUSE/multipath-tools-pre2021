@@ -356,7 +356,7 @@ get_serial (char * str, int maxlen, int fd)
 static int
 get_inq (char *dev, char * vendor, char * product, char * rev, int fd)
 {
-	char buff[MX_ALLOC_LEN + 1] = {0};
+	unsigned char buff[MX_ALLOC_LEN + 1] = {0};
 	int len = 0;
 
 	if (fd < 0)
