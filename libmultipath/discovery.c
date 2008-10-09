@@ -237,7 +237,7 @@ devt2devname (char *devname, char *devt)
 		return 1;
 	}
 
-	if ((fd = fopen("/proc/partitions", "r")) < 0) {
+	if (!(fd = fopen("/proc/partitions", "r"))) {
 		condlog(0, "Cannot open /proc/partitions");
 		return 1;
 	}
