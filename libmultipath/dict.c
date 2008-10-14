@@ -34,6 +34,17 @@ polling_interval_handler(vector strvec)
 }
 
 static int
+verbosity_handler(vector strvec)
+{
+	char * buff;
+
+	buff = VECTOR_SLOT(strvec, 1);
+	conf->verbosity = atoi(buff);
+
+	return 0;
+}
+
+static int
 udev_dir_handler(vector strvec)
 {
 	conf->udev_dir = set_value(strvec);
@@ -1423,6 +1434,14 @@ snprint_def_polling_interval (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_verbosity (char * buff, int len, void * data)
+{
+	if (conf->checkint == DEFAULT_VERBOSITY)
+		return 0;
+	return snprintf(buff, len, "%i", conf->verbosity);
+}
+
+static int
 snprint_def_udev_dir (char * buff, int len, void * data)
 {
 	if (!conf->udev_dir)
@@ -1660,6 +1679,7 @@ void
 init_keywords(void)
 {
 	install_keyword_root("defaults", NULL);
+	install_keyword("verbosity", &verbosity_handler, &snprint_def_verbosity);
 	install_keyword("polling_interval", &polling_interval_handler, &snprint_def_polling_interval);
 	install_keyword("udev_dir", &udev_dir_handler, &snprint_def_udev_dir);
 	install_keyword("selector", &def_selector_handler, &snprint_def_selector);
