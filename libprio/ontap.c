@@ -28,7 +28,7 @@
 #define INQUIRY_CMDLEN	6
 #define DEFAULT_PRIOVAL	10
 #define RESULTS_MAX	256
-#define SG_TIMEOUT	30000
+#define SG_TIMEOUT	60000
 
 #define pp_ontap_log(prio, fmt, args...) \
         condlog(prio, "%s: ontap prio: " fmt, dev, ##args)
@@ -195,7 +195,7 @@ static int ontap_prio(const char *dev, int fd)
 
 	memset(&results, 0, sizeof (results));
 	rc = send_gva(dev, fd, 0x41, results, &results_size);
-	if (rc == 0) {
+	if (rc >= 0) {
 		tot_len = results[0] << 24 | results[1] << 16 |
 			  results[2] << 8 | results[3];
 		if (tot_len <= 8) {
@@ -215,6 +215,8 @@ static int ontap_prio(const char *dev, int fd)
 			is_iscsi_hardware = 1;
 			goto prio_select;
 		}
+	} else {
+		return 0;
 	}
 	
  try_fcp_proxy:	
