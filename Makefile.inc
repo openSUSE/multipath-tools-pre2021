@@ -37,7 +37,7 @@ CHECKERSLIB = $(checkersdir)/libcheckers
 MULTIPATHLIB = $(multipathdir)/libmultipath
 LIBPRIO = $(libpriodir)/libprio
 
-INSTALL_PROGRAM = install -s
+INSTALL_PROGRAM = install
 
 OPTFLAGS     = -pipe -g -Wall -Wunused -Wstrict-prototypes
 CFLAGS	     = $(OPTFLAGS)
