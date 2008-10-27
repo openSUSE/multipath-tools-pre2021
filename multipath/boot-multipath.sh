@@ -4,7 +4,7 @@
 #%provides: dmroot
 #%programs: /sbin/multipath /lib/multipath/*
 #%if: "$root_mpath"
-#%modules: dm-multipath dm-round-robin dm-emc dm-hp_sw dm-rdac
+#%modules: dm-multipath dm-round-robin scsi-dh-emc scsi-dh-hp_sw scsi-dh-rdac scsi-dh-alua
 #
 ##### Multipath
 ##
