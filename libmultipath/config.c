@@ -431,18 +431,6 @@ load_config (char * file)
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
 
 	/*
-	 * preload default hwtable
-	 */
-	if (conf->hwtable == NULL) {
-		conf->hwtable = vector_alloc();
-
-		if (!conf->hwtable)
-			goto out;
-	}
-	if (setup_default_hwtable(conf->hwtable))
-		goto out;
-
-	/*
 	 * read the config file
 	 */
 	set_current_keywords(&conf->keywords);
@@ -453,8 +441,20 @@ load_config (char * file)
 			goto out;
 		}
 	} else {
-	    init_keywords();
+		init_keywords();
 	}
+
+	/*
+	 * Load default hwtable
+	 */
+	if (conf->hwtable == NULL) {
+		conf->hwtable = vector_alloc();
+
+		if (!conf->hwtable)
+			goto out;
+	}
+	if (setup_default_hwtable(conf->hwtable))
+		goto out;
 
 	/*
 	 * remove duplica in hwtable. config file takes precedence
