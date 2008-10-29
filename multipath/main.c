@@ -395,7 +395,7 @@ main (int argc, char *argv[])
 		condlog(0, "multipath tools need sysfs mounted");
 		exit(1);
 	}
-	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:r")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:rt")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -436,23 +436,26 @@ main (int argc, char *argv[])
 			if (conf->pgpolicy_flag == -1) {
 				printf("'%s' is not a valid policy\n", optarg);
 				usage(argv[0]);
-			}                
+			}
 			break;
 		case 'r':
 			conf->force_reload = 1;
 			break;
+		case 't':
+			dump_config();
+			goto out;
 		case 'h':
 			usage(argv[0]);
 		case ':':
 			fprintf(stderr, "Missing option arguement\n");
-			usage(argv[0]);        
+			usage(argv[0]);
 		case '?':
 			fprintf(stderr, "Unknown switch: %s\n", optarg);
 			usage(argv[0]);
 		default:
 			usage(argv[0]);
 		}
-	}        
+	}
 	if (optind < argc) {
 		conf->dev = MALLOC(FILE_NAME_SIZE);
 
