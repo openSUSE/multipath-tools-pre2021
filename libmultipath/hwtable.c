@@ -193,7 +193,7 @@ static struct hwentry default_hw[] = {
 		/* HP Smart Array */
 		.vendor        = "HP",
 		.product       = "LOGICAL VOLUME.*",
-		.getuid        = "/lib/udev/scsi_id -n -g -u -d /dev/%n",
+		.getuid        = "/lib/udev/scsi_id -g -u -d /dev/%n",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
