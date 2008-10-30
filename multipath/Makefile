@@ -7,7 +7,7 @@ include ../Makefile.inc
 OBJS = main.o
 
 CFLAGS += -I$(multipathdir) -Wl,-rpath,$(libdir)
-LDFLAGS += -lpthread -ldevmapper -laio -ldl \
+LDFLAGS += -lpthread -ldevmapper -ldl \
 	   -lmultipath -L$(multipathdir)
 
 EXEC = multipath

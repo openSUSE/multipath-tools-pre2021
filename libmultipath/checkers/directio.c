@@ -13,7 +13,7 @@
 #include <linux/fs.h>
 #include <errno.h>
 #include <linux/kdev_t.h>
-#include <asm/unistd.h>
+#include <unistd.h>
 #include <libaio.h>
 
 #include "checkers.h"
