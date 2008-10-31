@@ -262,7 +262,7 @@ select_prio (struct path * pp)
 {
 	struct mpentry * mpe;
 
-	if (mpe = find_mpe(pp->wwid)) {
+	if ((mpe = find_mpe(pp->wwid))) {
 		if (mpe->getprio) {
 			pp->getprio = mpe->getprio;
 			pp->prio = prio_lookup(PRIO_COMMAND);
