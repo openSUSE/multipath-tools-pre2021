@@ -35,6 +35,41 @@ hwe_strmatch (struct hwentry *hwe1, struct hwentry *hwe2)
 	return 0;
 }
 
+static int
+hwe_regmatch (struct hwentry *hwe1, struct hwentry *hwe2)
+{
+	regex_t vre, pre, rre;
+	int retval = 1;
+
+	if (hwe1->vendor &&
+	    regcomp(&vre, hwe1->vendor, REG_EXTENDED|REG_NOSUB))
+		goto out;
+
+	if (hwe1->product &&
+	    regcomp(&pre, hwe1->product, REG_EXTENDED|REG_NOSUB))
+		goto out_vre;
+
+	if (hwe1->revision &&
+	    regcomp(&rre, hwe1->revision, REG_EXTENDED|REG_NOSUB))
+		goto out_pre;
+
+	if ((!hwe1->vendor || !regexec(&vre, hwe2->vendor, 0, NULL, 0)) &&
+	    (!hwe1->product || !regexec(&pre, hwe2->product, 0, NULL, 0)) &&
+	    (!hwe1->revision || !regexec(&rre, hwe2->revision, 0, NULL, 0)))
+			retval = 0;
+
+	if (hwe1->revision)
+		regfree(&rre);
+out_pre:
+	if (hwe1->product)
+		regfree(&pre);
+out_vre:
+	if (hwe1->vendor)
+		regfree(&vre);
+out:
+	return retval;
+}
+
 static struct hwentry *
 find_hwe_strmatch (vector hwtable, struct hwentry *hwe)
 {
@@ -54,38 +89,16 @@ struct hwentry *
 find_hwe (vector hwtable, char * vendor, char * product, char * revision)
 {
 	int i;
-	struct hwentry *hwe, *ret = NULL;
-	regex_t vre, pre, rre;
+	struct hwentry hwe, *tmp, *ret = NULL;
 
-	vector_foreach_slot (hwtable, hwe, i) {
-		if (hwe->vendor &&
-		    regcomp(&vre, hwe->vendor, REG_EXTENDED|REG_NOSUB))
-			break;
-		if (hwe->product &&
-		    regcomp(&pre, hwe->product, REG_EXTENDED|REG_NOSUB)) {
-			regfree(&vre);
-			break;
-		}
-		if (hwe->revision &&
-		    regcomp(&rre, hwe->revision, REG_EXTENDED|REG_NOSUB)) {
-			regfree(&vre);
-			regfree(&pre);
-			break;
-		}
-		if ((!hwe->vendor || !regexec(&vre, vendor, 0, NULL, 0)) &&
-		    (!hwe->product || !regexec(&pre, product, 0, NULL, 0)) &&
-		    (!hwe->revision || !regexec(&rre, revision, 0, NULL, 0)))
-			ret = hwe;
-
-		if (hwe->revision)
-			regfree(&rre);
-		if (hwe->product)
-			regfree(&pre);
-		if (hwe->vendor)
-			regfree(&vre);
-
-		if (ret)
-			break;
+	hwe.vendor = vendor;
+	hwe.product = product;
+	hwe.revision = revision;
+	vector_foreach_slot (hwtable, tmp, i) {
+		if (hwe_regmatch(tmp, &hwe))
+			continue;
+		ret = tmp;
+		break;
 	}
 	return ret;
 }
@@ -348,7 +361,7 @@ factorize_hwtable (vector hw)
 	vector_foreach_slot(hw, hwe1, i) {
 		j = i+1;
 		vector_foreach_slot_after(hw, hwe2, j) {
-			if (hwe_strmatch(hwe1, hwe2))
+			if (hwe_regmatch(hwe1, hwe2))
 				continue;
 			/* dup */
 			merge_hwe(hwe1, hwe2);
@@ -431,6 +444,18 @@ load_config (char * file)
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
 
 	/*
+	 * preload default hwtable
+	 */
+	if (conf->hwtable == NULL) {
+		conf->hwtable = vector_alloc();
+
+		if (!conf->hwtable)
+			goto out;
+	}
+	if (setup_default_hwtable(conf->hwtable))
+		goto out;
+
+	/*
 	 * read the config file
 	 */
 	set_current_keywords(&conf->keywords);
@@ -441,20 +466,8 @@ load_config (char * file)
 			goto out;
 		}
 	} else {
-		init_keywords();
+	    init_keywords();
 	}
-
-	/*
-	 * Load default hwtable
-	 */
-	if (conf->hwtable == NULL) {
-		conf->hwtable = vector_alloc();
-
-		if (!conf->hwtable)
-			goto out;
-	}
-	if (setup_default_hwtable(conf->hwtable))
-		goto out;
 
 	/*
 	 * remove duplica in hwtable. config file takes precedence
