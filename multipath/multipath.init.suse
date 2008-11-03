@@ -8,7 +8,7 @@
 ### BEGIN INIT INFO
 # Provides:          boot.multipath
 # Required-Start:    boot.device-mapper boot.udev
-# Required-Stop:
+# Required-Stop:     boot.device-mapper boot.udev
 # Default-Start:     B
 # Default-Stop:
 # Short-Description:       Create multipath device targets
