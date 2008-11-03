@@ -79,6 +79,7 @@ usage (char * progname)
 	fprintf (stderr, "  %s [-d] [-r] [-v lvl] [-p pol] [-b fil] [dev]\n", progname);
 	fprintf (stderr, "  %s -l|-ll|-f [-v lvl] [-b fil] [dev]\n", progname);
 	fprintf (stderr, "  %s -F [-v lvl]\n", progname);
+	fprintf (stderr, "  %s -t\n", progname);
 	fprintf (stderr, "  %s -h\n", progname);
 	fprintf (stderr,
 		"\n"
@@ -89,6 +90,7 @@ usage (char * progname)
 		"  -f      flush a multipath device map\n" \
 		"  -F      flush all multipath device maps\n" \
 		"  -d      dry run, do not create or update devmaps\n" \
+		"  -t      dump internal hardware table\n" \
 		"  -r      force devmap reload\n" \
 		"  -p      policy failover|multibus|group_by_serial|group_by_prio\n" \
 		"  -b fil  bindings file location\n" \
@@ -241,14 +243,14 @@ configure (void)
 		else
 			dev = conf->dev;
 	}
-	
+
 	/*
 	 * if we have a blacklisted device parameter, exit early
 	 */
-	if (dev && 
+	if (dev &&
 	    (filter_devnode(conf->blist_devnode, conf->elist_devnode, dev) > 0))
 			goto out;
-	
+
 	/*
 	 * scope limiting must be translated into a wwid
 	 * failing the translation is fatal (by policy)

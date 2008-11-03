@@ -35,6 +35,21 @@ hwe_strmatch (struct hwentry *hwe1, struct hwentry *hwe2)
 	return 0;
 }
 
+static struct hwentry *
+find_hwe_strmatch (vector hwtable, struct hwentry *hwe)
+{
+	int i;
+	struct hwentry *tmp, *ret = NULL;
+
+	vector_foreach_slot (hwtable, tmp, i) {
+		if (hwe_strmatch(tmp, hwe))
+			continue;
+		ret = tmp;
+		break;
+	}
+	return ret;
+}
+
 static int
 hwe_regmatch (struct hwentry *hwe1, struct hwentry *hwe2)
 {
@@ -56,7 +71,7 @@ hwe_regmatch (struct hwentry *hwe1, struct hwentry *hwe2)
 	if ((!hwe1->vendor || !regexec(&vre, hwe2->vendor, 0, NULL, 0)) &&
 	    (!hwe1->product || !regexec(&pre, hwe2->product, 0, NULL, 0)) &&
 	    (!hwe1->revision || !regexec(&rre, hwe2->revision, 0, NULL, 0)))
-			retval = 0;
+		retval = 0;
 
 	if (hwe1->revision)
 		regfree(&rre);
@@ -68,21 +83,6 @@ out_vre:
 		regfree(&vre);
 out:
 	return retval;
-}
-
-static struct hwentry *
-find_hwe_strmatch (vector hwtable, struct hwentry *hwe)
-{
-	int i;
-	struct hwentry *tmp, *ret = NULL;
-
-	vector_foreach_slot (hwtable, tmp, i) {
-		if (hwe_strmatch(tmp, hwe))
-			continue;
-		ret = tmp;
-		break;
-	}
-	return ret;
 }
 
 struct hwentry *
@@ -329,10 +329,10 @@ store_hwe (vector hwtable, struct hwentry * dhwe)
 
 	if (dhwe->checker_name && !(hwe->checker_name = set_param_str(dhwe->checker_name)))
 		goto out;
-				
+
 	if (dhwe->prio_name && !(hwe->prio_name = set_param_str(dhwe->prio_name)))
 		goto out;
-				
+
 	hwe->pgpolicy = dhwe->pgpolicy;
 	hwe->pgfailback = dhwe->pgfailback;
 	hwe->rr_weight = dhwe->rr_weight;
@@ -466,7 +466,7 @@ load_config (char * file)
 			goto out;
 		}
 	} else {
-	    init_keywords();
+		init_keywords();
 	}
 
 	/*
