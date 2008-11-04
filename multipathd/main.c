@@ -1355,6 +1355,10 @@ child (void * param)
 	handlers = NULL;
 	free_polls();
 
+	pthread_join(check_thr);
+	pthread_join(uevent_thr);
+	pthread_join(uxlsnr_thr);
+
 	lock(vecs->lock);
 	free_pathvec(vecs->pathvec, FREE_PATHS);
 	vecs->pathvec = NULL;
