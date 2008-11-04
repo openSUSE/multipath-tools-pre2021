@@ -18,7 +18,7 @@ ENV{DM_UUID}=="mpath-*", \
 	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}"
 
 # Create persistent links for dmraid tables
-ENV{DM_UUID}=="dmraid-*", \
+ENV{DM_UUID}=="DMRAID-*", \
         SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}"
 
 # Create persistent links for linear tables
@@ -32,7 +32,7 @@ ENV{DM_PART}=="?*", \
 # Create dm tables for partitions
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="mpath-*", \
         RUN+="/sbin/kpartx -a -p _part /dev/$kernel"
-ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="dmraid-*", \
+ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="DMRAID-*", \
         RUN+="/sbin/kpartx -a -p _part /dev/$kernel"
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="linear-*", \
         RUN+="/sbin/kpartx -a -p _part /dev/$kernel"
