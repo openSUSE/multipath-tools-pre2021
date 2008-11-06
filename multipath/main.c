@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 #include <checkers.h>
 #include <libprio.h>
@@ -48,6 +49,31 @@
 #include <configure.h>
 #include <pgpolicies.h>
 #include <version.h>
+
+static int
+is_devmap (char *node) {
+	char *p;
+
+	p = strrchr(node, '/');
+	if (!p)
+		p = node;
+	else
+		p++;
+
+	return dm_map_present(p);
+}
+
+static int
+is_blockdev (char *node, dev_t *devno) {
+	struct stat buf;
+
+	if (stat(node, &buf) || !S_ISBLK(buf.st_mode))
+		return 0;
+
+	*devno = buf.st_rdev;
+
+	return 1;
+}
 
 static int
 filter_pathvec (vector pathvec, char * refwwid)
@@ -441,6 +467,8 @@ main (int argc, char *argv[])
 		}
 	}
 	if (optind < argc) {
+		dev_t devno;
+
 		conf->dev = MALLOC(FILE_NAME_SIZE);
 
 		if (!conf->dev)
@@ -448,13 +476,17 @@ main (int argc, char *argv[])
 
 		strncpy(conf->dev, argv[optind], FILE_NAME_SIZE);
 
-		if (filepresent(conf->dev))
-			conf->dev_type = DEV_DEVNODE;
+		if (is_devmap(conf->dev))
+			conf->dev_type = DEV_DEVMAP;
 		else if (sscanf(conf->dev, "%d:%d", &i, &i) == 2)
 			conf->dev_type = DEV_DEVT;
-		else
-			conf->dev_type = DEV_DEVMAP;
-
+		else if (is_blockdev(conf->dev, &devno)) {
+			sprintf(conf->dev, "%u:%u", major(devno), minor(devno));
+			conf->dev_type = DEV_DEVT;
+		} else {
+			fprintf(stderr, "Unhandled device '%s'\n", conf->dev);
+			goto out;
+		}
 	}
 	dm_init();
 

@@ -565,30 +565,6 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 	if (dev_type == DEV_NONE)
 		return NULL;
 
-	if (dev_type == DEV_DEVNODE) {
-		basename(dev, buff);
-		pp = find_path_by_dev(pathvec, buff);
-		
-		if (!pp) {
-			pp = alloc_path();
-
-			if (!pp)
-				return NULL;
-
-			strncpy(pp->dev, buff, FILE_NAME_SIZE);
-
-			if (pathinfo(pp, conf->hwtable, DI_SYSFS | DI_WWID))
-				return NULL;
-
-			if (store_path(pathvec, pp)) {
-				free_path(pp);
-				return NULL;
-			}
-		}
-		refwwid = pp->wwid;
-		goto out;
-	}
-
 	if (dev_type == DEV_DEVT) {
 		pp = find_path_by_devt(pathvec, dev);
 		

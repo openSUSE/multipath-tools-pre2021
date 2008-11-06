@@ -7,7 +7,6 @@
 enum devtypes {
 	DEV_NONE,
 	DEV_DEVT,
-	DEV_DEVNODE,
 	DEV_DEVMAP
 };
 
