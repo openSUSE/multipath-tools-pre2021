@@ -1246,6 +1246,7 @@ print_path (struct path * pp, char * style)
 {
 	char line[MAX_LINE_LEN];
 
+	memset(&line[0], 0, MAX_LINE_LEN);
 	snprint_path(&line[0], MAX_LINE_LEN, style, pp);
 	printf("%s", line);
 }
@@ -1255,6 +1256,7 @@ print_multipath (struct multipath * mpp, char * style)
 {
 	char line[MAX_LINE_LEN];
 
+	memset(&line[0], 0, MAX_LINE_LEN);
 	snprint_multipath(&line[0], MAX_LINE_LEN, style, mpp);
 	printf("%s", line);
 }
@@ -1264,6 +1266,7 @@ print_pathgroup (struct pathgroup * pgp, char * style)
 {
 	char line[MAX_LINE_LEN];
 
+	memset(&line[0], 0, MAX_LINE_LEN);
 	snprint_pathgroup(&line[0], MAX_LINE_LEN, style, pgp);
 	printf("%s", line);
 }
