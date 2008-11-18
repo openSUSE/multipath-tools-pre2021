@@ -40,6 +40,10 @@ struct checker * alloc_checker (void)
 
 void free_checker (struct checker * c)
 {
+	condlog(3, "unloading %s checker", c->name);
+	list_del(&c->node);
+	if (c->handle)
+		dlclose(c->handle);
 	free(c);
 }
 
@@ -49,8 +53,7 @@ void cleanup_checkers (void)
 	struct checker * checker_temp;
 
 	list_for_each_entry_safe(checker_loop, checker_temp, &checkers, node) {
-		list_del(&checker_loop->node);
-		free(checker_loop);
+		free_checker(checker_loop);
 	}
 }
 
@@ -68,7 +71,6 @@ struct checker * checker_lookup (char * name)
 struct checker * add_checker (char * name)
 {
 	char libname[LIB_CHECKER_NAMELEN];
-	void * handle;
 	struct checker * c;
 	char *errstr;
 
@@ -78,31 +80,31 @@ struct checker * add_checker (char * name)
 	snprintf(libname, LIB_CHECKER_NAMELEN, "%s/libcheck%s.so",
 		 conf->multipath_dir, name);
 	condlog(3, "loading %s checker", libname);
-	handle = dlopen(libname, RTLD_NOW);
+	c->handle = dlopen(libname, RTLD_NOW);
 	errstr = dlerror();
 	if (errstr != NULL)
-	condlog(0, "A dynamic linking error occurred: (%s)", errstr);
-	if (!handle)
+		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
+	if (!c->handle)
 		goto out;
 
-	c->check = (int (*)(struct checker *)) dlsym(handle, "libcheck_check");
+	c->check = (int (*)(struct checker *)) dlsym(c->handle, "libcheck_check");
 	errstr = dlerror();
 	if (errstr != NULL)
-	condlog(0, "A dynamic linking error occurred: (%s)", errstr);
+		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
 	if (!c->check)
 		goto out;
 
-	c->init = (int (*)(struct checker *)) dlsym(handle, "libcheck_init");
+	c->init = (int (*)(struct checker *)) dlsym(c->handle, "libcheck_init");
 	errstr = dlerror();
 	if (errstr != NULL)
-	condlog(0, "A dynamic linking error occurred: (%s)", errstr);
+		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
 	if (!c->init)
 		goto out;
 
-	c->free = (void (*)(struct checker *)) dlsym(handle, "libcheck_free");
+	c->free = (void (*)(struct checker *)) dlsym(c->handle, "libcheck_free");
 	errstr = dlerror();
 	if (errstr != NULL)
-	condlog(0, "A dynamic linking error occurred: (%s)", errstr);
+		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
 	if (!c->free)
 		goto out;
 
@@ -199,4 +201,5 @@ void checker_get (struct checker * dst, char * name)
 	dst->check = src->check;
 	dst->init = src->init;
 	dst->free = src->free;
+	dst->handle = NULL;
 }

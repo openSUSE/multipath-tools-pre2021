@@ -94,6 +94,7 @@ enum path_check_state {
 
 struct checker {
 	struct list_head node;
+	void *handle;
 	int fd;
 	int sync;
 	int disable;
@@ -111,6 +112,7 @@ struct checker {
 
 char * checker_state_name (int);
 int init_checkers (void);
+void cleanup_checkers (void);
 struct checker * add_checker (char *);
 struct checker * checker_lookup (char *);
 int checker_init (struct checker *, void **);
