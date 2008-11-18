@@ -37,12 +37,14 @@
 #define PRIO_NAME_LEN 16
 
 struct prio {
+	void *handle;
 	struct list_head node;
 	char name[PRIO_NAME_LEN];
 	int (*getprio)(struct path *);
 };
 
 int init_prio (void);
+void cleanup_prio(void);
 struct prio * add_prio (char *);
 struct prio * prio_lookup (char *);
 int prio_getprio (struct prio *, struct path *);
