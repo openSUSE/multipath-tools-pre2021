@@ -42,8 +42,12 @@ void free_checker (struct checker * c)
 {
 	condlog(3, "unloading %s checker", c->name);
 	list_del(&c->node);
-	if (c->handle)
-		dlclose(c->handle);
+	if (c->handle) {
+		if (dlclose(c->handle) != 0) {
+			condlog(0, "Cannot unload checker %s: %s",
+				c->name, dlerror());
+		}
+	}
 	free(c);
 }
 

@@ -24,9 +24,14 @@ struct prio * alloc_prio (void)
 
 void free_prio (struct prio * p)
 {
+	condlog(3, "unloading %s prioritizer", p->name);
 	list_del(&p->node);
-	if (p->handle)
-		dlclose(p->handle);
+	if (p->handle) {
+		if (dlclose(p->handle) != 0) {
+			condlog(0, "Cannot unload prioritizer %s: %s",
+				p->name, dlerror());
+		}
+	}
 	free(p);
 }
 
