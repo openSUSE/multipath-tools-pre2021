@@ -18,8 +18,9 @@ int emc_clariion_prio(const char *dev, int fd)
 	unsigned char inqCmdBlk[INQUIRY_CMDLEN] = {INQUIRY_CMD, 1, 0xC0, 0,
 						sizeof(sb), 0};
 	struct sg_io_hdr io_hdr;
-	int ret = 0;
+	int ret = PRIO_UNDEF;
 
+	memset(&sense_buffer, 0, 256);
 	memset(&io_hdr, 0, sizeof (struct sg_io_hdr));
 	io_hdr.interface_id = 'S';
 	io_hdr.cmd_len = sizeof (inqCmdBlk);
@@ -45,9 +46,9 @@ int emc_clariion_prio(const char *dev, int fd)
 		pp_emc_log(0, "path unit report page in unknown format");
 		goto out;
 	}
-	
+
 	if ( /* Effective initiator type */
-	    	sense_buffer[27] != 0x03
+		sense_buffer[27] != 0x03
 		/*
 		 * Failover mode should be set to 1 (PNR failover mode)
 		 * or 4 (ALUA failover mode).
@@ -68,7 +69,7 @@ int emc_clariion_prio(const char *dev, int fd)
 	/* Note this will switch to the default priority group, even if
 	 * it is not the currently active one. */
 	ret = (sense_buffer[5] == sense_buffer[8]) ? 1 : 0;
-	
+
 out:
 	return(ret);
 }

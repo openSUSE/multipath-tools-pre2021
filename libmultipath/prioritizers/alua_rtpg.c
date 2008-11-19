@@ -265,8 +265,10 @@ get_asymmetric_access_state(int fd, unsigned int tpg)
 	}
 	memset(buf, 0, buflen);
 	rc = do_rtpg(fd, buf, buflen);
-	if (rc < 0)
+	if (rc < 0) {
+		free(buf);
 		return rc;
+	}
 	scsi_buflen = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 	if (buflen < (scsi_buflen + 4)) {
 		free(buf);
