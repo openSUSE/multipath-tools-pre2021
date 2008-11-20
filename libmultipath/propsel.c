@@ -160,7 +160,7 @@ extern int
 select_alias (struct multipath * mp)
 {
 	if (mp->mpe && mp->mpe->alias)
-		mp->alias = mp->mpe->alias;
+		mp->alias = strdup(mp->mpe->alias);
 	else {
 		mp->alias = NULL;
 		if (conf->user_friendly_names)
@@ -177,7 +177,7 @@ select_alias (struct multipath * mp)
 			}
 		}
 		if (mp->alias == NULL)
-			mp->alias = mp->wwid;
+			mp->alias = strdup(mp->wwid);
 	}
 
 	return 0;
@@ -404,6 +404,6 @@ select_pg_timeout(struct multipath *mp)
 		return 0;
 	}
 	mp->pg_timeout = PGTIMEOUT_UNDEF;
-	condlog(3, "pg_timeout = NONE (internal default)");
+	condlog(3, "%s: pg_timeout = NONE (internal default)", mp->alias);
 	return 0;
 }
