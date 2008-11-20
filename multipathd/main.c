@@ -48,6 +48,7 @@
 #include <print.h>
 #include <configure.h>
 #include <pgpolicies.h>
+#include <uevent.h>
 
 #include "main.h"
 #include "pidfile.h"
@@ -211,32 +212,32 @@ flush_map(struct multipath * mpp, struct vectors * vecs)
 }
 
 static int
-uev_add_map (struct sysfs_device * dev, struct vectors * vecs)
+uev_add_map (struct uevent * uev, struct vectors * vecs)
 {
-	condlog(2, "%s: add map (uevent)", dev->kernel);
-	return ev_add_map(dev, vecs);
+	int major, minor;
+
+	condlog(2, "%s: add map (uevent)", uev->kernel);
+	major = uevent_get_major(uev);
+	minor = uevent_get_minor(uev);
+	return ev_add_map(uev->kernel, major, minor, vecs);
 }
 
 int
-ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
+ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 {
 	char * alias;
-	char *dev_t;
-	int major, minor;
 	char * refwwid;
 	struct multipath * mpp;
 	int map_present;
 	int r = 1;
 
-	dev_t = sysfs_attr_get_value(dev->devpath, "dev");
-
-	if (!dev_t || sscanf(dev_t, "%d:%d", &major, &minor) != 2)
-		return 1;
-
 	alias = dm_mapname(major, minor);
 
-	if (!alias)
+	if (!alias) {
+		condlog(2, "%s: mapname not found for %d:%d",
+			dev, major, minor);
 		return 1;
+	}
 
 	map_present = dm_map_present(alias);
 
@@ -253,8 +254,7 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 		 * if we create a multipath mapped device as a result
 		 * of uev_add_path
 		 */
-		condlog(0, "%s: devmap already registered",
-			dev->kernel);
+		condlog(0, "%s: devmap already registered", dev);
 		return 0;
 	}
 
@@ -264,10 +264,10 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 	if (map_present && (mpp = add_map_without_path(vecs, minor, alias,
 					start_waiter_thread))) {
 		sync_map_state(mpp);
-		condlog(3, "%s: devmap %s added", alias, dev->kernel);
+		condlog(2, "%s: devmap %s added", alias, dev);
 		return 0;
 	}
-	refwwid = get_refwwid(dev->kernel, DEV_DEVMAP, vecs->pathvec);
+	refwwid = get_refwwid(dev, DEV_DEVMAP, vecs->pathvec);
 
 	if (refwwid) {
 		r = coalesce_paths(vecs, NULL, refwwid);
@@ -275,19 +275,19 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 	}
 
 	if (!r)
-		condlog(3, "%s: devmap %s added", alias, dev->kernel);
+		condlog(2, "%s: devmap %s added", alias, dev);
 	else
-		condlog(0, "%s: uev_add_map %s failed", alias, dev->kernel);
+		condlog(0, "%s: uev_add_map %s failed", alias, dev);
 
 	FREE(refwwid);
 	return r;
 }
 
 static int
-uev_remove_map (struct sysfs_device * dev, struct vectors * vecs)
+uev_remove_map (struct uevent * uev, struct vectors * vecs)
 {
-	condlog(2, "%s: remove map (uevent)", dev->kernel);
-	return ev_remove_map(dev->kernel, vecs);
+	condlog(2, "%s: remove map (uevent)", uev->kernel);
+	return ev_remove_map(uev->kernel, vecs);
 }
 
 int
@@ -308,13 +308,13 @@ ev_remove_map (char * devname, struct vectors * vecs)
 }
 
 static int
-uev_umount_map (struct sysfs_device * dev, struct vectors * vecs)
+uev_umount_map (struct uevent * uev, struct vectors * vecs)
 {
 	struct multipath * mpp;
 
-	condlog(2, "%s: umount map (uevent)", dev->kernel);
+	condlog(2, "%s: umount map (uevent)", uev->kernel);
 
-	mpp = find_mp_by_str(vecs->mpvec, dev->kernel);
+	mpp = find_mp_by_str(vecs->mpvec, uev->kernel);
 
 	if (!mpp)
 		return 0;
@@ -328,13 +328,20 @@ uev_umount_map (struct sysfs_device * dev, struct vectors * vecs)
 	return 0;
 }
 
+
 static int
-uev_add_path (struct sysfs_device * dev, struct vectors * vecs)
+uev_add_path (struct uevent *uev, struct vectors * vecs)
 {
+	struct sysfs_device * dev;
+
+	dev = sysfs_device_get(uev->devpath);
+	if (!dev) {
+		condlog(2, "%s: not found in sysfs", uev->devpath);
+		return 1;
+	}
 	condlog(2, "%s: add path (uevent)", dev->kernel);
 	return (ev_add_path(dev->kernel, vecs) != 1)? 0 : 1;
 }
-
 
 /*
  * returns:
@@ -448,12 +455,19 @@ out:
 }
 
 static int
-uev_remove_path (struct sysfs_device * dev, struct vectors * vecs)
+uev_remove_path (struct uevent *uev, struct vectors * vecs)
 {
+	struct sysfs_device * dev;
 	int retval;
 
-	condlog(2, "%s: remove path (uevent)", dev->kernel);
-	retval = ev_remove_path(dev->kernel, vecs);
+	dev = sysfs_device_get(uev->devpath);
+	if (!dev) {
+		condlog(2, "%s: not found in sysfs", uev->devpath);
+		return 1;
+	}
+	condlog(2, "%s: remove path (uevent)", uev->kernel);
+	retval = ev_remove_path(uev->kernel, vecs);
+
 	if (!retval)
 		sysfs_device_put(dev);
 
@@ -621,16 +635,11 @@ int
 uev_trigger (struct uevent * uev, void * trigger_data)
 {
 	int r = 0;
-	struct sysfs_device *sysdev;
 	struct vectors * vecs;
 
 	vecs = (struct vectors *)trigger_data;
 
 	if (uev_discard(uev->devpath))
-		return 0;
-
-	sysdev = sysfs_device_get(uev->devpath);
-	if(!sysdev)
 		return 0;
 
 	lock(vecs->lock);
@@ -643,17 +652,17 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 * Device-mapper generated tons of them and
 	 * they don't carry additional information.
 	 */
-	if (!strncmp(sysdev->kernel, "dm-", 3)) {
-		if (!strncmp(uev->action, "online", 6)) {
-			r = uev_add_map(sysdev, vecs);
+	if (!strncmp(uev->kernel, "dm-", 3)) {
+		if (!strncmp(uev->action, "change", 6)) {
+			r = uev_add_map(uev, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "remove", 6)) {
-			r = uev_remove_map(sysdev, vecs);
+			r = uev_remove_map(uev, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "umount", 6)) {
-			r = uev_umount_map(sysdev, vecs);
+			r = uev_umount_map(uev, vecs);
 			goto out;
 		}
 		goto out;
@@ -663,15 +672,15 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 * path add/remove event
 	 */
 	if (filter_devnode(conf->blist_devnode, conf->elist_devnode,
-			   sysdev->kernel) > 0)
+			   uev->kernel) > 0)
 		goto out;
 
 	if (!strncmp(uev->action, "add", 3)) {
-		r = uev_add_path(sysdev, vecs);
+		r = uev_add_path(uev, vecs);
 		goto out;
 	}
 	if (!strncmp(uev->action, "remove", 6)) {
-		r = uev_remove_path(sysdev, vecs);
+		r = uev_remove_path(uev, vecs);
 		goto out;
 	}
 
