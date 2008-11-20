@@ -152,11 +152,11 @@ sysfs_get_dev (struct sysfs_device * dev, char * buff, size_t len)
 
 	attr = sysfs_attr_get_value(dev->devpath, "dev");
 	if (!attr) {
-		condlog(3, "%s: no 'dev' attribute in sysfs", dev->kernel);
+		condlog(3, "%s: no 'dev' attribute in sysfs", dev->devpath);
 		return 1;
 	}
 	if (strlcpy(buff, attr, len) != strlen(attr)) {
-		condlog(3, "%s: overflow in 'dev' attribute", dev->kernel);
+		condlog(3, "%s: overflow in 'dev' attribute", dev->devpath);
 		return 2;
 	}
 	return 0;
@@ -169,13 +169,18 @@ sysfs_get_size (struct sysfs_device * dev, unsigned long long * size)
 	int r;
 
 	attr = sysfs_attr_get_value(dev->devpath, "size");
-	if (!attr)
+	if (!attr) {
+		condlog(3, "%s: No size attribute in sysfs", dev->devpath);
 		return 1;
+	}
 
 	r = sscanf(attr, "%llu\n", size);
 
-	if (r != 1)
+	if (r != 1) {
+		condlog(3, "%s: Cannot parse size attribute '%s'",
+			dev->devpath, attr);
 		return 1;
+	}
 
 	return 0;
 }
@@ -232,11 +237,29 @@ devt2devname (char *devname, char *devt)
 	char block_path[FILE_NAME_SIZE];
 	struct stat statbuf;
 
-	memset(block_path, 0, FILE_NAME_SIZE);
 	if (sscanf(devt, "%u:%u", &major, &minor) != 2) {
 		condlog(0, "Invalid device number %s", devt);
 		return 1;
 	}
+
+	sprintf(block_path,"/sys/dev/%u:%u", major, minor);
+	if (stat(block_path, &statbuf) == 0) {
+		/* Newer kernels have /sys/dev */
+		if (S_ISLNK(statbuf.st_mode) &&
+		    readlink(block_path, dev, FILE_NAME_SIZE) > 0) {
+			char *p = strrchr(dev, '/');
+
+			if (!p) {
+				condlog(0, "No sysfs entry for %s\n",
+					block_path);
+				return 1;
+			}
+			p++;
+			strncpy(devname, p, FILE_NAME_SIZE);
+			return 0;
+		}
+	}
+	memset(block_path, 0, FILE_NAME_SIZE);
 
 	if (!(fd = fopen("/proc/partitions", "r"))) {
 		condlog(0, "Cannot open /proc/partitions");
@@ -271,6 +294,7 @@ devt2devname (char *devname, char *devt)
 		condlog(0, "sysfs entry %s is not a directory\n", block_path);
 		return 1;
 	}
+	strncpy(devname, dev, FILE_NAME_SIZE);
 	return 0;
 }
 
@@ -291,6 +315,7 @@ do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
 	inqCmdBlk[3] = (unsigned char)((mx_resp_len >> 8) & 0xff);
 	inqCmdBlk[4] = (unsigned char) (mx_resp_len & 0xff);
 	memset(&io_hdr, 0, sizeof (struct sg_io_hdr));
+	memset(sense_b, 0, SENSE_BUFF_LEN);
 	io_hdr.interface_id = 'S';
 	io_hdr.cmd_len = sizeof (inqCmdBlk);
 	io_hdr.mx_sb_len = sizeof (sense_b);
