@@ -47,7 +47,7 @@ merge_words (char ** dst, char * word, int space)
  * Transforms the path group vector into a proper device map string
  */
 int
-assemble_map (struct multipath * mp)
+assemble_map (struct multipath * mp, char * params, int len)
 {
 	int i, j;
 	int shift, freechar;
@@ -57,15 +57,15 @@ assemble_map (struct multipath * mp)
 	struct path * pp;
 
 	minio = mp->minio;
-	p = mp->params;
-	freechar = sizeof(mp->params);
+	p = params;
+	freechar = len;
 
 	shift = snprintf(p, freechar, "%s %s %i %i",
 			 mp->features, mp->hwhandler,
 			 VECTOR_SIZE(mp->pg), mp->bestpg);
 
 	if (shift >= freechar) {
-		fprintf(stderr, "mp->params too small\n");
+		condlog(0, "%s: params too small\n", mp->alias);
 		return 1;
 	}
 	p += shift;
@@ -76,7 +76,7 @@ assemble_map (struct multipath * mp)
 		shift = snprintf(p, freechar, " %s %i 1", mp->selector,
 				 VECTOR_SIZE(pgp->paths));
 		if (shift >= freechar) {
-			fprintf(stderr, "mp->params too small\n");
+			condlog(0, "%s: params too small\n", mp->alias);
 			return 1;
 		}
 		p += shift;
@@ -88,11 +88,14 @@ assemble_map (struct multipath * mp)
 			if (mp->rr_weight == RR_WEIGHT_PRIO
 			    && pp->priority > 0)
 				tmp_minio = minio * pp->priority;
-
+			if (!strlen(pp->dev_t) ) {
+				condlog(0, "dev_t not set for '%s'\n", pp->dev);
+				return 1;
+			}
 			shift = snprintf(p, freechar, " %s %d",
 					 pp->dev_t, tmp_minio);
 			if (shift >= freechar) {
-				fprintf(stderr, "mp->params too small\n");
+				condlog(0, "%s: params too small\n", mp->alias);
 				return 1;
 			}
 			p += shift;
@@ -100,7 +103,7 @@ assemble_map (struct multipath * mp)
 		}
 	}
 	if (freechar < 1) {
-		fprintf(stderr, "mp->params too small\n");
+		condlog(0, "%s: params too small\n", mp->alias);
 		return 1;
 	}
 	snprintf(p, 1, "\n");

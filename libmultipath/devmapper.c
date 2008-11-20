@@ -206,6 +206,8 @@ dm_addmap (int task, const char *name, const char *target,
 			goto freeout;
 	}
 
+	condlog(4, "%s: addmap [0 %llu %s %s]\n", name, size, target, params);
+
 	dm_task_no_open_count(dmt);
 
 	r = dm_task_run (dmt);
@@ -323,7 +325,10 @@ dm_get_map(char * name, unsigned long long * size, char * outparams)
 	if (size)
 		*size = length;
 
-	if (snprintf(outparams, PARAMS_SIZE, "%s", params) <= PARAMS_SIZE)
+	if (outparams) {
+		if (snprintf(outparams, PARAMS_SIZE, "%s", params) <= PARAMS_SIZE)
+			r = 0;
+	} else
 		r = 0;
 out:
 	dm_task_destroy(dmt);
@@ -756,10 +761,7 @@ dm_get_maps (vector mp)
 			goto out1;
 
 		if (info > 0) {
-			if (dm_get_map(names->name, &mpp->size, mpp->params))
-				goto out1;
-
-			if (dm_get_status(names->name, mpp->status))
+			if (dm_get_map(names->name, &mpp->size, NULL))
 				goto out1;
 
 			dm_get_uuid(names->name, mpp->wwid);

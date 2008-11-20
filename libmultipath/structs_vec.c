@@ -237,14 +237,20 @@ extract_hwe_from_path(struct multipath * mpp)
 static int
 update_multipath_table (struct multipath *mpp, vector pathvec)
 {
+	char params[PARAMS_SIZE] = {0};
+
 	if (!mpp)
 		return 1;
 
-	if (dm_get_map(mpp->alias, &mpp->size, mpp->params))
+	if (dm_get_map(mpp->alias, &mpp->size, params)) {
+		condlog(3, "%s: cannot get map", mpp->alias);
 		return 1;
+	}
 
-	if (disassemble_map(pathvec, mpp->params, mpp))
+	if (disassemble_map(pathvec, params, mpp)) {
+		condlog(3, "%s: cannot disassemble map", mpp->alias);
 		return 1;
+	}
 
 	return 0;
 }
@@ -252,14 +258,20 @@ update_multipath_table (struct multipath *mpp, vector pathvec)
 static int
 update_multipath_status (struct multipath *mpp)
 {
+	char status[PARAMS_SIZE] = {0};
+
 	if (!mpp)
 		return 1;
 
-	if(dm_get_status(mpp->alias, mpp->status))
+	if (dm_get_status(mpp->alias, status)) {
+		condlog(3, "%s: cannot get status", mpp->alias);
 		return 1;
+	}
 
-	if (disassemble_status(mpp->status, mpp))
+	if (disassemble_status(status, mpp)) {
+		condlog(3, "%s: cannot disassemble status", mpp->alias);
 		return 1;
+	}
 
 	return 0;
 }

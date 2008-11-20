@@ -37,7 +37,7 @@
 #include "util.h"
 
 extern int
-setup_map (struct multipath * mpp)
+setup_map (struct multipath * mpp, char * params, int params_size)
 {
 	struct pathgroup * pgp;
 	int i;
@@ -89,7 +89,7 @@ setup_map (struct multipath * mpp)
 	 * transform the mp->pg vector of vectors of paths
 	 * into a mp->params strings to feed the device-mapper
 	 */
-	if (assemble_map(mpp)) {
+	if (assemble_map(mpp, params, params_size)) {
 		condlog(0, "%s: problem assembing map", mpp->alias);
 		return 1;
 	}
@@ -298,7 +298,7 @@ lock_multipath (struct multipath * mpp, int lock)
 #define DOMAP_DRY	3
 
 extern int
-domap (struct multipath * mpp)
+domap (struct multipath * mpp, char * params)
 {
 	int r = 0;
 
@@ -337,25 +337,25 @@ domap (struct multipath * mpp)
 			break;
 		}
 
-		r = dm_addmap_create(mpp->alias, mpp->params, mpp->size,
+		r = dm_addmap_create(mpp->alias, params, mpp->size,
 				     mpp->wwid);
 
 		if (!r)
-			 r = dm_addmap_create_ro(mpp->alias, mpp->params,
+			 r = dm_addmap_create_ro(mpp->alias, params,
 						 mpp->size, mpp->wwid);
 
 		lock_multipath(mpp, 0);
 		break;
 
 	case ACT_RELOAD:
-		r = (dm_addmap_reload(mpp->alias, mpp->params, mpp->size, NULL)
+		r = (dm_addmap_reload(mpp->alias, params, mpp->size, NULL)
 		     && dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, 1));
 		break;
 
 	case ACT_RESIZE:
-		r = dm_addmap_reload(mpp->alias, mpp->params, mpp->size, NULL);
+		r = dm_addmap_reload(mpp->alias, params, mpp->size, NULL);
 		if (!r)
-			r = dm_addmap_reload_ro(mpp->alias, mpp->params,
+			r = dm_addmap_reload_ro(mpp->alias, params,
 						mpp->size, NULL);
 		if (r)
 			r = dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, 0);
@@ -383,7 +383,7 @@ domap (struct multipath * mpp)
 			/* multipath daemon mode */
 			mpp->stat_map_loads++;
 			condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
-				mpp->size, TGT_MPATH, mpp->params);
+				mpp->size, TGT_MPATH, params);
 			/*
 			 * Required action is over, reset for the stateful daemon
 			 */
@@ -422,6 +422,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 	int r = 1;
 	int k, i;
 	char empty_buff[WWID_SIZE];
+	char params[PARAMS_SIZE];
 	struct multipath * mpp;
 	struct path * pp1;
 	struct path * pp2;
@@ -493,8 +494,9 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 				mpp->action = ACT_REJECT;
 		}
 		verify_paths(mpp, vecs, NULL);
-		
-		if (setup_map(mpp)) {
+
+		params[0] = '\0';
+		if (setup_map(mpp, params, PARAMS_SIZE)) {
 			remove_map(mpp, vecs, 0);
 			continue;
 		}
@@ -502,7 +504,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		if (mpp->action == ACT_UNDEF)
 			select_action(mpp, curmp, force_reload);
 
-		r = domap(mpp);
+		r = domap(mpp, params);
 
 		if (r == DOMAP_FAIL || r == DOMAP_RETRY) {
 			condlog(3, "%s: domap (%u) failure "
@@ -610,7 +612,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 
 	if (dev_type == DEV_DEVT) {
 		pp = find_path_by_devt(pathvec, dev);
-		
+
 		if (!pp) {
 			if (devt2devname(buff, dev))
 				return NULL;
@@ -624,7 +626,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 
 			if (pathinfo(pp, conf->hwtable, DI_SYSFS | DI_WWID))
 				return NULL;
-			
+
 			if (store_path(pathvec, pp)) {
 				free_path(pp);
 				return NULL;
