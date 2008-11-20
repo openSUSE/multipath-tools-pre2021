@@ -34,13 +34,14 @@
 #include "dict.h"
 #include "alias.h"
 #include "prio.h"
+#include "util.h"
 
 extern int
 setup_map (struct multipath * mpp)
 {
 	struct pathgroup * pgp;
 	int i;
-	
+
 	/*
 	 * don't bother if devmap size is unknown
 	 */
@@ -579,9 +580,14 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		return NULL;
 
 	if (dev_type == DEV_DEVNODE) {
-		basename(dev, buff);
+		if (basename(dev, buff) == 0) {
+			condlog(1, "basename failed for '%s' (%s)",
+				dev, buff);
+			return NULL;
+		}
+
 		pp = find_path_by_dev(pathvec, buff);
-		
+
 		if (!pp) {
 			pp = alloc_path();
 
