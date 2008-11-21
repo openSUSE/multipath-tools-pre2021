@@ -121,6 +121,7 @@ struct path {
 	int pgindex;
 	char * getuid;
 	struct prio * prio;
+	char * prio_arg;
 	struct checker checker;
 	struct multipath * mpp;
 	int fd;

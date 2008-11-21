@@ -151,6 +151,24 @@ Generate the path priority for Hitachi HDS Modular storage arrays.
 Default value is \fBnone\fR.
 .RE
 .TP
+.B prio
+The default program and args to path priority routine. The specified 
+routine should return a numeric value specifying the relative priority 
+of this path. Higher number have a higher priority. 
+.RS
+.TP 12
+.B alua
+Generate the path priority based on ALUA status of the path.
+.TP 12
+.B weightedpath <hbtl|devname> <regex1> <prio1> <regex2> <prio2> ...
+.I hbtl 
+regex can be of SCSI H:B:T:L format  Ex: 1:0:.:. , *:0:0:.
+.I devname 
+regex can be of device name format  Ex: sda , sd.e
+Generate the path priority based on the regular expression and the 
+priority provided as argument.
+.RE
+.TP
 .B features
 Specify any device-mapper features to be used. Syntax is
 .I num list
@@ -327,6 +345,8 @@ section:
 .TP
 .B path_selector
 .TP
+.B prio
+.TP
 .B failback
 .TP
 .B no_path_retry
@@ -379,6 +399,8 @@ section:
 .B path_selector
 .TP
 .B path_checker
+.TP
+.B prio
 .TP
 .B features
 .TP

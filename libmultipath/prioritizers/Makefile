@@ -12,7 +12,8 @@ LIBS = \
 	libpriordac.so \
 	libprioalua.so \
 	libprioontap.so \
-	libpriohds.so
+	libpriohds.so \
+	libprioweightedpath.so
 
 CFLAGS += -I..
 

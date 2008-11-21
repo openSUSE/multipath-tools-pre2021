@@ -261,6 +261,18 @@
 #		# default : 1000
 #		#
 #		rr_min_io	100
+#		
+#		#
+#		#name	  : prio
+#		#scope    : multipath
+#		#desc     : the function to call to obtain a path weight.
+#		#           Weights are summed for each path group to
+#		#           determine the next PG to use case of failure.  
+#		#default : no callout, all paths equals
+#		# Ex:
+#		# prio	alua
+#		# prio	"weightedpath devname sda 50 sde 10 sdc 50 sdf 10"
+#		prio          "weightedpath hbtl 1:.:.:. 2 4:.:.:. 4"
 #	}
 #	multipath {
 #		wwid	1DEC_____321816758474

@@ -4,6 +4,7 @@
  * Copyright (c) 2005 Benjamin Marzinski, Redhat
  * Copyright (c) 2005 Kiyoshi Ueda, NEC
  */
+#include <string.h>
 #include "checkers.h"
 #include "vector.h"
 #include "hwtable.h"
@@ -106,11 +107,26 @@ def_getuid_callout_handler(vector strvec)
 static int
 def_prio_handler(vector strvec)
 {
-	conf->prio_name = set_value(strvec);
+	char *buff, *result, *temp;
+	char split_char[] = " \t";
 
-	if (!conf->prio_name)
+	buff = set_value(strvec);
+	if (!buff)
 		return 1;
+	temp = buff;
 
+	while ((result = strsep(&temp, split_char))) {
+		if (prio_lookup(result)) {
+			conf->prio_name = STRDUP(result);
+			if (temp)
+				conf->prio_arg = STRDUP(temp);
+			else
+				conf->prio_arg = NULL;
+			break;
+		}
+	}
+
+	FREE(buff);
 	return 0;
 }
 
@@ -613,15 +629,29 @@ static int
 hw_prio_handler(vector strvec)
 {
 	struct hwentry * hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char *buff, *result, *temp;
+	char split_char[] = " \t";
 
 	if (!hwe)
 		return 1;
 
-	hwe->prio_name = set_value(strvec);
-
-	if (!hwe->prio_name)
+	buff = set_value(strvec);
+	if (!buff)
 		return 1;
+	temp = buff;
 
+	while ((result = strsep(&temp, split_char))) {
+		if (prio_lookup(result)) {
+			conf->prio_name = STRDUP(result);
+			if (temp)
+				conf->prio_arg = STRDUP(temp);
+			else
+				conf->prio_arg = NULL;
+			break;
+		}
+	}
+
+	FREE(buff);
 	return 0;
 }
 
@@ -967,6 +997,38 @@ mp_pg_timeout_handler(vector strvec)
 	return 0;
 }
 
+static int
+mp_prio_handler (vector strvec)
+{
+	struct mpentry *mpe = VECTOR_LAST_SLOT(conf->mptable);
+	char *buff, *result, *temp;
+	char split_char[] = " \t";
+
+	if (!mpe)
+		return 1;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	temp = buff;
+
+	while ((result = strsep(&temp, split_char))) {
+		if (prio_lookup(result)) {
+			mpe->prio_name = STRDUP(result);
+			if (temp)
+				mpe->prio_arg = STRDUP(temp);
+			else
+				mpe->prio_arg = NULL;
+			break;
+		}
+	}
+
+	FREE(buff);
+	return 0;
+}
+
 /*
  * config file keywords printing
  */
@@ -1099,6 +1161,17 @@ snprint_mp_pg_timeout (char * buff, int len, void * data)
 		return snprintf(buff, len, "%i", mpe->pg_timeout);
 	}
 	return 0;
+}
+
+static int
+snprint_mp_prio(char * buff, int len, void * data)
+{
+	struct mpentry * mpe = (struct mpentry *)data;
+
+	if (!mpe->prio_name)
+		return 0;
+
+	return snprintf(buff, len, "%s", mpe->prio_name);
 }
 
 static int
@@ -1672,6 +1745,7 @@ init_keywords(void)
 	install_keyword("alias", &alias_handler, &snprint_mp_alias);
 	install_keyword("path_grouping_policy", &mp_pgpolicy_handler, &snprint_mp_path_grouping_policy);
 	install_keyword("path_selector", &mp_selector_handler, &snprint_mp_selector);
+	install_keyword("prio", &mp_prio_handler, &snprint_mp_prio);
 	install_keyword("failback", &mp_failback_handler, &snprint_mp_failback);
 	install_keyword("rr_weight", &mp_weight_handler, &snprint_mp_rr_weight);
 	install_keyword("no_path_retry", &mp_no_path_retry_handler, &snprint_mp_no_path_retry);

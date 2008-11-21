@@ -24,6 +24,7 @@
 #define PRIO_ONTAP "ontap"
 #define PRIO_RANDOM "random"
 #define PRIO_RDAC "rdac"
+#define PRIO_WEIGHTED_PATH "weightedpath"
 
 /*
  * Value used to mark the fact prio was not defined
