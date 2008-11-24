@@ -148,6 +148,9 @@ remove_maps (struct vectors * vecs,
 	int i;
 	struct multipath * mpp;
 
+	if (!vecs)
+		return;
+
 	vector_foreach_slot (vecs->mpvec, mpp, i) {
 		remove_map(mpp, vecs, stop_waiter, 1);
 		i--;
@@ -373,6 +376,9 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 	struct path * pp;
 	int count = 0;
 	int i, j;
+
+	if (!mpp)
+		return 0;
 
 	vector_foreach_slot (mpp->paths, pp, i) {
 		/*
