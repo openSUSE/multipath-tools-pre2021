@@ -12,7 +12,7 @@ fi
 if [ -x /sbin/multipath -a -x /sbin/dmsetup ] ; then
     for bd in $blockdev ; do
 	update_blockdev $bd
-	if [ $blockdriver = device-mapper ]; then
+	if [ "$blockdriver" = device-mapper ]; then
 	    dm_uuid=$(dmsetup info -c --noheadings -o uuid -j $blockmajor -m $blockminor)
 	    dm_creator=${dm_uuid%-*}
 	    if [ "$dm_creator" = "mpath" ]; then
