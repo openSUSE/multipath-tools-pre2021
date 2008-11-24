@@ -114,6 +114,9 @@ pgcmp (struct multipath * mpp, struct multipath * cmpp)
 	struct pathgroup * cpgp;
 	int r = 0;
 
+	if (!mpp)
+		return 0;
+
 	vector_foreach_slot (mpp->pg, pgp, i) {
 		compute_pgid(pgp);
 
