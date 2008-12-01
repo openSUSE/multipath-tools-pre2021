@@ -9,7 +9,8 @@
 # Provides:          boot.multipath
 # Required-Start:    boot.device-mapper boot.udev
 # Required-Stop:     boot.device-mapper boot.udev
-# Default-Start:     B
+# Should-Start:      boot.xdrsetsite
+# Default-Start:
 # Default-Stop:
 # Short-Description:       Create multipath device targets
 # Description:       Setup initial multipath device-mapper targets
