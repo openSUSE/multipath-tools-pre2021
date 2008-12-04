@@ -341,3 +341,23 @@ uevent_get_minor(struct uevent *uev)
 	return minor;
 }
 
+extern int
+uevent_get_disk_ro(struct uevent *uev)
+{
+	char *p, *q;
+	int i, ro = -1;
+
+	for (i = 0; uev->envp[i] != NULL; i++) {
+		if (!strncmp(uev->envp[i], "DISK_RO", 6) && strlen(uev->envp[i]) > 7) {
+			p = uev->envp[i] + 8;
+			ro = strtoul(p, &q, 10);
+			if (p == q) {
+				condlog(2, "invalid read_only setting '%s'", p);
+				ro = -1;
+			}
+			break;
+		}
+	}
+	return ro;
+}
+
