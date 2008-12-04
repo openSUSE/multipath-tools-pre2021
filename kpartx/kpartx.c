@@ -199,7 +199,7 @@ main(int argc, char **argv){
 	int loopro = 0;
 	int hotplug = 0;
 	int loopcreated = 0;
-	struct stat stbuf;
+	struct stat buf;
 
 	initpts();
 	init_crc32();
@@ -274,12 +274,12 @@ main(int argc, char **argv){
 		exit(1);
 	}
 
-	if (stat(device, &stbuf)) {
+	if (stat(device, &buf)) {
 		printf("failed to stat() %s\n", device);
 		exit (1);
 	}
 
-	if (S_ISREG (stbuf.st_mode)) {
+	if (S_ISREG (buf.st_mode)) {
 		/* already looped file ? */
 		loopdev = find_loop_by_file(device);
 
@@ -307,10 +307,10 @@ main(int argc, char **argv){
 	off = find_devname_offset(device);
 
 	if (!loopdev) {
-		uuid = dm_mapuuid((unsigned int)major(stbuf.st_rdev),
-				  (unsigned int)major(stbuf.st_rdev));
-		mapname = dm_mapname((unsigned int)major(stbuf.st_rdev),
-				     (unsigned int)minor(stbuf.st_rdev));
+		uuid = dm_mapuuid((unsigned int)MAJOR(buf.st_rdev),
+				  (unsigned int)MINOR(buf.st_rdev));
+		mapname = dm_mapname((unsigned int)MAJOR(buf.st_rdev),
+				     (unsigned int)MINOR(buf.st_rdev));
 	}
 
 	if (!uuid)
@@ -318,8 +318,8 @@ main(int argc, char **argv){
 
 	if (!mapname) {
 		mapname = device + off;
-	} else if (dm_no_partitions((unsigned int)major(stbuf.st_rdev),
-				  (unsigned int)minor(stbuf.st_rdev))) {
+	} else if (dm_no_partitions((unsigned int)MAJOR(buf.st_rdev),
+				  (unsigned int)MINOR(buf.st_rdev))) {
 		/* Feature 'no_partitions' is set, return */
 		return 0;
 	}
@@ -329,12 +329,6 @@ main(int argc, char **argv){
 	if (fd == -1) {
 		perror(device);
 		exit(1);
-	}
-
-	/* Fallback to major:minor if the device name contains spaces */
-	if (strchr(device, ' ')) {
-		sprintf(device,"%d:%d", major(stbuf.st_rdev),
-			minor(stbuf.st_rdev));
 	}
 
 	/* add/remove partitions to the kernel devmapper tables */
@@ -402,7 +396,7 @@ main(int argc, char **argv){
 					break;
 			}
 
-			if (loopcreated && S_ISREG (stbuf.st_mode)) {
+			if (loopcreated && S_ISREG (buf.st_mode)) {
 				if (del_loop(device)) {
 					if (verbose)
 						printf("can't del loop : %s\n",
@@ -433,7 +427,7 @@ main(int argc, char **argv){
 					printf("del devmap : %s\n", partname);
 			}
 
-			if (S_ISREG (stbuf.st_mode)) {
+			if (S_ISREG (buf.st_mode)) {
 				if (del_loop(device)) {
 					if (verbose)
 						printf("can't del loop : %s\n",
