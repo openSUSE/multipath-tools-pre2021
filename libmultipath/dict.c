@@ -640,14 +640,17 @@ hw_prio_handler(vector strvec)
 		return 1;
 	temp = buff;
 
-	while ((result = strsep(&temp, split_char))) {
-		if (prio_lookup(result)) {
-			conf->prio_name = STRDUP(result);
-			if (temp)
-				conf->prio_arg = STRDUP(temp);
-			else
-				conf->prio_arg = NULL;
-			break;
+	while (temp) {
+		result = strsep(&temp, split_char);
+		if (strcmp(result, "")) {
+			if (prio_lookup(result)) {
+				hwe->prio_name = STRDUP(result);
+				if (temp)
+					hwe->prio_arg = STRDUP(temp);
+				else
+					hwe->prio_arg = NULL;
+				break;
+			}
 		}
 	}
 
