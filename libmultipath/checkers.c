@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <dlfcn.h>
+#include <sys/stat.h>
 
 #include "debug.h"
 #include "checkers.h"
@@ -35,7 +36,12 @@ int init_checkers (void)
 
 struct checker * alloc_checker (void)
 {
-	return zalloc(sizeof(struct checker));
+	struct checker *c;
+
+	c = zalloc(sizeof(struct checker));
+	if (c)
+		INIT_LIST_HEAD(&c->node);
+	return c;
 }
 
 void free_checker (struct checker * c)
@@ -75,6 +81,7 @@ struct checker * checker_lookup (char * name)
 struct checker * add_checker (char * name)
 {
 	char libname[LIB_CHECKER_NAMELEN];
+	struct stat stbuf;
 	struct checker * c;
 	char *errstr;
 
@@ -83,14 +90,18 @@ struct checker * add_checker (char * name)
 		return NULL;
 	snprintf(libname, LIB_CHECKER_NAMELEN, "%s/libcheck%s.so",
 		 conf->multipath_dir, name);
+	if (stat(libname,&stbuf) < 0) {
+		condlog(0,"Invalid checker '%s'", name);
+		goto out;
+	}
 	condlog(3, "loading %s checker", libname);
 	c->handle = dlopen(libname, RTLD_NOW);
-	errstr = dlerror();
-	if (errstr != NULL)
-		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
-	if (!c->handle)
+	if (!c->handle) {
+		if ((errstr = dlerror()) != NULL)
+			condlog(0, "A dynamic linking error occurred: (%s)",
+				errstr);
 		goto out;
-
+	}
 	c->check = (int (*)(struct checker *)) dlsym(c->handle, "libcheck_check");
 	errstr = dlerror();
 	if (errstr != NULL)

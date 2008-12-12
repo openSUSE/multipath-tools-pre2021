@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <dlfcn.h>
+#include <sys/stat.h>
 
 #include "debug.h"
 #include "prio.h"
@@ -19,7 +20,12 @@ int init_prio (void)
 
 struct prio * alloc_prio (void)
 {
-	return zalloc(sizeof(struct prio));
+	struct prio *p;
+
+	p = zalloc(sizeof(struct prio));
+	if (p)
+		INIT_LIST_HEAD(&p->node);
+	return p;
 }
 
 void free_prio (struct prio * p)
@@ -59,6 +65,7 @@ struct prio * prio_lookup (char * name)
 struct prio * add_prio (char * name)
 {
 	char libname[LIB_PRIO_NAMELEN];
+	struct stat stbuf;
 	struct prio * p;
 	char *errstr;
 
@@ -67,13 +74,18 @@ struct prio * add_prio (char * name)
 		return NULL;
 	snprintf(libname, LIB_PRIO_NAMELEN, "%s/libprio%s.so",
 		 conf->multipath_dir, name);
+	if (stat(libname,&stbuf) < 0) {
+		condlog(0,"Invalid prioritizer '%s'", name);
+		goto out;
+	}
 	condlog(3, "loading %s prioritizer", libname);
 	p->handle = dlopen(libname, RTLD_NOW);
-	errstr = dlerror();
-	if (errstr != NULL)
-		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
-	if (!p->handle)
+	if (!p->handle) {
+		if ((errstr = dlerror()) != NULL)
+			condlog(0, "A dynamic linking error occurred: (%s)",
+				errstr);
 		goto out;
+	}
 	p->getprio = (int (*)(struct path *)) dlsym(p->handle, "getprio");
 	errstr = dlerror();
 	if (errstr != NULL)
