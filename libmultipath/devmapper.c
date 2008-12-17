@@ -556,7 +556,7 @@ dm_flush_map (const char * mapname, int flush_io)
 		return 0;
 
 	if (dm_type(mapname, TGT_MPATH) <= 0)
-		return 1;
+		return 0; /* nothing to do */
 
 	if (flush_io) {
 		if (!dm_queue_if_no_path((char *)mapname, 0)) {
