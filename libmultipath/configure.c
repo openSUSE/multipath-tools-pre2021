@@ -51,6 +51,11 @@ setup_map (struct multipath * mpp, char * params, int params_size)
 	}
 
 	/*
+	 * free features, selector, and hwhandler properties if they are being reused
+	 */
+	free_multipath_attributes(mpp);
+
+	/*
 	 * properties selectors
 	 */
 	select_pgfailback(mpp);
