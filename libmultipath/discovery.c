@@ -131,7 +131,7 @@ sysfs_get_##fname (struct sysfs_device * dev, char * buff, size_t len) \
 	char *attr; \
 \
 	attr = sysfs_attr_get_value(dev->devpath, #fname); \
-	if (!attr) \
+	if (!strlen(attr))				   \
 		return 1; \
 	if (strlcpy(buff, attr, len) != strlen(attr)) \
 		return 2; \
@@ -151,7 +151,7 @@ sysfs_get_dev (struct sysfs_device * dev, char * buff, size_t len)
 	char *attr;
 
 	attr = sysfs_attr_get_value(dev->devpath, "dev");
-	if (!attr) {
+	if (!strlen(attr)) {
 		condlog(3, "%s: no 'dev' attribute in sysfs", dev->devpath);
 		return 1;
 	}
@@ -169,7 +169,7 @@ sysfs_get_size (struct sysfs_device * dev, unsigned long long * size)
 	int r;
 
 	attr = sysfs_attr_get_value(dev->devpath, "size");
-	if (!attr) {
+	if (!strlen(attr)) {
 		condlog(3, "%s: No size attribute in sysfs", dev->devpath);
 		return 1;
 	}
@@ -200,7 +200,7 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 	}
 
 	attr = sysfs_attr_get_value(attr_path, "node_name");
-	if (attr) {
+	if (strlen(attr)) {
 		strlcpy(node, attr, strlen(attr));
 		return 0;
 	}
@@ -571,7 +571,7 @@ common_sysfs_pathinfo (struct path * pp, struct sysfs_device *dev)
 	char *attr;
 
 	attr = sysfs_attr_get_value(dev->devpath, "dev");
-	if (!attr) {
+	if (!strlen(attr)) {
 		condlog(3, "%s: no 'dev' attribute in sysfs", pp->dev);
 		return 1;
 	}
