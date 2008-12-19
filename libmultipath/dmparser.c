@@ -107,6 +107,9 @@ assemble_map (struct multipath * mp, char * params, int len)
 		return 1;
 	}
 	snprintf(p, 1, "\n");
+
+	condlog(3, "%s: assembled map [%s]\n", mp->alias, params);
+
 	return 0;
 }
 
@@ -127,6 +130,8 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 	struct pathgroup * pgp;
 
 	p = params;
+
+	condlog(3, "%s: disassemble map [%s]\n", mpp->alias, params);
 
 	/*
 	 * features
@@ -353,6 +358,8 @@ disassemble_status (char * params, struct multipath * mpp)
 	struct pathgroup * pgp;
 
 	p = params;
+
+	condlog(3, "%s: disassemble status [%s]\n", mpp->alias, params);
 
 	/*
 	 * features
