@@ -114,6 +114,7 @@ int libcheck_check (struct checker * c)
 	io_hdr.sbp = sb;
 	io_hdr.timeout = DEF_TIMEOUT;
 	io_hdr.pack_id = 0;
+	io_hdr.flags |= SG_FLAG_FAILFAST;
 	if (ioctl(c->fd, SG_IO, &io_hdr) < 0) {
 		MSG(c, "emc_clariion_checker: sending query command failed");
 		return PATH_DOWN;

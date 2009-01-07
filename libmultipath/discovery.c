@@ -325,6 +325,7 @@ do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
 	io_hdr.cmdp = inqCmdBlk;
 	io_hdr.sbp = sense_b;
 	io_hdr.timeout = DEF_TIMEOUT;
+	io_hdr.flags |= SG_FLAG_FAILFAST;
 
 	if (ioctl(sg_fd, SG_IO, &io_hdr) < 0)
 		return -1;

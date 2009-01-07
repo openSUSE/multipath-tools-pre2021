@@ -63,6 +63,7 @@ do_inq(int sg_fd, unsigned int pg_op, void *resp, int mx_resp_len)
 	io_hdr.cmdp = inqCmdBlk;
 	io_hdr.sbp = sense_b;
 	io_hdr.timeout = RDAC_DEF_TIMEOUT;
+	io_hdr.flags |= SG_FLAG_FAILFAST;
 
 	if (ioctl(sg_fd, SG_IO, &io_hdr) < 0)
 		return 1;

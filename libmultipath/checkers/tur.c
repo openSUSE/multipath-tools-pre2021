@@ -56,6 +56,7 @@ libcheck_check (struct checker * c)
 	io_hdr.sbp = sense_buffer;
 	io_hdr.timeout = DEF_TIMEOUT;
 	io_hdr.pack_id = 0;
+	io_hdr.flags |= SG_FLAG_FAILFAST;
 	if (ioctl(c->fd, SG_IO, &io_hdr) < 0) {
 		MSG(c, MSG_TUR_DOWN);
 		return PATH_DOWN;
