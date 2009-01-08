@@ -38,7 +38,7 @@ struct checker * alloc_checker (void)
 {
 	struct checker *c;
 
-	c = zalloc(sizeof(struct checker));
+	c = MALLOC(sizeof(struct checker));
 	if (c)
 		INIT_LIST_HEAD(&c->node);
 	return c;
@@ -54,7 +54,7 @@ void free_checker (struct checker * c)
 				c->name, dlerror());
 		}
 	}
-	free(c);
+	FREE(c);
 }
 
 void cleanup_checkers (void)

@@ -22,7 +22,7 @@ struct prio * alloc_prio (void)
 {
 	struct prio *p;
 
-	p = zalloc(sizeof(struct prio));
+	p = MALLOC(sizeof(struct prio));
 	if (p)
 		INIT_LIST_HEAD(&p->node);
 	return p;
@@ -38,7 +38,7 @@ void free_prio (struct prio * p)
 				p->name, dlerror());
 		}
 	}
-	free(p);
+	FREE(p);
 }
 
 void cleanup_prio(void)
