@@ -28,7 +28,6 @@ char * checker_state_name (int i)
 
 int init_checkers (void)
 {
-	INIT_LIST_HEAD(&checkers);
 	if (!add_checker(DEFAULT_CHECKER))
 		return 1;
 	return 0;

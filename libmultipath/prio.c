@@ -12,7 +12,6 @@ static LIST_HEAD(prioritizers);
 
 int init_prio (void)
 {
-	INIT_LIST_HEAD(&prioritizers);
 	if (!add_prio(DEFAULT_PRIO))
 		return 1;
 	return 0;
