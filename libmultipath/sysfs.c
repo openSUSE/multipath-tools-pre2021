@@ -461,6 +461,106 @@ out:
 	return attr && attr->value && strlen(attr->value) ? attr->value : NULL;
 }
 
+int sysfs_attr_set_value(const char *devpath, const char *attr_name,
+			 char *value, int value_len)
+{
+	char path_full[PATH_SIZE];
+	const char *path;
+	struct sysfs_attr *attr_loop;
+	struct sysfs_attr *attr = NULL;
+	struct stat statbuf;
+	int fd;
+	ssize_t size = 0;
+	size_t sysfs_len;
+
+	dbg("open '%s'/'%s'", devpath, attr_name);
+	sysfs_len = strlcpy(path_full, sysfs_path, sizeof(path_full));
+	if(sysfs_len >= sizeof(path_full))
+		sysfs_len = sizeof(path_full) - 1;
+	path = &path_full[sysfs_len];
+	strlcat(path_full, devpath, sizeof(path_full));
+	strlcat(path_full, "/", sizeof(path_full));
+	strlcat(path_full, attr_name, sizeof(path_full));
+
+	/* look for attribute in cache */
+	list_for_each_entry(attr_loop, &attr_list, node) {
+		if (strcmp(attr_loop->path, path) == 0) {
+			dbg("found in cache '%s'", attr_loop->path);
+			attr = attr_loop;
+		}
+	}
+	if (!attr) {
+		/* store attribute in cache */
+		dbg("new uncached attribute '%s'", path_full);
+		attr = malloc(sizeof(struct sysfs_attr));
+		if (attr == NULL)
+			return -1;
+		memset(attr, 0x00, sizeof(struct sysfs_attr));
+		strlcpy(attr->path, path, sizeof(attr->path));
+		dbg("add to cache '%s'", path_full);
+		list_add(&attr->node, &attr_list);
+	} else {
+		/* clear old value */
+		if(attr->value)
+			memset(attr->value, 0x00, sizeof(attr->value));
+	}
+
+	if (lstat(path_full, &statbuf) != 0) {
+		dbg("stat '%s' failed: %s", path_full, strerror(errno));
+		goto out;
+	}
+
+	if (S_ISLNK(statbuf.st_mode)) {
+		/* links return the last element of the target path */
+		char link_target[PATH_SIZE];
+		int len;
+		const char *pos;
+
+		len = readlink(path_full, link_target, sizeof(link_target));
+		if (len > 0) {
+			link_target[len] = '\0';
+			pos = strrchr(link_target, '/');
+			if (pos != NULL) {
+				dbg("cache '%s' with link value '%s'",
+				    path_full, value);
+				strlcpy(attr->value_local, &pos[1],
+					sizeof(attr->value_local));
+				attr->value = attr->value_local;
+			}
+		}
+		goto out;
+	}
+
+	/* skip directories */
+	if (S_ISDIR(statbuf.st_mode))
+		goto out;
+
+	/* skip non-readable files */
+	if ((statbuf.st_mode & S_IRUSR) == 0)
+		goto out;
+
+	/* write attribute value */
+	fd = open(path_full, O_WRONLY);
+	if (fd < 0) {
+		dbg("attribute '%s' can not be opened: %s",
+		    path_full, strerror(errno));
+		goto out;
+	}
+	size = write(fd, value, value_len);
+	close(fd);
+	if (size < 0)
+		goto out;
+
+	/* successfully wrote new value, store it */
+	remove_trailing_chars(value, '\n');
+	dbg("cache '%s' with attribute value '%s'", path_full, value);
+	strlcpy(attr->value_local, value, sizeof(attr->value_local));
+	attr->value = attr->value_local;
+
+out:
+	return size;
+}
+
 int sysfs_lookup_devpath_by_subsys_id(char *devpath_full, size_t len,
 				      const char *subsystem, const char *id)
 {
