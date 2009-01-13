@@ -87,10 +87,12 @@ struct checker * add_checker (char * name)
 	c = alloc_checker();
 	if (!c)
 		return NULL;
+	snprintf(c->name, CHECKER_NAME_LEN, "%s", name);
 	snprintf(libname, LIB_CHECKER_NAMELEN, "%s/libcheck%s.so",
 		 conf->multipath_dir, name);
 	if (stat(libname,&stbuf) < 0) {
-		condlog(0,"Invalid checker '%s'", name);
+		condlog(0,"Checker '%s' not found in %s",
+			name, conf->multipath_dir);
 		goto out;
 	}
 	condlog(3, "loading %s checker", libname);
@@ -122,7 +124,6 @@ struct checker * add_checker (char * name)
 	if (!c->free)
 		goto out;
 
-	snprintf(c->name, CHECKER_NAME_LEN, "%s", name);
 	c->fd = 0;
 	c->sync = 1;
 	list_add(&c->node, &checkers);
