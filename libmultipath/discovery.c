@@ -144,6 +144,7 @@ declare_sysfs_get_str(cutype);
 declare_sysfs_get_str(vendor);
 declare_sysfs_get_str(model);
 declare_sysfs_get_str(rev);
+declare_sysfs_get_str(state);
 
 int
 sysfs_get_dev (struct sysfs_device * dev, char * buff, size_t len)
@@ -688,6 +689,23 @@ get_state (struct path * pp)
 
 	condlog(3, "%s: get_state", pp->dev);
 
+	if (pp->bus == SYSFS_BUS_SCSI && pp->sysdev) {
+		struct sysfs_device *parent;
+		char dev_state[32];
+
+		/* check device state */
+		parent = sysfs_device_get_parent(pp->sysdev);
+		if (parent && !strncmp(parent->kernel, "block", 5))
+			parent = sysfs_device_get_parent(parent);
+		if (parent && !sysfs_get_state(parent, dev_state, 32)) {
+			if (!strncmp(dev_state, "blocked", 7)) {
+				condlog(3, "%s: device blocked", pp->dev);
+				pp->state = PATH_DOWN;
+				pp->priority = 0;
+				return 0;
+			}
+		}
+	}
 	if (!checker_selected(c)) {
 		select_checker(pp);
 		if (!checker_selected(c)) {
@@ -713,6 +731,23 @@ get_prio (struct path * pp)
 {
 	if (!pp)
 		return 0;
+
+	if (pp->bus == SYSFS_BUS_SCSI && pp->sysdev) {
+		struct sysfs_device *parent;
+		char dev_state[32];
+
+		/* check device state */
+		parent = sysfs_device_get_parent(pp->sysdev);
+		if (parent && !strncmp(parent->kernel, "block", 5))
+			parent = sysfs_device_get_parent(parent);
+		if (parent && !sysfs_get_state(parent, dev_state, 32)) {
+			if (!strncmp(dev_state, "blocked", 7)) {
+				condlog(3, "%s: device blocked", pp->dev);
+				pp->priority = PRIO_UNDEF;
+				return 0;
+			}
+		}
+	}
 
 	if (!pp->prio) {
 		select_prio(pp);
