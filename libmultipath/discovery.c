@@ -209,6 +209,110 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 	return 1;
 }
 
+int
+sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char host_path[SYSFS_PATH_SIZE];
+	char attr_value[NAME_SIZE];
+	DIR *host_dir, *rport_dir;
+	struct dirent *host_ent, *rport_ent;
+	int host, channel, lun, port, num;
+	int rport_channel = -1;
+	int rport_id = -1;
+
+	if (dev_loss_tmo == 0 || fast_io_fail_tmo == 0) {
+		condlog(4, "%s: no FC settings", pp->dev);
+		return 0;
+	}
+
+	if (safe_sprintf(host_path, "/sys/class/fc_host/host%i/device",
+			 pp->sg_id.host_no)) {
+		condlog(0, "host_path too small");
+		return 1;
+	}
+	if (!(host_dir = opendir(host_path))) {
+		condlog(3, "host %d not a FC HBA", pp->sg_id.host_no);
+		return 0;
+	}
+
+	while (rport_channel < 0 && rport_id < 0 &&
+	       (host_ent = readdir(host_dir))) {
+		if (sscanf(host_ent->d_name, "rport-%d:%d-%d",
+			   &host, &port, &num) != 3)
+			continue;
+
+		if (host != pp->sg_id.host_no)
+			continue;
+
+		if (safe_sprintf(attr_path, "%s/%s",
+				 host_path, host_ent->d_name)) {
+			condlog(0, "target_path too small");
+			continue;
+		}
+
+		if (!(rport_dir = opendir(attr_path))) {
+			condlog(1, "cannot open rport path '%s'", attr_path);
+			continue;
+		}
+
+		while ((rport_ent = readdir(rport_dir))) {
+			if (sscanf(rport_ent->d_name, "target%d:%d:%d",
+				   &host, &channel, &lun) != 3)
+				continue;
+
+			if (host != pp->sg_id.host_no &&
+			    channel != pp->sg_id.channel &&
+			    lun != pp->sg_id.scsi_id)
+				continue;
+
+			rport_channel = port;
+			rport_id = num;
+			break;
+		}
+	}
+
+	if (rport_channel < 0 && rport_id < 0) {
+		condlog(1, "No rport found");
+		return 0;
+	}
+
+	if (safe_sprintf(attr_path,
+			"/class/fc_remote_ports/rport-%d:%d-%d",
+			pp->sg_id.host_no, rport_channel, rport_id)) {
+		condlog(0, "attr_path too small");
+		return 0;
+	}
+
+	if (dev_loss_tmo < 0)
+		sprintf(attr_value, "%d", 0);
+	else
+		sprintf(attr_value, "%d", dev_loss_tmo);
+	num = sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+				   attr_value, strlen(attr_value));
+	if (num > 0)
+		condlog(4, "%s: set dev_loss_tmo to %d", pp->dev,
+			dev_loss_tmo);
+	else
+		condlog(4, "%s: failed to set dev_loss_tmo (%d)",
+			pp->dev, errno);
+
+	if (fast_io_fail_tmo < 0)
+		sprintf(attr_value, "%d", 0);
+	else
+		sprintf(attr_value, "%d", fast_io_fail_tmo);
+	num = sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
+				   attr_value, strlen(attr_value));
+	if (num > 0)
+		condlog(4, "%s: set fast_io_fail_tmo to %d", pp->dev,
+			fast_io_fail_tmo);
+	else
+		condlog(4, "%s: failed to set fast_io_fail_tmo (%d)",
+			pp->dev, errno);
+
+	return num == strlen(attr_value) ? 0 : 1;
+}
+
 static int
 opennode (char * dev, int mode)
 {

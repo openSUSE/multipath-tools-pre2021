@@ -189,6 +189,46 @@ max_fds_handler(vector strvec)
 }
 
 static int
+def_dev_loss_tmo_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		conf->dev_loss_tmo = -1;
+	else
+		conf->dev_loss_tmo = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
+def_fast_io_fail_tmo_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		conf->fast_io_fail_tmo = -1;
+	else
+		conf->fast_io_fail_tmo = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
 def_weight_handler(vector strvec)
 {
 	char * buff;
@@ -776,6 +816,54 @@ hw_pg_timeout_handler(vector strvec)
 		hwe->pg_timeout = PGTIMEOUT_UNDEF;
 
 	FREE(buff);
+	return 0;
+}
+
+static int
+hw_dev_loss_tmo_handler(vector strvec)
+{
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char * buff;
+
+	if (!hwe)
+		return 1;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		hwe->dev_loss_tmo = -1;
+	else
+		hwe->dev_loss_tmo = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
+hw_fast_io_fail_tmo_handler(vector strvec)
+{
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char * buff;
+
+	if (!hwe)
+		return 1;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		hwe->fast_io_fail_tmo = -1;
+	else
+		hwe->fast_io_fail_tmo = atoi(buff);
+	FREE(buff);
+
 	return 0;
 }
 
@@ -1406,6 +1494,36 @@ snprint_hw_path_checker (char * buff, int len, void * data)
 }
 
 static int
+snprint_hw_dev_loss_tmo (char * buff, int len, void * data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	if (!hwe->dev_loss_tmo)
+		return 0;
+	if (hwe->dev_loss_tmo == conf->dev_loss_tmo)
+		return 0;
+
+	if (hwe->dev_loss_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%u", hwe->dev_loss_tmo);
+}
+
+static int
+snprint_hw_fast_io_fail_tmo (char * buff, int len, void * data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	if (!hwe->fast_io_fail_tmo)
+		return 0;
+	if (hwe->fast_io_fail_tmo == conf->fast_io_fail_tmo)
+		return 0;
+
+	if (hwe->fast_io_fail_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%u", hwe->fast_io_fail_tmo);
+}
+
+static int
 snprint_def_polling_interval (char * buff, int len, void * data)
 {
 	if (conf->checkint == DEFAULT_CHECKINT)
@@ -1565,6 +1683,28 @@ snprint_max_fds (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_dev_loss_tmo (char * buff, int len, void * data)
+{
+	if (!conf->dev_loss_tmo)
+		return 0;
+
+	if (conf->dev_loss_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%d", conf->dev_loss_tmo);
+}
+
+static int
+snprint_def_fast_io_fail_tmo (char * buff, int len, void * data)
+{
+	if (!conf->fast_io_fail_tmo)
+		return 0;
+
+	if (conf->fast_io_fail_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%d", conf->fast_io_fail_tmo);
+}
+
+static int
 snprint_def_rr_weight (char * buff, int len, void * data)
 {
 	if (!conf->rr_weight)
@@ -1681,6 +1821,8 @@ init_keywords(void)
 	install_keyword("failback", &default_failback_handler, &snprint_def_failback);
 	install_keyword("rr_min_io", &def_minio_handler, &snprint_def_rr_min_io);
 	install_keyword("max_fds", &max_fds_handler, &snprint_max_fds);
+	install_keyword("dev_loss_tmo", &def_dev_loss_tmo_handler, &snprint_def_dev_loss_tmo);
+	install_keyword("fast_io_fail_tmo", &def_fast_io_fail_tmo_handler, &snprint_def_fast_io_fail_tmo);
 	install_keyword("rr_weight", &def_weight_handler, &snprint_def_rr_weight);
 	install_keyword("no_path_retry", &def_no_path_retry_handler, &snprint_def_no_path_retry);
 	install_keyword("pg_timeout", &def_pg_timeout_handler, &snprint_def_pg_timeout);
@@ -1739,6 +1881,8 @@ init_keywords(void)
 	install_keyword("no_path_retry", &hw_no_path_retry_handler, &snprint_hw_no_path_retry);
 	install_keyword("rr_min_io", &hw_minio_handler, &snprint_hw_rr_min_io);
 	install_keyword("pg_timeout", &hw_pg_timeout_handler, &snprint_hw_pg_timeout);
+	install_keyword("dev_loss_tmo", &hw_dev_loss_tmo_handler, &snprint_hw_dev_loss_tmo);
+	install_keyword("fast_io_fail_tmo", &hw_fast_io_fail_tmo_handler, &snprint_hw_fast_io_fail_tmo);
 	install_sublevel_end();
 
 	install_keyword_root("multipaths", &multipaths_handler);

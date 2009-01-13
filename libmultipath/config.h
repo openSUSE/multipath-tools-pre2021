@@ -29,6 +29,8 @@ struct hwentry {
 	int no_path_retry;
 	int minio;
 	int pg_timeout;
+	int dev_loss_tmo;
+	int fast_io_fail_tmo;
 	char * bl_product;
 };
 
@@ -67,6 +69,8 @@ struct config {
 	int pg_timeout;
 	int max_fds;
 	int force_reload;
+	int dev_loss_tmo;
+	int fast_io_fail_tmo;
 
 	char * dev;
 	char * sysfs_dir;

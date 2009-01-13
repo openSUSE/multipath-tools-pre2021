@@ -479,6 +479,12 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 				free_path(pp);
 			}
 		} else {
+			if (pp->hwe)
+				sysfs_set_fc_values(pp, pp->hwe->dev_loss_tmo,
+						    pp->hwe->fast_io_fail_tmo);
+			else
+				sysfs_set_fc_values(pp, conf->dev_loss_tmo,
+						    conf->fast_io_fail_tmo);
 			condlog(4, "%s: verified path %s dev_t %s",
 				mpp->alias, pp->dev, pp->dev_t);
 		}

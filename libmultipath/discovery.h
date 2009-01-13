@@ -32,6 +32,7 @@ int devt2devname (char *, char *);
 int pathinfo (struct path *, vector hwtable, int mask);
 struct path * store_pathinfo (vector pathvec, vector hwtable,
 			      char * devname, int flag);
+int sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo);
 
 /*
  * discovery bitmask
