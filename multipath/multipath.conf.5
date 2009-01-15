@@ -265,12 +265,12 @@ The full pathname of the binding file to be used when the user_friendly_names op
 .I /var/lib/multipath/bindings
 .TP
 .B dev_loss_tmo
-The default dev_loss_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all devices on that port will be removed from sysfs after this timeout.
+The default dev_loss_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all devices on that port will be removed from sysfs after this timeout. Default is 10.
 .TP
 .B fast_io_fail_tmo
 The default fast_io_fail_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all I/O to the devices on that port will be terminated after this timeout. Should be smaller than
 .B dev_loss_tmo
-setting.
+setting. Default is 5.
 .
 .SH "blacklist section"
 The

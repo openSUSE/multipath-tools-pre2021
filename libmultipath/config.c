@@ -463,8 +463,8 @@ load_config (char * file)
 	conf->dev_type = DEV_NONE;
 	conf->minio = 1000;
 	conf->max_fds = 0;
-	conf->dev_loss_tmo = 0;
-	conf->fast_io_fail_tmo = 0;
+	conf->dev_loss_tmo = DEFAULT_DEV_LOSS_TMO;
+	conf->fast_io_fail_tmo = DEFAULT_FAST_IO_FAIL;
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
 
 	/*
