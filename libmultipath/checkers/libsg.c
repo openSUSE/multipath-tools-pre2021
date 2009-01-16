@@ -54,9 +54,9 @@ sg_read (int sg_fd, unsigned char * buff, unsigned char * senseBuff)
 	io_hdr.timeout = DEF_TIMEOUT;
 	io_hdr.pack_id = (int)start_block;
 	if (diop && *diop)
-	io_hdr.flags |= SG_FLAG_DIRECT_IO | SG_FLAG_FAILFAST;
+	io_hdr.flags |= SG_FLAG_DIRECT_IO;
 
-retry:
+retry: 
 	memset(senseBuff, 0, SENSE_BUFF_LEN);
 	while (((res = ioctl(sg_fd, SG_IO, &io_hdr)) < 0) && (EINTR == errno));
 

@@ -18,7 +18,8 @@
 #include <sys/ioctl.h>
 #include <inttypes.h>
 
-#include "../libmultipath/sg_include.h"
+#define __user
+#include <scsi/sg.h>
 
 #include "alua_rtpg.h"
 
@@ -134,7 +135,6 @@ do_inquiry(int fd, int evpd, unsigned int codepage, void *resp, int resplen)
 	hdr.sbp			= sense;
 	hdr.mx_sb_len		= sizeof(sense);
 	hdr.timeout		= DEF_TIMEOUT;
-	hdr.flags		|= SG_FLAG_FAILFAST;
 
 	if (ioctl(fd, SG_IO, &hdr) < 0) {
 		PRINT_DEBUG("do_inquiry: IOCTL failed!\n");
@@ -233,7 +233,6 @@ do_rtpg(int fd, void* resp, long resplen)
 	hdr.mx_sb_len		= sizeof(sense);
 	hdr.sbp			= sense;
 	hdr.timeout		= DEF_TIMEOUT;
-	hdr.flags		|= SG_FLAG_FAILFAST;
 
 	if (ioctl(fd, SG_IO, &hdr) < 0)
 		return -RTPG_RTPG_FAILED;
