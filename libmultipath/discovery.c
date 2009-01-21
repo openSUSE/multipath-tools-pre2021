@@ -661,6 +661,44 @@ common_sysfs_pathinfo (struct path * pp, struct sysfs_device *dev)
 	return 0;
 }
 
+static int sysfs_get_sdev_state(struct path *pp)
+{
+	struct sysfs_device *parent;
+	char dev_state[32];
+
+	/* check device state */
+	if (!pp->sysdev) {
+		condlog(3, "%s: no sysfs device", pp->dev);
+		return PATH_WILD;
+	}
+	parent = sysfs_device_get_parent(pp->sysdev);
+	if (!parent) {
+		condlog(3, "%s: no parent for '%s'",
+			pp->dev, pp->sysdev->devpath);
+		return PATH_WILD;
+	}
+	if (!strncmp(parent->kernel, "block", 5)) {
+		parent = sysfs_device_get_parent(parent);
+	}
+	if (!parent) {
+		condlog(3, "%s: no block device for '%s'",
+			pp->dev, parent->devpath);
+		return PATH_WILD;
+	}
+	if (!sysfs_get_state(parent, dev_state, 32)) {
+		if (!strncmp(dev_state, "blocked", 7)) {
+			condlog(3, "%s: device blocked", pp->dev);
+			return PATH_UNCHECKED;
+		} else if (!strncmp(dev_state, "running", 7)) {
+			return PATH_UP;
+		}
+		condlog(3, "%s: device in state %s",
+			pp->dev, dev_state);
+		return PATH_DOWN;
+	}
+	return PATH_WILD;
+}
+
 struct sysfs_device *sysfs_device_from_path(struct path *pp)
 {
 	char sysdev[FILE_NAME_SIZE];
@@ -762,20 +800,12 @@ get_state (struct path * pp)
 	condlog(3, "%s: get_state", pp->dev);
 
 	if (pp->bus == SYSFS_BUS_SCSI && pp->sysdev) {
-		struct sysfs_device *parent;
-		char dev_state[32];
-
-		/* check device state */
-		parent = sysfs_device_get_parent(pp->sysdev);
-		if (parent && !strncmp(parent->kernel, "block", 5))
-			parent = sysfs_device_get_parent(parent);
-		if (parent && !sysfs_get_state(parent, dev_state, 32)) {
-			if (!strncmp(dev_state, "blocked", 7)) {
-				condlog(3, "%s: device blocked", pp->dev);
-				pp->state = PATH_DOWN;
-				pp->priority = 0;
-				return 0;
-			}
+		/* Check the sdev state before accessing it */
+		pp->state = sysfs_get_sdev_state(pp);
+		if (pp->state == PATH_UNCHECKED || pp->state == PATH_DOWN) {
+			/* Further checking pointless */
+			pp->priority = 0;
+			return 0;
 		}
 	}
 	if (!checker_selected(c)) {
@@ -801,23 +831,17 @@ get_state (struct path * pp)
 static int
 get_prio (struct path * pp)
 {
+	int path_state;
+
 	if (!pp)
 		return 0;
 
-	if (pp->bus == SYSFS_BUS_SCSI && pp->sysdev) {
-		struct sysfs_device *parent;
-		char dev_state[32];
-
-		/* check device state */
-		parent = sysfs_device_get_parent(pp->sysdev);
-		if (parent && !strncmp(parent->kernel, "block", 5))
-			parent = sysfs_device_get_parent(parent);
-		if (parent && !sysfs_get_state(parent, dev_state, 32)) {
-			if (!strncmp(dev_state, "blocked", 7)) {
-				condlog(3, "%s: device blocked", pp->dev);
-				pp->priority = PRIO_UNDEF;
-				return 0;
-			}
+	if (pp->bus == SYSFS_BUS_SCSI) {
+		/* Check the sdev state before accessing it */
+		path_state = sysfs_get_sdev_state(pp);
+		if (path_state == PATH_DOWN || path_state == PATH_UNCHECKED) {
+			pp->priority = PRIO_UNDEF;
+			return 0;
 		}
 	}
 
