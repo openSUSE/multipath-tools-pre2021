@@ -212,12 +212,10 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 int
 sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 {
+	char *rport;
 	char attr_path[SYSFS_PATH_SIZE];
-	char host_path[SYSFS_PATH_SIZE];
 	char attr_value[NAME_SIZE];
-	DIR *host_dir, *rport_dir;
-	struct dirent *host_ent, *rport_ent;
-	int host, channel, lun, port, num;
+	int host, num;
 	int rport_channel = -1;
 	int rport_id = -1;
 
@@ -226,63 +224,40 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 		return 0;
 	}
 
-	if (safe_sprintf(host_path, "/sys/class/fc_host/host%i/device",
-			 pp->sg_id.host_no)) {
-		condlog(0, "host_path too small");
-		return 1;
-	}
-	if (!(host_dir = opendir(host_path))) {
-		condlog(3, "host %d not a FC HBA", pp->sg_id.host_no);
+	if (!pp->sysdev) {
+		condlog(3, "%s: no sysfs device set", pp->dev);
 		return 0;
 	}
 
-	while (rport_channel < 0 && rport_id < 0 &&
-	       (host_ent = readdir(host_dir))) {
-		if (sscanf(host_ent->d_name, "rport-%d:%d-%d",
-			   &host, &port, &num) != 3)
-			continue;
+	condlog(4, "%s: checking rport for %s", pp->dev,
+		pp->sysdev ? pp->sysdev->devpath : NULL);
 
-		if (host != pp->sg_id.host_no)
-			continue;
-
-		if (safe_sprintf(attr_path, "%s/%s",
-				 host_path, host_ent->d_name)) {
-			condlog(0, "target_path too small");
-			continue;
-		}
-
-		if (!(rport_dir = opendir(attr_path))) {
-			condlog(1, "cannot open rport path '%s'", attr_path);
-			continue;
-		}
-
-		while ((rport_ent = readdir(rport_dir))) {
-			if (sscanf(rport_ent->d_name, "target%d:%d:%d",
-				   &host, &channel, &lun) != 3)
-				continue;
-
-			if (host != pp->sg_id.host_no &&
-			    channel != pp->sg_id.channel &&
-			    lun != pp->sg_id.scsi_id)
-				continue;
-
-			rport_channel = port;
-			rport_id = num;
-			break;
-		}
+	rport = strstr(pp->sysdev->devpath, "rport");
+	if (!rport || sscanf(rport, "rport-%d:%d-%d/%*s",
+			     &host, &rport_channel, &rport_id) != 3) {
+		condlog(3, "%s: Invalid devpath %s",
+			pp->dev, pp->sysdev->devpath);
+		return 1;
 	}
 
 	if (rport_channel < 0 && rport_id < 0) {
-		condlog(1, "No rport found");
+		condlog(3, "%s: No rport found", pp->dev);
 		return 0;
 	}
 
+	condlog(4, "%s: using rport-%d:%d-%d for target%d:%d:%d", pp->dev,
+		host, rport_channel, rport_id,
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
+
 	if (safe_sprintf(attr_path,
 			"/class/fc_remote_ports/rport-%d:%d-%d",
-			pp->sg_id.host_no, rport_channel, rport_id)) {
-		condlog(0, "attr_path too small");
+			host, rport_channel, rport_id)) {
+		condlog(1, "attr_path too small");
 		return 0;
 	}
+
+	condlog(4, "%s: set dev_loss_tmo to %d, fast_io_fail to %d",
+		pp->dev, dev_loss_tmo, fast_io_fail_tmo);
 
 	if (dev_loss_tmo < 0)
 		sprintf(attr_value, "%d", 0);
@@ -290,10 +265,7 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 		sprintf(attr_value, "%d", dev_loss_tmo);
 	num = sysfs_attr_set_value(attr_path, "dev_loss_tmo",
 				   attr_value, strlen(attr_value));
-	if (num > 0)
-		condlog(4, "%s: set dev_loss_tmo to %d", pp->dev,
-			dev_loss_tmo);
-	else
+	if (num <= 0)
 		condlog(4, "%s: failed to set dev_loss_tmo (%d)",
 			pp->dev, errno);
 
@@ -303,10 +275,7 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 		sprintf(attr_value, "%d", fast_io_fail_tmo);
 	num = sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
 				   attr_value, strlen(attr_value));
-	if (num > 0)
-		condlog(4, "%s: set fast_io_fail_tmo to %d", pp->dev,
-			fast_io_fail_tmo);
-	else
+	if (num <= 0)
 		condlog(4, "%s: failed to set fast_io_fail_tmo (%d)",
 			pp->dev, errno);
 
