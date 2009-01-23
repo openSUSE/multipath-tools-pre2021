@@ -267,7 +267,7 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 				   attr_value, strlen(attr_value));
 	if (num <= 0)
 		condlog(4, "%s: failed to set dev_loss_tmo (%d)",
-			pp->dev, errno);
+			pp->dev, num);
 
 	if (fast_io_fail_tmo < 0)
 		sprintf(attr_value, "%d", 0);
@@ -277,7 +277,7 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 				   attr_value, strlen(attr_value));
 	if (num <= 0)
 		condlog(4, "%s: failed to set fast_io_fail_tmo (%d)",
-			pp->dev, errno);
+			pp->dev, num);
 
 	return num == strlen(attr_value) ? 0 : 1;
 }
