@@ -116,6 +116,9 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 	unsigned int i;
 	int j;
 
+	if (!vecs)
+		return 0;
+
 	vector_foreach_slot (ompv, ompp, i) {
 		if (!find_mp_by_wwid(nmpv, ompp->wwid)) {
 			/*
@@ -942,16 +945,16 @@ check_path (struct vectors * vecs, struct path * pp)
 	 */
 	checker_set_async(&pp->checker);
 
-	newstate = checker_check(&pp->checker);
+	newstate = get_state(pp);
 
-	if (newstate < 0) {
+	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
 		pathinfo(pp, conf->hwtable, 0);
 		return;
 	}
 	/*
-	 * Async IO in flight. Keep the previous path state
-	 * and reschedule as soon as possible
+	 * Async IO in flight or path blocked. Keep the previous
+	 * path state and reschedule as soon as possible
 	 */
 	if (newstate == PATH_PENDING) {
 		pp->tick = 1;

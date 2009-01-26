@@ -688,7 +688,7 @@ static int sysfs_get_sdev_state(struct path *pp)
 	if (!sysfs_get_state(parent, dev_state, 32)) {
 		if (!strncmp(dev_state, "blocked", 7)) {
 			condlog(3, "%s: device blocked", pp->dev);
-			return PATH_UNCHECKED;
+			return PATH_PENDING;
 		} else if (!strncmp(dev_state, "running", 7)) {
 			return PATH_UP;
 		}
@@ -792,40 +792,40 @@ cciss_ioctl_pathinfo (struct path * pp, int mask)
 	return 0;
 }
 
-static int
+int
 get_state (struct path * pp)
 {
 	struct checker * c = &pp->checker;
+	int state = PATH_UNCHECKED;
 
 	condlog(3, "%s: get_state", pp->dev);
 
 	if (pp->bus == SYSFS_BUS_SCSI && pp->sysdev) {
 		/* Check the sdev state before accessing it */
-		pp->state = sysfs_get_sdev_state(pp);
-		if (pp->state == PATH_UNCHECKED || pp->state == PATH_DOWN) {
+		state = sysfs_get_sdev_state(pp);
+		if (state == PATH_PENDING || state == PATH_DOWN) {
 			/* Further checking pointless */
-			pp->priority = 0;
-			return 0;
+			return state;
 		}
 	}
 	if (!checker_selected(c)) {
 		select_checker(pp);
 		if (!checker_selected(c)) {
 			condlog(3, "%s: No checker selected", pp->dev);
-			return 1;
+			return PATH_UNCHECKED;
 		}
 		checker_set_fd(c, pp->fd);
 		if (checker_init(c, pp->mpp?&pp->mpp->mpcontext:NULL)) {
 			condlog(3, "%s: checker init failed", pp->dev);
-			return 1;
+			return PATH_UNCHECKED;
 		}
 	}
-	pp->state = checker_check(c);
-	condlog(3, "%s: state = %i", pp->dev, pp->state);
-	if (pp->state == PATH_DOWN && strlen(checker_message(c)))
+	state = checker_check(c);
+	condlog(3, "%s: state = %i", pp->dev, state);
+	if (state == PATH_DOWN && strlen(checker_message(c)))
 		condlog(3, "%s: checker msg is \"%s\"",
 			pp->dev, checker_message(c));
-	return 0;
+	return state;
 }
 
 static int
@@ -839,7 +839,7 @@ get_prio (struct path * pp)
 	if (pp->bus == SYSFS_BUS_SCSI) {
 		/* Check the sdev state before accessing it */
 		path_state = sysfs_get_sdev_state(pp);
-		if (path_state == PATH_DOWN || path_state == PATH_UNCHECKED) {
+		if (path_state == PATH_DOWN || path_state == PATH_PENDING) {
 			pp->priority = PRIO_UNDEF;
 			return 0;
 		}
@@ -914,8 +914,11 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	    cciss_ioctl_pathinfo(pp, mask))
 		goto blank;
 
-	if (mask & DI_CHECKER && get_state(pp))
-		goto blank;
+	if (mask & DI_CHECKER) {
+		pp->state = get_state(pp);
+		if (pp->state == PATH_UNCHECKED || pp->state == PATH_WILD)
+			goto blank;
+	}
 
 	 /*
 	  * Retrieve path priority, even for PATH_DOWN paths if it has never
