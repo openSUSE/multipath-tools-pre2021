@@ -800,7 +800,8 @@ get_state (struct path * pp)
 
 	condlog(3, "%s: get_state", pp->dev);
 
-	if (pp->bus == SYSFS_BUS_SCSI && pp->sysdev) {
+	if (pp->bus == SYSFS_BUS_SCSI) {
+		pp->sysdev = sysfs_device_from_path(pp);
 		/* Check the sdev state before accessing it */
 		state = sysfs_get_sdev_state(pp);
 		if (state == PATH_PENDING || state == PATH_DOWN) {
