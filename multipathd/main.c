@@ -531,8 +531,8 @@ ev_remove_path (char * devname, struct vectors * vecs)
 				condlog(2, "%s: removed map after"
 					" removing all paths",
 					alias);
-				free_path(pp);
-				return 0;
+				retval = 0;
+				goto out_remove;
 			}
 			/*
 			 * Not an error, continue
@@ -568,6 +568,7 @@ ev_remove_path (char * devname, struct vectors * vecs)
 		}
 	}
 
+out_remove:
 	if ((i = find_slot(vecs->pathvec, (void *)pp)) != -1)
 		vector_del_slot(vecs->pathvec, i);
 
