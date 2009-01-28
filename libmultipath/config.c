@@ -168,6 +168,9 @@ free_hwe (struct hwentry * hwe)
 	if (hwe->prio_name)
 		FREE(hwe->prio_name);
 
+	if (hwe->prio_arg)
+		FREE(hwe->prio_arg);
+
 	if (hwe->bl_product)
 		FREE(hwe->bl_product);
 
@@ -275,7 +278,7 @@ set_param_str(char * str)
 #define merge_str(s) \
 	if (hwe2->s) { \
 		if (hwe1->s) \
-			free(hwe1->s); \
+			FREE(hwe1->s); \
 		if (!(hwe1->s = set_param_str(hwe2->s))) \
 			return 1; \
 	}

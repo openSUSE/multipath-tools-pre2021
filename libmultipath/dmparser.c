@@ -197,7 +197,8 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 		if (!mpp->pg)
 			return 1;
-	}
+	} else
+		mpp->pg = NULL;
 
 	/*
 	 * first pg to try
@@ -291,7 +292,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 				/* Only call this in multipath client mode */
 				if (!mpp->waiter && store_path(pathvec, pp))
-					goto out;
+					goto out1;
 			}
 			FREE(word);
 
