@@ -28,7 +28,7 @@ if use_script multipath; then
 	cp -a /etc/multipath.conf $tmp_mnt/etc
     fi
     if [ -f /var/lib/multipath/bindings ] ; then
-	mkdir -p /var/lib/multipath
+	mkdir -p $tmp_mnt/var/lib/multipath
 	cp -a /var/lib/multipath/bindings $tmp_mnt/var/lib/multipath
     fi
     if [ -e /etc/udev/rules.d/71-multipath.rules ]; then
