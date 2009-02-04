@@ -52,7 +52,8 @@ assemble_map (struct multipath * mp, char * params, int len)
 	int i, j;
 	int shift, freechar;
 	int minio;
-	char * p;
+	char * p, * f;
+	char no_path_retry[] = "1 queue_if_no_path";
 	struct pathgroup * pgp;
 	struct path * pp;
 
@@ -60,8 +61,13 @@ assemble_map (struct multipath * mp, char * params, int len)
 	p = params;
 	freechar = len;
 
+	if ((mp->features[0] == '0') && (mp->no_path_retry == NO_PATH_RETRY_QUEUE))
+		f = no_path_retry;
+	else
+		f = mp->features;
+
 	shift = snprintf(p, freechar, "%s %s %i %i",
-			 mp->features, mp->hwhandler,
+			 f, mp->hwhandler,
 			 VECTOR_SIZE(mp->pg), mp->bestpg);
 
 	if (shift >= freechar) {
