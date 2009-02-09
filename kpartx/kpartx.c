@@ -408,7 +408,7 @@ main(int argc, char **argv){
 				if (!slices[j].size || !dm_map_present(partname))
 					continue;
 
-				if (!dm_simplecmd(DM_DEVICE_REMOVE, partname))
+				if (!dm_simplecmd(DM_DEVICE_REMOVE, partname, 0))
 					continue;
 
 				if (verbose)
@@ -447,13 +447,19 @@ main(int argc, char **argv){
 				op = (dm_map_present(partname) ?
 					DM_DEVICE_RELOAD : DM_DEVICE_CREATE);
 
-				dm_addmap(op, partname, DM_TARGET, params,
-					  slices[j].size, uuid, j+1);
-
-				if (op == DM_DEVICE_RELOAD)
-					dm_simplecmd(DM_DEVICE_RESUME,
-							partname);
-
+				if (!dm_addmap(op, partname, DM_TARGET, params,
+					       slices[j].size, uuid, j+1)) {
+					fprintf(stderr, "create/reload failed on %s\n",
+						partname);
+					continue;
+				}
+				if (op == DM_DEVICE_RELOAD &&
+				    !dm_simplecmd(DM_DEVICE_RESUME,
+						  partname, 1)) {
+					fprintf(stderr, "resume failed on %s\n",
+						partname);
+					continue;
+				}
 				if (verbose)
 					printf("add map %s : 0 %" PRIu64 " %s %s\n",
 						partname, slices[j].size,
