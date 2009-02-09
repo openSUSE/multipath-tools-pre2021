@@ -339,6 +339,7 @@ ev_add_path (char * devname, struct vectors * vecs)
 	struct path * pp;
 	char empty_buff[WWID_SIZE] = {0};
 	char params[PARAMS_SIZE] = {0};
+	int start_waiter = 0;
 
 	pp = find_path_by_dev(vecs->pathvec, devname);
 
@@ -387,8 +388,14 @@ rescan:
 	}
 	else {
 		condlog(4,"%s: creating new map", pp->dev);
-		if ((mpp = add_map_with_path(vecs, pp, 1)))
+		if ((mpp = add_map_with_path(vecs, pp, 1))) {
 			mpp->action = ACT_CREATE;
+			/*
+			 * We don't depend on ACT_CREATE, as domap will
+			 * set it to ACT_NOTHING when complete.
+			 */
+			start_waiter = 1;
+		}
 		else
 			return 1; /* leave path added to pathvec */
 	}
@@ -429,7 +436,8 @@ rescan:
 
 	sync_map_state(mpp);
 
-	if (mpp->action == ACT_CREATE &&
+	if ((mpp->action == ACT_CREATE ||
+	     (mpp->action == ACT_NOTHING && start_waiter && !mpp->waiter)) &&
 	    start_waiter_thread(mpp, vecs))
 			goto out;
 
