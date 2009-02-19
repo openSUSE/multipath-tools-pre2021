@@ -196,6 +196,7 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 {
 	pthread_attr_t attr;
 	struct event_thread *wp;
+	size_t stacksize;
 
 	if (!mpp)
 		return 0;
@@ -203,7 +204,19 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	if (pthread_attr_init(&attr))
 		goto out;
 
-	pthread_attr_setstacksize(&attr, 32 * 1024);
+	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
+		stacksize = PTHREAD_STACK_MIN;
+
+	/* Check if the stacksize is large enough */
+	if (stacksize < (32 * 1024))
+		stacksize = 32 * 1024;
+
+	/* Set stacksize and try to reinitialize attr if failed */
+	if (stacksize > PTHREAD_STACK_MIN &&
+	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
+	    pthread_attr_init(&attr))
+		goto out;
+
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	wp = alloc_waiter();
