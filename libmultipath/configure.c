@@ -158,7 +158,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 
 	if (!find_mp_by_wwid(curmp, mpp->wwid)) {
 		condlog(2, "%s: remove (wwid changed)", cmpp->alias);
-		dm_flush_map(mpp->alias);
+		dm_flush_map(mpp->alias, 0);
 		strncat(cmpp->wwid, mpp->wwid, WWID_SIZE);
 		drop_multipath(curmp, cmpp->wwid, KEEP_PATHS);
 		mpp->action = ACT_CREATE;
@@ -565,7 +565,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 
 			remove_map(mpp, vecs, 0);
 
-			if (dm_flush_map(mpp->alias))
+			if (dm_flush_map(mpp->alias, 0))
 				condlog(2, "%s: remove failed (dead)",
 					mpp->alias);
 			else

@@ -234,7 +234,7 @@ _dm_addmap_create (const char *name, const char *params,
 	if (!r && dm_map_present(name)) {
 		condlog(3, "%s: failed to load map (a path might be in use)",
 			name);
-		dm_flush_map(name);
+		dm_flush_map(name, 0);
 	}
 	return r;
 }
@@ -548,7 +548,7 @@ out:
 }
 
 extern int
-dm_flush_map (const char * mapname)
+dm_flush_map (const char * mapname, int flush_io)
 {
 	int r;
 
@@ -565,6 +565,9 @@ dm_flush_map (const char * mapname)
 		condlog(2, "%s: map in use", mapname);
 		return 1;
 	}
+
+	if (flush_io && dm_queue_if_no_path((char *)mapname, 0))
+		condlog(3, "%s: could not unset queue_if_no_path", mapname);
 
 	r = dm_simplecmd(DM_DEVICE_REMOVE, mapname, 0);
 
@@ -598,7 +601,7 @@ dm_flush_maps (void)
 		goto out;
 
 	do {
-		r += dm_flush_map(names->name);
+		r += dm_flush_map(names->name, 1);
 		next = names->next;
 		names = (void *) names + next;
 	} while (next);

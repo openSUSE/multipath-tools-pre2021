@@ -125,7 +125,7 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 			 * remove all current maps not allowed by the
 			 * current configuration
 			 */
-			if (dm_flush_map(ompp->alias)) {
+			if (dm_flush_map(ompp->alias, 0)) {
 				condlog(0, "%s: unable to flush devmap",
 					ompp->alias);
 				/*
@@ -198,7 +198,7 @@ flush_map(struct multipath * mpp, struct vectors * vecs)
 	 * clear references to this map before flushing so we can ignore
 	 * the spurious uevent we may generate with the dm_flush_map call below
 	 */
-	if (dm_flush_map(mpp->alias)) {
+	if (dm_flush_map(mpp->alias, 0)) {
 		/*
 		 * May not really be an error -- if the map was already flushed
 		 * from the device mapper by dmsetup(8) for instance.
