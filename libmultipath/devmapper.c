@@ -587,6 +587,43 @@ dm_flush_map (const char * mapname)
 }
 
 extern int
+dm_suspend_and_flush_map (const char * mapname)
+{
+	int r, s;
+
+	if (!dm_map_present(mapname))
+		return 0;
+
+	if (dm_type(mapname, TGT_MPATH) <= 0)
+		return 0; /* nothing to do */
+
+	s = dm_queue_if_no_path((char *)mapname, 0);
+	if (!s)
+		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname);
+
+	if (dm_remove_partmaps(mapname, mapname))
+		goto resume;
+
+	if (dm_get_opencount(mapname)) {
+		condlog(2, "%s: map in use", mapname);
+		goto resume;
+	}
+
+	r = dm_simplecmd_flush(DM_DEVICE_REMOVE, mapname);
+	if (!r) {
+		s = 1;
+		goto resume;
+	}
+
+	condlog(4, "multipath map %s removed", mapname);
+	return 0;
+resume:
+	if (s)
+		dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname);
+	return 1;
+}
+
+extern int
 dm_flush_maps (void)
 {
 	int r = 0;
@@ -609,7 +646,7 @@ dm_flush_maps (void)
 		goto out;
 
 	do {
-		r |= dm_flush_map(names->name);
+		r |= dm_suspend_and_flush_map(names->name);
 		next = names->next;
 		names = (void *) names + next;
 	} while (next);
