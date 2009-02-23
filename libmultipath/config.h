@@ -39,6 +39,7 @@ struct mpentry {
 	char * getuid;
 	char * getprio;
 	char * selector;
+	char * features;
 
 	int pgpolicy;
 	int pgfailback;
