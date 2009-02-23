@@ -90,6 +90,8 @@ if [ -n "$dmdeps" ] ; then
             echo "DM_TYPE=scsi"
 	    ;;
     esac
+    set -- $dmdeps
+    echo "DM_DEPS=$1"
 elif [ "$dmtbl" = linear ]; then
     echo "DM_TYPE=${dmuuid%%-*}"
     echo "DM_NAME=${dmuuid#*-}"
