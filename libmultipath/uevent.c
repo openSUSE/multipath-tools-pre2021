@@ -37,15 +37,17 @@
 #include <linux/netlink.h>
 #include <pthread.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #include "memory.h"
 #include "debug.h"
+#include "list.h"
 #include "uevent.h"
 
 typedef int (uev_trigger)(struct uevent *, void * trigger_data);
 
 pthread_t uevq_thr;
-struct uevent *uevqhp, *uevqtp;
+LIST_HEAD(uevq);
 pthread_mutex_t uevq_lock, *uevq_lockp = &uevq_lock;
 pthread_mutex_t uevc_lock, *uevc_lockp = &uevc_lock;
 pthread_cond_t  uev_cond,  *uev_condp  = &uev_cond;
@@ -60,29 +62,18 @@ struct uevent * alloc_uevent (void)
 void
 service_uevq(void)
 {
-	int empty;
-	struct uevent *uev;
+	struct uevent *uev, *tmp;
 
-	do {
+	list_for_each_entry_safe(uev, tmp, &uevq, node) {
+		list_del_init(&uev->node);
+		pthread_mutex_unlock(uevq_lockp);
+
+		if (my_uev_trigger && my_uev_trigger(uev, my_trigger_data))
+			condlog(0, "uevent trigger error");
+
+		FREE(uev);
 		pthread_mutex_lock(uevq_lockp);
-		empty = (uevqhp == NULL);
-		if (!empty) {
-			uev = uevqhp;
-			uevqhp = uev->next;
-			if (uevqtp == uev)
-				uevqtp = uev->next;
-			pthread_mutex_unlock(uevq_lockp);
-
-			if (my_uev_trigger && my_uev_trigger(uev,
-							my_trigger_data))
-				condlog(0, "uevent trigger error");
-
-			FREE(uev);
-		}
-		else {
-			pthread_mutex_unlock(uevq_lockp);
-		}
-	} while (empty == 0);
+	}
 }
 
 /*
@@ -94,11 +85,20 @@ uevq_thread(void * et)
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	while (1) {
-		pthread_mutex_lock(uevc_lockp);
-		pthread_cond_wait(uev_condp, uevc_lockp);
-		pthread_mutex_unlock(uevc_lockp);
-
+		pthread_mutex_lock(uevq_lockp);
+		/*
+		 * Condition signals are unreliable,
+		 * so make sure we only wait if we have to.
+		 */
+		if (list_empty(&uevq)) {
+			pthread_mutex_unlock(uevq_lockp);
+			pthread_mutex_lock(uevc_lockp);
+			pthread_cond_wait(uev_condp, uevc_lockp);
+			pthread_mutex_unlock(uevc_lockp);
+			pthread_mutex_lock(uevq_lockp);
+		}
 		service_uevq();
+		pthread_mutex_unlock(uevq_lockp);
 	}
 }
 
@@ -125,7 +125,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	 * thereby not getting to empty the socket's receive buffer queue
 	 * often enough.
 	 */
-	uevqhp = uevqtp = NULL;
+	INIT_LIST_HEAD(&uevq);
 
 	pthread_mutex_init(uevq_lockp, NULL);
 	pthread_mutex_init(uevc_lockp, NULL);
@@ -274,12 +274,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		 * Queue uevent and poke service pthread.
 		 */
 		pthread_mutex_lock(uevq_lockp);
-		if (uevqtp)
-			uevqtp->next = uev;
-		else
-			uevqhp = uev;
-		uevqtp = uev;
-		uev->next = NULL;
+		list_add(&uev->node, &uevq);
 		pthread_mutex_unlock(uevq_lockp);
 
 		pthread_mutex_lock(uevc_lockp);
