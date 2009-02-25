@@ -804,8 +804,10 @@ get_state (struct path * pp)
 		pp->sysdev = sysfs_device_from_path(pp);
 		/* Check the sdev state before accessing it */
 		state = sysfs_get_sdev_state(pp);
-		if (state == PATH_PENDING || state == PATH_DOWN) {
+		if (state != PATH_UP) {
 			/* Further checking pointless */
+			condlog(3, "%s: state (sysfs) = %s", pp->dev,
+				checker_state_name(state));
 			return state;
 		}
 	}
@@ -822,7 +824,7 @@ get_state (struct path * pp)
 		}
 	}
 	state = checker_check(c);
-	condlog(3, "%s: state = %i", pp->dev, state);
+	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
 	if (state == PATH_DOWN && strlen(checker_message(c)))
 		condlog(3, "%s: checker msg is \"%s\"",
 			pp->dev, checker_message(c));
@@ -840,7 +842,7 @@ get_prio (struct path * pp)
 	if (pp->bus == SYSFS_BUS_SCSI) {
 		/* Check the sdev state before accessing it */
 		path_state = sysfs_get_sdev_state(pp);
-		if (path_state == PATH_DOWN || path_state == PATH_PENDING) {
+		if (path_state != PATH_UP) {
 			pp->priority = PRIO_UNDEF;
 			return 0;
 		}
