@@ -113,6 +113,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	int rcvszsz = sizeof(rcvsz);
 	unsigned int *prcvszsz = (unsigned int *)&rcvszsz;
 	pthread_attr_t attr;
+	size_t stacksize;
 
 	my_uev_trigger = uev_trigger;
 	my_trigger_data = trigger_data;
@@ -128,9 +129,28 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	pthread_mutex_init(uevq_lockp, NULL);
 	pthread_cond_init(uev_condp, NULL);
 
-	pthread_attr_init(&attr);
-	pthread_attr_setstacksize(&attr, 64 * 1024);
-	pthread_create(&uevq_thr, &attr, uevq_thread, NULL);
+	if (pthread_attr_init(&attr)) {
+		condlog(0, "can't initiatlize uevq attribute");
+		goto out;
+	}
+	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
+		stacksize = PTHREAD_STACK_MIN;
+
+	/* Check if stacksize is large enough */
+	if (stacksize < (64 * 1024))
+		stacksize = 64 * 1024;
+
+	/* Set stacksize and reinitialize attr if failed */
+	if (stacksize > PTHREAD_STACK_MIN &&
+	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
+	    pthread_attr_init(&attr)) {
+		condlog(0, "can't set uevq stacksize");
+		goto out;
+	}
+	if (pthread_create(&uevq_thr, &attr, uevq_thread, NULL) != 0) {
+		condlog(0, "can't start uevq thread");
+		goto out;
+	}
 
 	/*
 	 * First check whether we have a udev socket
@@ -283,6 +303,7 @@ exit:
 	pthread_cancel(uevq_thr);
 	pthread_mutex_unlock(uevq_lockp);
 
+out:
 	pthread_mutex_destroy(uevq_lockp);
 	pthread_cond_destroy(uev_condp);
 
