@@ -49,16 +49,18 @@ typedef int (uev_trigger)(struct uevent *, void * trigger_data);
 pthread_t uevq_thr;
 LIST_HEAD(uevq);
 pthread_mutex_t uevq_lock, *uevq_lockp = &uevq_lock;
-pthread_mutex_t uevc_lock, *uevc_lockp = &uevc_lock;
 pthread_cond_t  uev_cond,  *uev_condp  = &uev_cond;
-uev_trigger *my_uev_trigger;
-void * my_trigger_data;
+static uev_trigger *my_uev_trigger;
+static void * my_trigger_data;
 
 struct uevent * alloc_uevent (void)
 {
 	return (struct uevent *)MALLOC(sizeof(struct uevent));
 }
 
+/*
+ * Called with uevq_lockp held
+ */
 void
 service_uevq(void)
 {
@@ -91,11 +93,7 @@ uevq_thread(void * et)
 		 * so make sure we only wait if we have to.
 		 */
 		if (list_empty(&uevq)) {
-			pthread_mutex_unlock(uevq_lockp);
-			pthread_mutex_lock(uevc_lockp);
-			pthread_cond_wait(uev_condp, uevc_lockp);
-			pthread_mutex_unlock(uevc_lockp);
-			pthread_mutex_lock(uevq_lockp);
+			pthread_cond_wait(uev_condp, uevq_lockp);
 		}
 		service_uevq();
 		pthread_mutex_unlock(uevq_lockp);
@@ -128,7 +126,6 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	INIT_LIST_HEAD(&uevq);
 
 	pthread_mutex_init(uevq_lockp, NULL);
-	pthread_mutex_init(uevc_lockp, NULL);
 	pthread_cond_init(uev_condp, NULL);
 
 	pthread_attr_init(&attr);
@@ -271,12 +268,9 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		 * Queue uevent and poke service pthread.
 		 */
 		pthread_mutex_lock(uevq_lockp);
-		list_add(&uev->node, &uevq);
-		pthread_mutex_unlock(uevq_lockp);
-
-		pthread_mutex_lock(uevc_lockp);
+		list_add_tail(&uev->node, &uevq);
 		pthread_cond_signal(uev_condp);
-		pthread_mutex_unlock(uevc_lockp);
+		pthread_mutex_unlock(uevq_lockp);
 	}
 
 exit:
@@ -287,7 +281,6 @@ exit:
 	pthread_mutex_unlock(uevq_lockp);
 
 	pthread_mutex_destroy(uevq_lockp);
-	pthread_mutex_destroy(uevc_lockp);
 	pthread_cond_destroy(uev_condp);
 
 	return 1;
