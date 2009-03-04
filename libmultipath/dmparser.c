@@ -61,7 +61,7 @@ assemble_map (struct multipath * mp, char * params, int len)
 	p = params;
 	freechar = len;
 
-	if ((mp->features[0] == '0') && (mp->no_path_retry == NO_PATH_RETRY_QUEUE))
+	if ((mp->features[0] == '0') && (mp->no_path_retry != NO_PATH_RETRY_FAIL))
 		f = no_path_retry;
 	else
 		f = mp->features;
