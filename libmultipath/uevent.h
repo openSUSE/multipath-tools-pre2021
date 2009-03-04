@@ -2,7 +2,7 @@
 #define _UEVENT_H
 
 /* environment buffer, the kernel's size in lib/kobject_uevent.c should fit in */
-#define HOTPLUG_BUFFER_SIZE		1024
+#define HOTPLUG_BUFFER_SIZE		2048
 #define HOTPLUG_NUM_ENVP		32
 #define OBJECT_SIZE			512
 
