@@ -41,6 +41,7 @@
 #include <discovery.h>
 #include <debug.h>
 #include <propsel.h>
+#include <list.h>
 #include <uevent.h>
 #include <switchgroup.h>
 #include <print.h>
