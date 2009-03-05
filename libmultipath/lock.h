@@ -1,6 +1,8 @@
 #ifndef _LOCK_H
 #define _LOCK_H
 
+#include <signal.h>
+
 #ifdef LCKDBG
 #define lock(a) \
 	        fprintf(stderr, "%s:%s(%i) lock %p\n", __FILE__, __FUNCTION__, __LINE__, a); \
@@ -18,5 +20,6 @@
 #endif
 
 void cleanup_lock (void * data);
+void block_signal(int signum, sigset_t *old);
 
 #endif /* _LOCK_H */

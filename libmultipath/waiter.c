@@ -32,11 +32,13 @@ struct event_thread *alloc_waiter (void)
 
 void free_waiter (void *data)
 {
+	sigset_t old;
 	struct event_thread *wp = (struct event_thread *)data;
 
 	/*
 	 * indicate in mpp that the wp is already freed storage
 	 */
+	block_signal(SIGHUP, &old);
 	lock(wp->vecs->lock);
 
 	if (wp->mpp)
@@ -48,6 +50,7 @@ void free_waiter (void *data)
 		condlog(3, "free_waiter, mpp freed before wp=%p,", wp);
 
 	unlock(wp->vecs->lock);
+	pthread_sigmask(SIG_SETMASK, &old, NULL);
 
 	if (wp->dmt)
 		dm_task_destroy(wp->dmt);
