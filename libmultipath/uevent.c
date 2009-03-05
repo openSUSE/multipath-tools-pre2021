@@ -55,7 +55,12 @@ static void * my_trigger_data;
 
 struct uevent * alloc_uevent (void)
 {
-	return (struct uevent *)MALLOC(sizeof(struct uevent));
+	struct uevent *uev = MALLOC(sizeof(struct uevent));
+
+	if (uev)
+		INIT_LIST_HEAD(&uev->node);
+
+	return uev;
 }
 
 /*
