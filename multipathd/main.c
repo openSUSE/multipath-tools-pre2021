@@ -652,7 +652,7 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 static int
 uev_discard(char * devpath)
 {
-	char a[10], b[10], *c;
+	char a[11], b[11], *c;
 
 	/*
 	 * keep only block devices, discard partitions
