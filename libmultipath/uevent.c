@@ -55,26 +55,29 @@ static void * my_trigger_data;
 
 struct uevent * alloc_uevent (void)
 {
-	return (struct uevent *)MALLOC(sizeof(struct uevent));
+	struct uevent *uev = MALLOC(sizeof(struct uevent));
+
+	if (uev)
+		INIT_LIST_HEAD(&uev->node);
+
+	return uev;
 }
 
 /*
  * Called with uevq_lockp held
  */
 void
-service_uevq(void)
+service_uevq(struct list_head *tmpq)
 {
 	struct uevent *uev, *tmp;
 
-	list_for_each_entry_safe(uev, tmp, &uevq, node) {
+	list_for_each_entry_safe(uev, tmp, tmpq, node) {
 		list_del_init(&uev->node);
-		pthread_mutex_unlock(uevq_lockp);
 
 		if (my_uev_trigger && my_uev_trigger(uev, my_trigger_data))
 			condlog(0, "uevent trigger error");
 
 		FREE(uev);
-		pthread_mutex_lock(uevq_lockp);
 	}
 }
 
@@ -84,9 +87,12 @@ service_uevq(void)
 static void *
 uevq_thread(void * et)
 {
+
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	while (1) {
+		LIST_HEAD(uevq_tmp);
+
 		pthread_mutex_lock(uevq_lockp);
 		/*
 		 * Condition signals are unreliable,
@@ -95,8 +101,9 @@ uevq_thread(void * et)
 		if (list_empty(&uevq)) {
 			pthread_cond_wait(uev_condp, uevq_lockp);
 		}
-		service_uevq();
+		list_splice_init(&uevq, &uevq_tmp);
 		pthread_mutex_unlock(uevq_lockp);
+		service_uevq(&uevq_tmp);
 	}
 }
 
@@ -235,8 +242,10 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 			continue;
 		}
 
-		if ((size_t)buflen > sizeof(buff)-1)
+		if ((size_t)buflen > sizeof(buff)-1) {
+			condlog(2, "buffer overflow for received uevent");
 			buflen = sizeof(buff)-1;
+		}
 
 		uev = alloc_uevent();
 
