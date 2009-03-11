@@ -132,7 +132,6 @@ apply_format (char * string, char * cmd, struct path * pp)
 	char * pos;
 	char * dst;
 	char * p;
-	char * q;
 	int len;
 	int myfree;
 
@@ -171,10 +170,6 @@ apply_format (char * string, char * cmd, struct path * pp)
 			return 1;
 
 		snprintf(p, len, "%s", pp->dev);
-		for (q = p; q < p + len; q++) {
-			if (q && *q == '!')
-				*q = '/';
-		}
 		p += len - 1;
 		break;
 	case 'd':
