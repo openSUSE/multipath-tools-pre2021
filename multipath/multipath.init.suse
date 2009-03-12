@@ -104,11 +104,6 @@ case "$1" in
     stop)
 	echo -n "Removing multipath targets:"
 
-	# Remove all partition mappings
-	if /sbin/dmsetup ls | sed '/No devices/d' | grep -q -- -part; then
-	    /sbin/dmsetup ls --target multipath --exec "/sbin/kpartx -d -p _part" 2> /dev/null
-	fi
-
 	# Flush all existing maps
 	$PROGRAM -F
 
