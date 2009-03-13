@@ -1089,6 +1089,22 @@ mp_pg_timeout_handler(vector strvec)
 }
 
 static int
+mp_features_handler(vector strvec)
+{
+	struct mpentry * mpe = VECTOR_LAST_SLOT(conf->mptable);
+
+	if (!mpe)
+		return 1;
+
+	mpe->features = set_value(strvec);
+
+	if (!mpe->features)
+		return 1;
+
+	return 0;
+}
+
+static int
 mp_prio_handler (vector strvec)
 {
 	struct mpentry *mpe = VECTOR_LAST_SLOT(conf->mptable);
@@ -1252,6 +1268,20 @@ snprint_mp_pg_timeout (char * buff, int len, void * data)
 		return snprintf(buff, len, "%i", mpe->pg_timeout);
 	}
 	return 0;
+}
+
+static int
+snprint_mp_features (char * buff, int len, void * data)
+{
+	struct mpentry * mpe = (struct mpentry *)data;
+
+	if (!mpe->features)
+		return 0;
+	if (strlen(mpe->features) == strlen(conf->features) &&
+	    !strcmp(mpe->features, conf->features))
+		return 0;
+
+	return snprintf(buff, len, "%s", mpe->features);
 }
 
 static int
@@ -1898,5 +1928,6 @@ init_keywords(void)
 	install_keyword("no_path_retry", &mp_no_path_retry_handler, &snprint_mp_no_path_retry);
 	install_keyword("rr_min_io", &mp_minio_handler, &snprint_mp_rr_min_io);
 	install_keyword("pg_timeout", &mp_pg_timeout_handler, &snprint_mp_pg_timeout);
+	install_keyword("features", &mp_features_handler, &snprint_mp_features);
 	install_sublevel_end();
 }

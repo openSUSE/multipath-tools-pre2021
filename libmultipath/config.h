@@ -39,6 +39,7 @@ struct mpentry {
 	char * alias;
 	char * getuid;
 	char * selector;
+	char * features;
 
 	char * prio_name;
 	char * prio_arg;
