@@ -558,9 +558,17 @@ dm_flush_map (const char * mapname, int flush_io)
 	if (dm_type(mapname, TGT_MPATH) <= 0)
 		return 1;
 
-	if (flush_io && dm_queue_if_no_path((char *)mapname, 0))
-		condlog(3, "%s: could not unset queue_if_no_path", mapname);
-
+	if (flush_io) {
+		if (!dm_queue_if_no_path((char *)mapname, 0)) {
+			/*
+			 * Do a suspend/resume cycle here to
+			 * flush all outstanding I/Os
+			 */
+			dm_simplecmd(DM_DEVICE_SUSPEND, mapname, 0);
+			dm_simplecmd(DM_DEVICE_RESUME, mapname, 0);
+		} else
+			condlog(3, "%s: could not unset queue_if_no_path", mapname);
+	}
 	if (dm_remove_partmaps(mapname))
 		return 1;
 
