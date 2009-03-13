@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <limits.h>
 #include <pthread.h>
 #include <sys/mman.h>
 
@@ -53,8 +54,29 @@ static void * log_thread (void * et)
 void log_thread_start (void)
 {
 	pthread_attr_t attr;
+	size_t stacksize;
 
 	logdbg(stderr,"enter log_thread_start\n");
+
+	if (pthread_attr_init(&attr)) {
+		fprintf(stderr,"can't initialize log thread\n");
+		exit(1);
+	}
+
+	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
+		stacksize = PTHREAD_STACK_MIN;
+
+	/* Check if the stacksize is large enough */
+	if (stacksize < (64 * 1024))
+		stacksize = 64 * 1024;
+
+	/* Set stacksize and try to reinitialize attr if failed */
+	if (stacksize > PTHREAD_STACK_MIN &&
+	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
+	    pthread_attr_init(&attr)) {
+		fprintf(stderr,"can't set log thread stack size\n");
+		exit(1);
+	}
 
 	logq_lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
 	logev_lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
@@ -63,9 +85,6 @@ void log_thread_start (void)
 	pthread_mutex_init(logq_lock, NULL);
 	pthread_mutex_init(logev_lock, NULL);
 	pthread_cond_init(logev_cond, NULL);
-
-	pthread_attr_init(&attr);
-	pthread_attr_setstacksize(&attr, 64 * 1024);
 
 	if (log_init("multipathd", 0)) {
 		fprintf(stderr,"can't initialize log buffer\n");
