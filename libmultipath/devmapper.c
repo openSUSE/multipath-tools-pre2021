@@ -558,6 +558,9 @@ dm_flush_map (const char * mapname, int flush_io)
 	if (dm_type(mapname, TGT_MPATH) <= 0)
 		return 1;
 
+	if (flush_io && dm_queue_if_no_path((char *)mapname, 0))
+		condlog(3, "%s: could not unset queue_if_no_path", mapname);
+
 	if (dm_remove_partmaps(mapname))
 		return 1;
 
@@ -565,9 +568,6 @@ dm_flush_map (const char * mapname, int flush_io)
 		condlog(2, "%s: map in use", mapname);
 		return 1;
 	}
-
-	if (flush_io && dm_queue_if_no_path((char *)mapname, 0))
-		condlog(3, "%s: could not unset queue_if_no_path", mapname);
 
 	r = dm_simplecmd(DM_DEVICE_REMOVE, mapname, 0);
 
