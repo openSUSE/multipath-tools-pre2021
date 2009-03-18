@@ -219,6 +219,11 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 	int rport_channel = -1;
 	int rport_id = -1;
 
+	if (pp->bus != SYSFS_BUS_SCSI) {
+		condlog(4, "%s: no FC settings on non-SCSI device", pp->dev);
+		return 0;
+	}
+
 	if (dev_loss_tmo == 0 || fast_io_fail_tmo == 0) {
 		condlog(4, "%s: no FC settings", pp->dev);
 		return 0;
