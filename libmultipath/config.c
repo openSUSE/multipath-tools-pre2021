@@ -68,9 +68,12 @@ hwe_regmatch (struct hwentry *hwe1, struct hwentry *hwe2)
 	    regcomp(&rre, hwe1->revision, REG_EXTENDED|REG_NOSUB))
 		goto out_pre;
 
-	if ((!hwe1->vendor || !regexec(&vre, hwe2->vendor, 0, NULL, 0)) &&
-	    (!hwe1->product || !regexec(&pre, hwe2->product, 0, NULL, 0)) &&
-	    (!hwe1->revision || !regexec(&rre, hwe2->revision, 0, NULL, 0)))
+	if ((!hwe1->vendor || !hwe2->vendor ||
+	     !regexec(&vre, hwe2->vendor, 0, NULL, 0)) &&
+	    (!hwe1->product || !hwe2->product ||
+	     !regexec(&pre, hwe2->product, 0, NULL, 0)) &&
+	    (!hwe1->revision || !hwe2->revision ||
+	     !regexec(&rre, hwe2->revision, 0, NULL, 0)))
 		retval = 0;
 
 	if (hwe1->revision)
