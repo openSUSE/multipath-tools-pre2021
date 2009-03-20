@@ -652,8 +652,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		/*
 		 * may be a binding
 		 */
-		refwwid = get_user_friendly_wwid(dev,
-						 conf->bindings_file);
+		refwwid = get_user_friendly_wwid(dev);
 
 		if (refwwid)
 			return refwwid;
