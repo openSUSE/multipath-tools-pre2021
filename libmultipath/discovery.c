@@ -813,6 +813,7 @@ get_state (struct path * pp)
 			/* Further checking pointless */
 			condlog(3, "%s: state (sysfs) = %s", pp->dev,
 				checker_state_name(state));
+			checker_reset_message(c);
 			return state;
 		}
 	}
