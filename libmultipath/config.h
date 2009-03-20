@@ -72,6 +72,7 @@ struct config {
 	int force_reload;
 	int dev_loss_tmo;
 	int fast_io_fail_tmo;
+	int daemon;
 
 	char * dev;
 	char * sysfs_dir;

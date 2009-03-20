@@ -1379,7 +1379,7 @@ child (void * param)
 		condlog(0, "can not find sysfs mount point");
 		exit(1);
 	}
-
+	conf->daemon = 1;
 	/*
 	 * fetch and configure both paths and multipaths
 	 */

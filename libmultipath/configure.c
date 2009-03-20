@@ -378,7 +378,7 @@ domap (struct multipath * mpp, char * params)
 		 * DM_DEVICE_CREATE, DM_DEVICE_RENAME, or DM_DEVICE_RELOAD
 		 * succeeded
 		 */
-		if (!mpp->waiter) {
+		if (!conf->daemon) {
 			/* multipath client mode */
 			dm_switchgroup(mpp->alias, mpp->bestpg);
 			if (mpp->action != ACT_NOTHING)
@@ -389,9 +389,12 @@ domap (struct multipath * mpp, char * params)
 			condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
 				mpp->size, TGT_MPATH, params);
 			/*
-			 * Required action is over, reset for the stateful daemon
+			 * Required action is over, reset for the stateful daemon.
+			 * But don't do it for creation as we use in the caller the
+			 * mpp->action to figure out whether to start the watievent checker.
 			 */
-			mpp->action = ACT_NOTHING;
+			if (mpp->action != ACT_CREATE)
+				mpp->action = ACT_NOTHING;
 		}
 		return DOMAP_OK;
 	}

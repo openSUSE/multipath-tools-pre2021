@@ -494,6 +494,7 @@ main (int argc, char *argv[])
 			condlog(0, "can't set open fds limit to %d : %s\n",
 				conf->max_fds, strerror(errno));
 	}
+	conf->daemon = 0;
 
 	dm_init();
 
@@ -511,7 +512,7 @@ main (int argc, char *argv[])
 	}
 	while ((r = configure()) < 0)
 		condlog(3, "restart multipath configuration process");
-	
+
 out:
 	sysfs_cleanup();
 	dm_lib_release();
