@@ -78,11 +78,11 @@ case "$1" in
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
 
-	# Create all partitions which might have been missing
-	for map in $(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | sort -n +2 | sed -n 's/.*, \(.*\))/\1/p' ) ; do
+	# Wait for all partitions on multipathed devices
+	for map in $(/sbin/dmsetup ls --target multipath | cut -f 1); do
 	    wait=5
 	    while [ $wait -gt 0 ] ; do
-		[ -e /dev/dm-$map ] && break
+		[ -e /dev/disk/by-id/dm-name-$map ] && break
 		wait=$((wait - 1))
 		sleep 1;
 	    done
@@ -91,12 +91,23 @@ case "$1" in
 		rc_failed 1
 		break;
 	    fi
-	    /sbin/kpartx -a -p -part /dev/dm-$map
+	    for part in $(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | cut -f 1 -d ' '); do
+		wait=5
+		while [ $wait -gt 0 ] ; do
+		    [ -e /dev/disk/by-id/dm-name-$part ] && break
+		    wait=$((wait - 1))
+		    sleep 1;
+		done
+		if [ $wait -le 0 ] ; then
+		    echo -n "timeout waiting for partitions"
+		    rc_failed 1
+		    break;
+		fi
+	    done
 	done
 
 	# Remember status and be verbose
 	rc_status -v
-	sleep 1
 	;;
     stop)
 	echo -n "Removing multipath targets:"
