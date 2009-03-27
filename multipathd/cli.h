@@ -9,6 +9,7 @@ enum {
 	__FAIL,
 	__RESIZE,
 	__RELOAD,
+	__RESET,
 	__PATHS,
 	__MAPS,
 	__PATH,
@@ -23,6 +24,7 @@ enum {
 	__DEVICES,
 	__FMT,
 	__WILDCARDS,
+	__LOG,
 };
 
 #define LIST		(1 << __LIST)
@@ -35,6 +37,7 @@ enum {
 #define FAIL		(1 << __FAIL)
 #define RESIZE		(1 << __RESIZE)
 #define RELOAD		(1 << __RELOAD)
+#define RESET		(1 << __RESET)
 #define PATHS		(1 << __PATHS)
 #define MAPS		(1 << __MAPS)
 #define PATH		(1 << __PATH)
@@ -46,9 +49,10 @@ enum {
 #define TOPOLOGY	(1 << __TOPOLOGY)
 #define CONFIG		(1 << __CONFIG)
 #define BLACKLIST	(1 << __BLACKLIST)
-#define DEVICES  	(1 << __DEVICES)
-#define FMT 	 	(1 << __FMT)
+#define DEVICES		(1 << __DEVICES)
+#define FMT		(1 << __FMT)
 #define WILDCARDS	(1 << __WILDCARDS)
+#define LOG		(1 << __LOG)
 
 #define INITIAL_REPLY_LEN 1000
 

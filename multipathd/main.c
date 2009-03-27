@@ -766,6 +766,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(RELOAD+MAP, cli_reload);
 	set_handler_callback(REINSTATE+PATH, cli_reinstate);
 	set_handler_callback(FAIL+PATH, cli_fail);
+	set_handler_callback(RESET+LOG, cli_reset_log);
 
 	uxsock_listen(&uxsock_trigger, ap);
 

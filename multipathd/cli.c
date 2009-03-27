@@ -157,6 +157,7 @@ load_keys (void)
 	r += add_key(keys, "fail", FAIL, 0);
 	r += add_key(keys, "resize", RESIZE, 0);
 	r += add_key(keys, "reload", RELOAD, 0);
+	r += add_key(keys, "reset", RESET, 0);
 	r += add_key(keys, "paths", PATHS, 0);
 	r += add_key(keys, "maps", MAPS, 0);
 	r += add_key(keys, "multipaths", MAPS, 0);
@@ -173,6 +174,7 @@ load_keys (void)
 	r += add_key(keys, "devices", DEVICES, 0);
 	r += add_key(keys, "format", FMT, 1);
 	r += add_key(keys, "wildcards", WILDCARDS, 0);
+	r += add_key(keys, "log", LOG, 0);
 
 	if (r) {
 		free_keys(keys);
@@ -436,6 +438,7 @@ cli_init (void) {
 	add_handler(RELOAD+MAP, NULL);
 	add_handler(REINSTATE+PATH, NULL);
 	add_handler(FAIL+PATH, NULL);
+	add_handler(RESET+LOG, NULL);
 
 	return 0;
 }

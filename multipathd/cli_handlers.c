@@ -745,3 +745,12 @@ cli_list_devices (void * v, char ** reply, int * len, void * data)
 
 	return show_devices(reply, len, vecs);
 }
+
+int
+cli_reset_log (void * v, char ** reply, int * len, void * data)
+{
+	condlog(3, "reset (operator)");
+	log_thread_reset();
+	condlog(3, "reset done");
+	return 0;
+}

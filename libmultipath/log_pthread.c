@@ -6,12 +6,21 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <pthread.h>
+#include <signal.h>
 #include <sys/mman.h>
 
 #include <memory.h>
 
 #include "log_pthread.h"
 #include "log.h"
+
+static void
+sigusr1 (int sig)
+{
+	pthread_mutex_lock(logq_lock);
+	log_reset("multipathd");
+	pthread_mutex_unlock(logq_lock);
+}
 
 void log_safe (int prio, const char * fmt, va_list ap)
 {
@@ -39,6 +48,14 @@ static void flush_logqueue (void)
 
 static void * log_thread (void * et)
 {
+	struct sigaction sig;
+
+	sig.sa_handler = sigusr1;
+	sigemptyset(&sig.sa_mask);
+	sig.sa_flags = 0;
+	if (sigaction(SIGUSR1, &sig, NULL) < 0)
+		logdbg(stderr, "Cannot set signal handler");
+
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 	logdbg(stderr,"enter log_thread\n");
 
@@ -117,4 +134,9 @@ void log_thread_stop (void)
 	free(logev_cond);
 	logev_cond = NULL;
 	free_logarea();
+}
+
+void log_thread_reset (void)
+{
+	pthread_kill(log_thr, SIGUSR1);
 }
