@@ -63,6 +63,11 @@ case "$1" in
 	    rc_exit
 	fi
 
+	if dmsetup table --target multipath | grep -q multipath ; then
+	    # Multipath active, start daemon
+	    exec /etc/init.d/multipathd $1
+	fi
+
 	# Load prerequisite module
 	modprobe dm-multipath
 	
@@ -94,7 +99,7 @@ case "$1" in
 		rc_failed 1
 		break;
 	    fi
-	    for part in $(/sbin/kpartx -l -p_part /dev/disk/by-id/dm-name-$map | cut -f 1 -d ' '); do
+	    for part in $(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | cut -f 1 -d ' '); do
 		wait=5
 		while [ $wait -gt 0 ] ; do
 		    [ -e /dev/disk/by-id/dm-name-$part ] && break

@@ -38,6 +38,12 @@ case "$1" in
     start)
 	echo -n "Starting multipathd"
 
+	if $DAEMON -k"reset log" > /dev/null 2>&1 ; then
+	    echo -n " (multipathd running)"
+	    rc_status -v
+	    rc_exit
+	fi
+
 	modprobe dm-multipath
 
 	# Set the maximum number of open files
@@ -56,7 +62,6 @@ case "$1" in
 	
 	# Remember status and be verbose
 	rc_status -v
-	sleep 1
 	;;
     stop)
 	echo -n "Shutting down multipathd"
