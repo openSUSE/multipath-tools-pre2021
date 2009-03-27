@@ -287,6 +287,7 @@ ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 		condlog(0, "%s: uev_add_map %s failed", alias, dev);
 
 	FREE(refwwid);
+	FREE(alias);
 	return r;
 }
 
