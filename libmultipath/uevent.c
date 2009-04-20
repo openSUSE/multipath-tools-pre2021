@@ -112,6 +112,11 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	int sock;
 	struct sockaddr_nl snl;
 	struct sockaddr_un sun;
+	struct iovec iov;
+	struct msghdr smsg;
+	struct cmsghdr *cmsg;
+	struct ucred *cred;
+	char cred_msg[CMSG_SPACE(sizeof(struct ucred))];
 	socklen_t addrlen;
 	int retval;
 	int rcvbufsz = 128*1024;
@@ -120,6 +125,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	unsigned int *prcvszsz = (unsigned int *)&rcvszsz;
 	pthread_attr_t attr;
 	size_t stacksize;
+	const int feature_on = 1;
 
 	my_uev_trigger = uev_trigger;
 	my_trigger_data = trigger_data;
@@ -168,8 +174,6 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 
 	sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
 	if (sock >= 0) {
-		const int feature_on = 1;
-
 		condlog(3, "reading events from udev socket.");
 
 		/* the bind takes care of ensuring only one copy running */
@@ -180,7 +184,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		}
 
 		/* enable receiving of the sender credentials */
-		setsockopt(sock, SOL_SOCKET, SO_PASSCRED, 
+		setsockopt(sock, SOL_SOCKET, SO_PASSCRED,
 			   &feature_on, sizeof(feature_on));
 
 	} else {
@@ -188,7 +192,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		memset(&snl, 0x00, sizeof(struct sockaddr_nl));
 		snl.nl_family = AF_NETLINK;
 		snl.nl_pid = getpid();
-		snl.nl_groups = 0xffffffff;
+		snl.nl_groups = 1;
 
 		sock = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
 		if (sock == -1) {
@@ -218,6 +222,10 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		}
 		condlog(3, "receive buffer size for socket is %u.", rcvsz);
 
+		/* enable receiving of the sender credentials */
+		setsockopt(sock, SOL_SOCKET, SO_PASSCRED,
+			   &feature_on, sizeof(feature_on));
+
 		retval = bind(sock, (struct sockaddr *) &snl,
 			      sizeof(struct sockaddr_nl));
 		if (retval < 0) {
@@ -235,9 +243,31 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		struct uevent *uev;
 		char *buffer;
 
-		buflen = recv(sock, &buff, sizeof(buff), 0);
+		memset(buff, 0x00, sizeof(buff));
+		iov.iov_base = &buff;
+		iov.iov_len = sizeof(buff);
+		memset (&smsg, 0x00, sizeof(struct msghdr));
+		smsg.msg_iov = &iov;
+		smsg.msg_iovlen = 1;
+		smsg.msg_control = cred_msg;
+		smsg.msg_controllen = sizeof(cred_msg);
+
+		buflen = recvmsg(sock, &smsg, 0);
 		if (buflen <  0) {
 			condlog(0, "error receiving message");
+			continue;
+		}
+
+		cmsg = CMSG_FIRSTHDR(&smsg);
+		cred = (struct ucred *)CMSG_DATA(cmsg);
+
+		if (cmsg == NULL || cmsg->cmsg_type != SCM_CREDENTIALS) {
+			condlog(2, "No sender credentials received");
+			continue;
+		}
+
+		if (cred->uid != 0) {
+			condlog(2, "Ignoring message from uid %d", cred->uid);
 			continue;
 		}
 
