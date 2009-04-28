@@ -81,6 +81,15 @@ service_uevq(struct list_head *tmpq)
 	}
 }
 
+static void uevq_stop(void *arg)
+{
+	condlog(3, "Stopping uev queue");
+	pthread_mutex_lock(uevq_lockp);
+	my_uev_trigger = NULL;
+	pthread_cond_signal(uev_condp);
+	pthread_mutex_unlock(uevq_lockp);
+}
+
 /*
  * Service the uevent queue.
  */
@@ -103,8 +112,12 @@ uevq_thread(void * et)
 		}
 		list_splice_init(&uevq, &uevq_tmp);
 		pthread_mutex_unlock(uevq_lockp);
+		if (!my_uev_trigger)
+			break;
 		service_uevq(&uevq_tmp);
 	}
+	condlog(3, "Terminating uev service queue");
+	return NULL;
 }
 
 int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
@@ -158,6 +171,10 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		condlog(0, "can't start uevq thread");
 		goto out;
 	}
+
+	pthread_attr_destroy(&attr);
+
+	pthread_cleanup_push(uevq_stop, NULL);
 
 	/*
 	 * First check whether we have a udev socket
@@ -307,6 +324,8 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 
 exit:
 	close(sock);
+
+	pthread_cleanup_pop(1);
 
 	pthread_mutex_lock(uevq_lockp);
 	pthread_cancel(uevq_thr);
