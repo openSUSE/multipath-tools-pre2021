@@ -1433,9 +1433,6 @@ child (void * param)
 	cleanup_checkers();
 	cleanup_prio();
 
-	cleanup_checkers();
-	cleanup_prio();
-
 	condlog(2, "--------shut down-------");
 
 	if (logsink)
