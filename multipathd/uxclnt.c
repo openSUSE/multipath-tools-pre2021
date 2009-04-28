@@ -62,13 +62,18 @@ static void process_req(int fd, char * inbuf)
 	char *reply;
 	size_t len;
 
-	send_packet(fd, inbuf, strlen(inbuf) + 1);
-	recv_packet(fd, &reply, &len);
-
-	printf("%s", reply);
-	FREE(reply);
+	if (send_packet(fd, inbuf, strlen(inbuf) + 1) != 0) {
+		printf("cannot send packet\n");
+		return;
+	}
+	if (recv_packet(fd, &reply, &len) != 0)
+		printf("error receiving packet\n");
+	else {
+		printf("%s", reply);
+		FREE(reply);
+	}
 }
-	
+
 /*
  * entry point
  */
