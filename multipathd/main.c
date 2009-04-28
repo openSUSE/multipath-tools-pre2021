@@ -767,13 +767,14 @@ uxlsnrloop (void * ap)
 	set_handler_callback(REINSTATE+PATH, cli_reinstate);
 	set_handler_callback(FAIL+PATH, cli_fail);
 	set_handler_callback(RESET+LOG, cli_reset_log);
+	set_handler_callback(SHUTDOWN, cli_shutdown);
 
 	uxsock_listen(&uxsock_trigger, ap);
 
 	return NULL;
 }
 
-static int
+int
 exit_daemon (int status)
 {
 	if (status != 0)

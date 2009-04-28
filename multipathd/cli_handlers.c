@@ -767,3 +767,11 @@ cli_reset_log (void * v, char ** reply, int * len, void * data)
 	condlog(3, "reset done");
 	return 0;
 }
+
+int
+cli_shutdown (void * v, char ** reply, int * len, void * data)
+{
+	condlog(3, "shutdown (operator)");
+
+	return exit_daemon(0);
+}

@@ -25,6 +25,7 @@ enum {
 	__FMT,
 	__WILDCARDS,
 	__LOG,
+	__SHUTDOWN,
 };
 
 #define LIST		(1 << __LIST)
@@ -53,6 +54,7 @@ enum {
 #define FMT		(1 << __FMT)
 #define WILDCARDS	(1 << __WILDCARDS)
 #define LOG		(1 << __LOG)
+#define SHUTDOWN	(1 << __SHUTDOWN)
 
 #define INITIAL_REPLY_LEN 1000
 

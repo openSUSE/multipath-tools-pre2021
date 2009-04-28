@@ -175,6 +175,7 @@ load_keys (void)
 	r += add_key(keys, "format", FMT, 1);
 	r += add_key(keys, "wildcards", WILDCARDS, 0);
 	r += add_key(keys, "log", LOG, 0);
+	r += add_key(keys, "shutdown", SHUTDOWN, 0);
 
 	if (r) {
 		free_keys(keys);
@@ -439,6 +440,7 @@ cli_init (void) {
 	add_handler(REINSTATE+PATH, NULL);
 	add_handler(FAIL+PATH, NULL);
 	add_handler(RESET+LOG, NULL);
+	add_handler(SHUTDOWN, NULL);
 
 	return 0;
 }
