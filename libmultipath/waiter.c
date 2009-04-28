@@ -35,25 +35,10 @@ void free_waiter (void *data)
 {
 	struct event_thread *wp = (struct event_thread *)data;
 
-	/*
-	 * indicate in mpp that the wp is already freed storage
-	 */
-	lock(wp->vecs->lock);
-
 	if (wp->mpp)
-		/*
-		 * be careful, mpp may already be freed -- null if so
-		 */
-		wp->mpp->waiter = NULL;
+		condlog(3, "%s: waiter not cleared", wp->mapname);
 	else
-		condlog(3, "free_waiter, mpp freed before wp=%p,", wp);
-
-	unlock(wp->vecs->lock);
-
-	if (wp->dmt)
-		dm_task_destroy(wp->dmt);
-
-	FREE(wp);
+		FREE(wp);
 }
 
 void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
@@ -65,6 +50,8 @@ void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 		return;
 	}
 	condlog(2, "%s: stop event checker thread", wp->mapname);
+	mpp->waiter = NULL;
+	wp->mpp = NULL;
 	pthread_kill((pthread_t)wp->thread, SIGUSR1);
 }
 
@@ -86,6 +73,7 @@ static sigset_t unblock_signals(void)
 int waiteventloop (struct event_thread *waiter)
 {
 	sigset_t set;
+	struct dm_task *dmt = NULL;
 	int event_nr;
 	int r;
 
@@ -102,6 +90,7 @@ int waiteventloop (struct event_thread *waiter)
 		condlog(0, "%s: devmap event #%i dm_task_set_name error",
 				waiter->mapname, waiter->event_nr);
 		dm_task_destroy(waiter->dmt);
+		waiter->dmt = NULL;
 		return 1;
 	}
 
@@ -110,24 +99,28 @@ int waiteventloop (struct event_thread *waiter)
 		condlog(0, "%s: devmap event #%i dm_task_set_event_nr error",
 				waiter->mapname, waiter->event_nr);
 		dm_task_destroy(waiter->dmt);
+		waiter->dmt = NULL;
 		return 1;
 	}
 
 	dm_task_no_open_count(waiter->dmt);
 
 	/* accept wait interruption */
+	dmt = waiter->dmt;
 	set = unblock_signals();
 
 	/* wait */
-	r = dm_task_run(waiter->dmt);
+	r = dm_task_run(dmt);
 
 	/* wait is over : event or interrupt */
 	pthread_sigmask(SIG_SETMASK, &set, NULL);
 
-	if (!r) /* wait interrupted by signal */
+	/* waiter->dmt might not be valid here */
+	dm_task_destroy(dmt);
+
+	if (!r)	/* wait interrupted by signal */
 		return -1;
 
-	dm_task_destroy(waiter->dmt);
 	waiter->dmt = NULL;
 	waiter->event_nr++;
 
