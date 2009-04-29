@@ -162,6 +162,8 @@ int recv_packet(int fd, char **buf, size_t *len)
 		return 0;
 	}
 	(*buf) = MALLOC(*len);
+	if (!*buf)
+		return -1;
 	if (read_all(fd, *buf, *len) != *len) {
 		FREE(*buf);
 		(*buf) = NULL;

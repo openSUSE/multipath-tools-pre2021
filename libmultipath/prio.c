@@ -17,7 +17,7 @@ int init_prio (void)
 	return 0;
 }
 
-struct prio * alloc_prio (void)
+static struct prio * alloc_prio (void)
 {
 	struct prio *p;
 
