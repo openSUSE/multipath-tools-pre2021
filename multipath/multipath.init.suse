@@ -20,6 +20,9 @@ PROGRAM=/sbin/multipath
 # Set the maximum number of open files
 MAX_OPEN_FDS=4096
 
+# Number of seconds to wait for disks and partitions
+MPATH_DEVICE_TIMEOUT=20
+
 test -x $PROGRAM || exit 5
 
 # Shell functions sourced from /etc/rc.status:
@@ -75,14 +78,18 @@ case "$1" in
 	    ulimit -n $MAX_OPEN_FDS
 	fi
 
+	udevsettle --timeout="$MPATH_DEVICE_TIMEOUT"
+
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
 
-	# Wait for all partitions on multipathed devices
-	for map in $(/sbin/dmsetup ls --target multipath | cut -f 1); do
-	    wait=5
+	udevsettle --timeout="$MPATH_DEVICE_TIMEOUT"
+
+	# Wait for all multipathed devices to appear
+	for map in $(/sbin/dmsetup ls --target multipath | sed 's/\(^[^ ()]*\)[\t ]*.*/\1/p'); do
+	    wait=$MPATH_DEVICE_TIMEOUT
 	    while [ $wait -gt 0 ] ; do
-		[ -e /dev/disk/by-id/dm-name-$map ] && break
+		[ -e /dev/disk/by-name/$map ] && break
 		wait=$((wait - 1))
 		sleep 1;
 	    done
@@ -91,10 +98,15 @@ case "$1" in
 		rc_failed 1
 		break;
 	    fi
-	    for part in $(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | cut -f 1 -d ' '); do
-		wait=5
+	done
+	# Wait for all partitions on multipathed devices
+	for map in /dev/disk/by-name/* ; do
+	    [ "${map%%-part*}" = "$map" ] || continue
+	    [ -L $map ] || continue
+	    for part in $(/sbin/kpartx -l -p -part $map | sed 's/\(^[^ ()]*\)[\t ]*.*/\1/p' ); do
+		wait=$MPATH_DEVICE_TIMEOUT
 		while [ $wait -gt 0 ] ; do
-		    [ -e /dev/disk/by-id/dm-name-$part ] && break
+		    [ -e /dev/disk/by-name/$part ] && break
 		    wait=$((wait - 1))
 		    sleep 1;
 		done
