@@ -13,9 +13,9 @@
 #define NAME_SIZE		512
 
 
-#define SCSI_VENDOR_SIZE	9
-#define SCSI_PRODUCT_SIZE	17
-#define SCSI_REV_SIZE		5
+#define SCSI_VENDOR_SIZE	10
+#define SCSI_PRODUCT_SIZE	18
+#define SCSI_REV_SIZE		6
 
 #define NO_PATH_RETRY_UNDEF	0
 #define NO_PATH_RETRY_FAIL	-1
