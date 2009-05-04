@@ -80,33 +80,30 @@ int waiteventloop (struct event_thread *waiter)
 	if (!waiter->event_nr)
 		waiter->event_nr = dm_geteventnr(waiter->mapname);
 
-	if (!(waiter->dmt = dm_task_create(DM_DEVICE_WAITEVENT))) {
+	if (!(dmt = dm_task_create(DM_DEVICE_WAITEVENT))) {
 		condlog(0, "%s: devmap event #%i dm_task_create error",
 				waiter->mapname, waiter->event_nr);
 		return 1;
 	}
 
-	if (!dm_task_set_name(waiter->dmt, waiter->mapname)) {
+	if (!dm_task_set_name(dmt, waiter->mapname)) {
 		condlog(0, "%s: devmap event #%i dm_task_set_name error",
 				waiter->mapname, waiter->event_nr);
-		dm_task_destroy(waiter->dmt);
-		waiter->dmt = NULL;
+		dm_task_destroy(dmt);
 		return 1;
 	}
 
-	if (waiter->event_nr && !dm_task_set_event_nr(waiter->dmt,
+	if (waiter->event_nr && !dm_task_set_event_nr(dmt,
 						      waiter->event_nr)) {
 		condlog(0, "%s: devmap event #%i dm_task_set_event_nr error",
 				waiter->mapname, waiter->event_nr);
-		dm_task_destroy(waiter->dmt);
-		waiter->dmt = NULL;
+		dm_task_destroy(dmt);
 		return 1;
 	}
 
-	dm_task_no_open_count(waiter->dmt);
+	dm_task_no_open_count(dmt);
 
 	/* accept wait interruption */
-	dmt = waiter->dmt;
 	set = unblock_signals();
 
 	/* wait */
@@ -115,13 +112,11 @@ int waiteventloop (struct event_thread *waiter)
 	/* wait is over : event or interrupt */
 	pthread_sigmask(SIG_SETMASK, &set, NULL);
 
-	/* waiter->dmt might not be valid here */
 	dm_task_destroy(dmt);
 
 	if (!r)	/* wait interrupted by signal */
 		return -1;
 
-	waiter->dmt = NULL;
 	waiter->event_nr++;
 
 	/*
@@ -196,7 +191,7 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 		return 0;
 
 	if (pthread_attr_init(&attr))
-		goto out;
+		return 1;
 
 	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
 		stacksize = PTHREAD_STACK_MIN;
@@ -223,17 +218,17 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	wp->vecs = vecs;
 	wp->mpp = mpp;
 
-	if (pthread_create(&wp->thread, &attr, waitevent, wp)) {
-		condlog(0, "%s: cannot create event checker", wp->mapname);
-		goto out1;
+	if (!pthread_create(&wp->thread, &attr, waitevent, wp)) {
+		pthread_attr_destroy(&attr);
+		condlog(2, "%s: event checker started", wp->mapname);
+		return 0;
 	}
-	condlog(2, "%s: event checker started", wp->mapname);
-
-	return 0;
-out1:
+	condlog(0, "%s: cannot create event checker", wp->mapname);
 	free_waiter(wp);
 	mpp->waiter = NULL;
+
 out:
+	pthread_attr_destroy(&attr);
 	condlog(0, "failed to start waiter thread");
 	return 1;
 }
