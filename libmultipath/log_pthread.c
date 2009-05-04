@@ -107,7 +107,11 @@ void log_thread_start (void)
 		fprintf(stderr,"can't initialize log buffer\n");
 		exit(1);
 	}
-	pthread_create(&log_thr, &attr, log_thread, NULL);
+	if (pthread_create(&log_thr, &attr, log_thread, NULL)) {
+		fprintf(stderr,"can't start log thread\n");
+		exit(1);
+	}
+	pthread_attr_destroy(&attr);
 
 	return;
 }
