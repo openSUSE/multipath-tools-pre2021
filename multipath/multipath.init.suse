@@ -23,6 +23,9 @@ PROGRAM=/sbin/multipath
 # Set the maximum number of open files
 MAX_OPEN_FDS=4096
 
+# Number of seconds to wait for disks and partitions
+MPATH_DEVICE_TIMEOUT=10
+
 test -x $PROGRAM || exit 5
 
 # Shell functions sourced from /etc/rc.status:
@@ -71,13 +74,6 @@ case "$1" in
 	# Load prerequisite module
 	modprobe dm-multipath
 	
-	# Be a chicken and flush all existing maps
-	$PROGRAM -F
-
-	# Clear /dev/disk/by-name/ prior to start-up; multipath will
-	# recreate them.
-	rm -f /dev/disk/by-name/* 2>&1 >/dev/null
-
 	# Set the maximum number of open files
 	if [ -n "$MAX_OPEN_FDS" ] ; then
 	    ulimit -n $MAX_OPEN_FDS
@@ -86,9 +82,10 @@ case "$1" in
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
 
-	# Wait for all partitions on multipathed devices
-	for map in $(/sbin/dmsetup ls --target multipath | cut -f 1); do
-	    wait=5
+	# Wait for all multipathed devices to appear
+	maplist=$(/sbin/dmsetup ls --target multipath | sed 's/\(^[^ ()]*\)[\t ]*.*/\1/p')
+	for map in $maplist; do
+	    wait=$MPATH_DEVICE_TIMEOUT
 	    while [ $wait -gt 0 ] ; do
 		[ -e /dev/disk/by-id/dm-name-$map ] && break
 		wait=$((wait - 1))
@@ -99,8 +96,12 @@ case "$1" in
 		rc_failed 1
 		break;
 	    fi
-	    for part in $(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | cut -f 1 -d ' '); do
-		wait=5
+	done
+        # Wait for all partitions on multipathed devices
+	for map in $maplist ; do
+	    [ -e /dev/disk/by-id/dm-name-$map ] || continue
+            for part in $(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | sed 's/\([^ ]*\) :.*/\1/p'); do
+		wait=$MPATH_DEVICE_TIMEOUT
 		while [ $wait -gt 0 ] ; do
 		    [ -e /dev/disk/by-id/dm-name-$part ] && break
 		    wait=$((wait - 1))
