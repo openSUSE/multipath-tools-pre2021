@@ -1415,7 +1415,9 @@ child (void * param)
 	/*
 	 * exit path
 	 */
+	lock(vecs->lock);
 	remove_maps_and_stop_waiters(vecs);
+	unlock(vecs->lock);
 
 	pthread_cancel(check_thr);
 	pthread_cancel(uevent_thr);
