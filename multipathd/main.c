@@ -1315,6 +1315,7 @@ child (void * param)
 	pthread_t check_thr, uevent_thr, uxlsnr_thr;
 	pthread_attr_t attr;
 	struct vectors * vecs;
+	int rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -1395,9 +1396,19 @@ child (void * param)
 	pthread_attr_setstacksize(&attr, 64 * 1024);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	pthread_create(&check_thr, &attr, checkerloop, vecs);
-	pthread_create(&uevent_thr, &attr, ueventloop, vecs);
-	pthread_create(&uxlsnr_thr, &attr, uxlsnrloop, vecs);
+	if ((rc = pthread_create(&check_thr, &attr, checkerloop, vecs))) {
+		condlog(0,"failed to create checker loop thread: %d", rc);
+		exit(1);
+	}
+	if ((rc = pthread_create(&uevent_thr, &attr, ueventloop, vecs))) {
+		condlog(0, "failed to create uevent thread: %d", rc);
+		exit(1);
+	}
+	if ((rc = pthread_create(&uxlsnr_thr, &attr, uxlsnrloop, vecs))) {
+		condlog(0, "failed to create cli listener: %d", rc);
+		exit(1);
+	}
+	pthread_attr_destroy(&attr);
 
 	pthread_cond_wait(&exit_cond, &exit_mutex);
 
