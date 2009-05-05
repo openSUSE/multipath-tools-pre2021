@@ -1382,7 +1382,9 @@ child (void * param)
 	 */
 	block_signal(SIGHUP, NULL);
 
+	lock(vecs->lock);
 	remove_maps(vecs, stop_waiter_thread);
+	unlock(vecs->lock);
 
 	pthread_cancel(check_thr);
 	pthread_cancel(uevent_thr);
