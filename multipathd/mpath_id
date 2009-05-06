@@ -38,6 +38,8 @@ if [ "$mpstatus" ]; then
     case "$devname" in
 	dasd*)
 	    echo ID_BUS=\"ccw\" ;;
+	cciss*)
+	    echo ID_BUS=\"cciss\" ;;
 	*)
 	    echo ID_BUS=\"scsi\" ;;
     esac
