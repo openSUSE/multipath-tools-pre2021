@@ -55,7 +55,7 @@ rc_reset
 
 case "$1" in
     start)
-	echo -n "Creating multipath targets"
+	echo -n "Setup multipath targets"
 	# Check whether multipath daemon is already running
 	if /sbin/multipathd -k"list paths" > /dev/null 2>&1 ; then
 	    echo -n " (multipathd running)"
@@ -66,13 +66,6 @@ case "$1" in
 	# Load prerequisite module
 	modprobe dm-multipath
 	
-	# Be a chicken and flush all existing maps
-	$PROGRAM -F
-
-	# Clear /dev/disk/by-name/ prior to start-up; multipath will
-	# recreate them.
-	rm -f /dev/disk/by-name/* 2>&1 >/dev/null
-
 	# Set the maximum number of open files
 	if [ -n "$MAX_OPEN_FDS" ] ; then
 	    ulimit -n $MAX_OPEN_FDS
