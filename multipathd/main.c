@@ -1444,17 +1444,17 @@ child (void * param)
 	cleanup_checkers();
 	cleanup_prio();
 
-	condlog(2, "--------shut down-------");
-
-	if (logsink)
-		log_thread_stop();
-
 	dm_lib_release();
 	dm_lib_exit();
 
 	/* We're done here */
 	condlog(3, "unlink pidfile");
 	unlink(DEFAULT_PIDFILE);
+
+	condlog(2, "--------shut down-------");
+
+	if (logsink)
+		log_thread_stop();
 
 	/*
 	 * Freeing config must be done after condlog() and dm_lib_exit(),
