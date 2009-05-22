@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <limits.h>
 
 /*
  * libcheckers
@@ -1309,18 +1310,48 @@ set_oom_adj (int val)
 	fclose(fp);
 }
 
+void
+setup_thread_attr(pthread_attr_t *attr, size_t stacksize, int detached)
+{
+	if (pthread_attr_init(attr)) {
+		fprintf(stderr, "can't initialize thread attr: %s\n",
+			strerror(errno));
+		exit(1);
+	}
+	if (stacksize < PTHREAD_STACK_MIN)
+		stacksize = PTHREAD_STACK_MIN;
+
+	if (pthread_attr_setstacksize(attr, stacksize)) {
+		fprintf(stderr, "can't set thread stack size to %lu: %s\n",
+			(unsigned long)stacksize, strerror(errno));
+		exit(1);
+	}
+	if (detached &&
+	    pthread_attr_setdetachstate(attr, PTHREAD_CREATE_DETACHED)) {
+		fprintf(stderr, "can't set thread to detached: %s\n",
+			strerror(errno));
+		exit(1);
+	}
+}
+
 static int
 child (void * param)
 {
 	pthread_t check_thr, uevent_thr, uxlsnr_thr;
-	pthread_attr_t attr;
+	pthread_attr_t log_attr, def_attr;
 	struct vectors * vecs;
 	int rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
-	if (logsink)
-		log_thread_start();
+	setup_thread_attr(&def_attr, 64 * 1024, 1);
+	setup_thread_attr(&waiter_attr, 32 * 1024, 1);
+
+	if (logsink) {
+		setup_thread_attr(&log_attr, 64 * 1024, 0);
+		log_thread_start(&log_attr);
+		pthread_attr_destroy(&log_attr);
+	}
 
 	condlog(2, "--------start up--------");
 	condlog(2, "read " DEFAULT_CONFIGFILE);
@@ -1392,23 +1423,19 @@ child (void * param)
 	/*
 	 * start threads
 	 */
-	pthread_attr_init(&attr);
-	pthread_attr_setstacksize(&attr, 64 * 1024);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-	if ((rc = pthread_create(&check_thr, &attr, checkerloop, vecs))) {
+	if ((rc = pthread_create(&check_thr, &def_attr, checkerloop, vecs))) {
 		condlog(0,"failed to create checker loop thread: %d", rc);
 		exit(1);
 	}
-	if ((rc = pthread_create(&uevent_thr, &attr, ueventloop, vecs))) {
+	if ((rc = pthread_create(&uevent_thr, &def_attr, ueventloop, vecs))) {
 		condlog(0, "failed to create uevent thread: %d", rc);
 		exit(1);
 	}
-	if ((rc = pthread_create(&uxlsnr_thr, &attr, uxlsnrloop, vecs))) {
+	if ((rc = pthread_create(&uxlsnr_thr, &def_attr, uxlsnrloop, vecs))) {
 		condlog(0, "failed to create cli listener: %d", rc);
 		exit(1);
 	}
-	pthread_attr_destroy(&attr);
+	pthread_attr_destroy(&def_attr);
 
 	pthread_cond_wait(&exit_cond, &exit_mutex);
 

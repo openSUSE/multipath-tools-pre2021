@@ -68,32 +68,9 @@ static void * log_thread (void * et)
 	}
 }
 
-void log_thread_start (void)
+void log_thread_start (pthread_attr_t *attr)
 {
-	pthread_attr_t attr;
-	size_t stacksize;
-
 	logdbg(stderr,"enter log_thread_start\n");
-
-	if (pthread_attr_init(&attr)) {
-		fprintf(stderr,"can't initialize log thread\n");
-		exit(1);
-	}
-
-	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
-		stacksize = PTHREAD_STACK_MIN;
-
-	/* Check if the stacksize is large enough */
-	if (stacksize < (64 * 1024))
-		stacksize = 64 * 1024;
-
-	/* Set stacksize and try to reinitialize attr if failed */
-	if (stacksize > PTHREAD_STACK_MIN &&
-	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
-	    pthread_attr_init(&attr)) {
-		fprintf(stderr,"can't set log thread stack size\n");
-		exit(1);
-	}
 
 	logq_lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
 	logev_lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
@@ -107,11 +84,10 @@ void log_thread_start (void)
 		fprintf(stderr,"can't initialize log buffer\n");
 		exit(1);
 	}
-	if (pthread_create(&log_thr, &attr, log_thread, NULL)) {
+	if (pthread_create(&log_thr, attr, log_thread, NULL)) {
 		fprintf(stderr,"can't start log thread\n");
 		exit(1);
 	}
-	pthread_attr_destroy(&attr);
 
 	return;
 }

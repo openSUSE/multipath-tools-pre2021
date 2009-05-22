@@ -20,6 +20,8 @@
 #include "lock.h"
 #include "waiter.h"
 
+pthread_attr_t waiter_attr;
+
 struct event_thread *alloc_waiter (void)
 {
 
@@ -183,30 +185,10 @@ void *waitevent (void *et)
 
 int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 {
-	pthread_attr_t attr;
 	struct event_thread *wp;
-	size_t stacksize;
 
 	if (!mpp)
 		return 0;
-
-	if (pthread_attr_init(&attr))
-		return 1;
-
-	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
-		stacksize = PTHREAD_STACK_MIN;
-
-	/* Check if the stacksize is large enough */
-	if (stacksize < (32 * 1024))
-		stacksize = 32 * 1024;
-
-	/* Set stacksize and try to reinitialize attr if failed */
-	if (stacksize > PTHREAD_STACK_MIN &&
-	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
-	    pthread_attr_init(&attr))
-		goto out;
-
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	wp = alloc_waiter();
 
@@ -218,8 +200,7 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	wp->vecs = vecs;
 	wp->mpp = mpp;
 
-	if (!pthread_create(&wp->thread, &attr, waitevent, wp)) {
-		pthread_attr_destroy(&attr);
+	if (!pthread_create(&wp->thread, &waiter_attr, waitevent, wp)) {
 		condlog(2, "%s: event checker started", wp->mapname);
 		return 0;
 	}
@@ -228,7 +209,6 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	mpp->waiter = NULL;
 
 out:
-	pthread_attr_destroy(&attr);
 	condlog(0, "failed to start waiter thread");
 	return 1;
 }
