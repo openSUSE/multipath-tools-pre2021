@@ -2,6 +2,7 @@
 #define _WAITER_H
 
 #if DAEMON
+extern pthread_attr_t waiter_attr;
 
 struct event_thread {
 	struct dm_task *dmt;
