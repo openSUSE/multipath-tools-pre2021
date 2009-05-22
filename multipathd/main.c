@@ -732,9 +732,6 @@ exit_daemon (int status)
 	if (status != 0)
 		fprintf(stderr, "bad exit status. see daemon.log\n");
 
-	condlog(3, "unlink pidfile");
-	unlink(DEFAULT_PIDFILE);
-
 	lock(&exit_mutex);
 	pthread_cond_signal(&exit_cond);
 	unlock(&exit_mutex);
@@ -1408,13 +1405,17 @@ child (void * param)
 	FREE(vecs);
 	vecs = NULL;
 
+	dm_lib_release();
+	dm_lib_exit();
+
+	/* We're done here */
+	condlog(3, "unlink pidfile");
+	unlink(DEFAULT_PIDFILE);
+
 	condlog(2, "--------shut down-------");
 
 	if (logsink)
 		log_thread_stop();
-
-	dm_lib_release();
-	dm_lib_exit();
 
 	/*
 	 * Freeing config must be done after condlog() and dm_lib_exit(),
