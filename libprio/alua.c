@@ -23,16 +23,32 @@
 #define ALUA_PRIO_GETAAS_FAILED			3
 #define ALUA_PRIO_TPGS_FAILED			4
 
+static const char * aas_string[] = {
+	[AAS_OPTIMIZED]		= "active/optimized",
+	[AAS_NON_OPTIMIZED]	= "active/non-optimized",
+	[AAS_STANDBY]		= "standby",
+	[AAS_UNAVAILABLE]	= "unavailable",
+	[AAS_RESERVED]		= "invalid/reserved",
+	[AAS_OFFLINE]		= "offline",
+	[AAS_TRANSITIONING]	= "transitioning between states",
+};
+
+const char *aas_print_string(int rc)
+{
+	rc &= 0x7f;
+
+	if (rc & 0x70)
+		return aas_string[AAS_RESERVED];
+	rc &= 0x0f;
+	if (rc > 3 && rc < 0xe)
+		return aas_string[AAS_RESERVED];
+	else
+		return aas_string[rc];
+}
+
 int
 get_alua_info(int fd)
 {
-	char *	aas_string[] = {
-		[AAS_OPTIMIZED]		= "active/optimized",
-		[AAS_NON_OPTIMIZED]	= "active/non-optimized",
-		[AAS_STANDBY]		= "standby",
-		[AAS_UNAVAILABLE]	= "unavailable",
-		[AAS_TRANSITIONING]	= "transitioning between states",
-	};
 	int	rc;
 	int	tpg;
 
@@ -52,8 +68,9 @@ get_alua_info(int fd)
 	if (rc < 0)
 		return -ALUA_PRIO_GETAAS_FAILED;
 
-	condlog(3, "aas = [%s]",
-		(rc < 4) ? aas_string[rc] : "invalid/reserved");
+	condlog(3, "aas = [%s]%s", aas_print_string(rc),
+		(rc & 0x80) ? " [preferred]" : "");
+
 	return rc;
 }
 
@@ -65,21 +82,7 @@ int prio_alua(struct path * pp)
 		return -5;
 
 	rc = get_alua_info(pp->fd);
-	if (rc >= 0) {
-		switch(rc) {
-			case AAS_OPTIMIZED:
-				rc = 50;
-				break;
-			case AAS_NON_OPTIMIZED:
-				rc = 10;
-				break;
-			case AAS_STANDBY:
-				rc = 1;
-				break;
-			default:
-				rc = 0;
-		}
-	} else {
+	if (rc < 0) {
 		switch(-rc) {
 			case ALUA_PRIO_NOT_SUPPORTED:
 				condlog(0, "%s: alua not supported", pp->dev);
