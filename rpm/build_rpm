@@ -4,6 +4,8 @@
 #
 
 RPM="multipath-tools"
+BRANCH="sles10-sp3"
+BASEVER="0.4.7"
 DESTDIR="/tmp/$RPM"
 uncommitted_changes=0
 
@@ -41,7 +43,7 @@ while [ $# -gt 0 ] ; do
     esac
 done
 
-VERSION=$(sed -n 's/Version: *\(.*\)/\1/p' $RPM.spec)
+VERSION=$(sed -n 's/Version: *\(.*\)/\1/p' rpm/$RPM.spec)
 
 if ! which git > /dev/null ; then
     echo "git not found, cannot continue"
@@ -77,8 +79,9 @@ if ! mkdir $DESTDIR ; then
     exit 1
 fi
 
-git archive --format=tar --prefix=$RPM-$VERSION/ "$BRANCH" \
+git archive --format=tar --prefix=$RPM-$VERSION/ "$VERSION" \
     | bzip2 > $DESTDIR/$RPM-$VERSION.tar.bz2
+git diff $VERSION..$BRANCH | bzip2 > $DESTDIR/$RPM-$VERSION-$BRANCH.diff.bz2
 
 git show $BRANCH:rpm/$RPM.spec > $DESTDIR/$RPM.spec
 git show $BRANCH:rpm/$RPM.changes > $DESTDIR/$RPM.changes
@@ -90,13 +93,13 @@ if (( $uncommitted_changes )) ; then
     echo "WARNING: Including uncommitted changes for testing." >&2
     echo "         Don't submit the package to Autobuild!"     >&2
 
-    patchname=mkinitrd-$(date -u +%Y-%M-%d_%T_%Z).diff
-    git diff HEAD > $DESTDIR/$patchname
+    patchname=$RPM-$(date -u +%Y-%M-%d_%T_%Z).diff
+    git diff $BRANCH > $DESTDIR/$patchname
 
-    sed -i 's#%setup#%setup\n%patch0 -p1#g' \
-        $DESTDIR/mkinitrd.spec
-    sed -i "s#\(Source0:.*\)#\1\nPatch0:         $patchname#g" \
-        $DESTDIR/mkinitrd.spec
+    sed -i "/Patch0:.*$/a\
+Patch1:\t\t$patchname" $DESTDIR/rpm/$RPM.spec
+    sed -i "/%patch0 -p1/a\
+%patch1 -p1" $DESTDIR/rpm/$RPM.spec
 fi
 
-echo "mkinitrd src rpm copied to $DESTDIR"
+echo "$RPM src rpm copied to $DESTDIR"
