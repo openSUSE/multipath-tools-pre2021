@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Thu May 28 10:33:57 CEST 2009 - hare@suse.de
+
+- Update hardware table for new HP MSA arrays
+  (bnc#502091,FATE#306277)
+- Evaluate 'PREF' setting for alua prioritizer
+  (bnc#457715,FATE#305826)
+- buildfix: Build rpm from git repository
+
+-------------------------------------------------------------------
 Fri Apr  3 00:34:35 CEST 2009 - ro@suse.de
 
 - buildfix: add missing defattr line in filelist 
