@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# Build a multipath-tools source rpm 
+#
+
+RPM="multipath-tools"
+DESTDIR="/tmp/$RPM"
+uncommitted_changes=0
+
+while [ $# -gt 0 ] ; do
+    case "$1" in
+        -d)
+            DESTDIR=$2;
+            shift 2;
+            ;;
+        --destdir)
+            DESTDIR=${$1#*=};
+            shift;
+            ;;
+        -b)
+            BRANCH=$2;
+            shift 2;
+            ;;
+        --branch=)
+            BRANCH=${1##*=};
+            shift;
+            ;;
+        -f|--force)
+            force=1;
+            shift;
+            ;;
+        --uncommitted-changes)
+            uncommitted_changes=1
+            shift;
+            ;;
+        *)
+            echo "Usage: build_rpm [-f] [-d dir|--destdir=DIR] " \
+                 "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes]"
+            exit 1;
+            ;;
+    esac
+done
+
+VERSION=$(sed -n 's/Version: *\(.*\)/\1/p' $RPM.spec)
+
+if ! which git > /dev/null ; then
+    echo "git not found, cannot continue"
+    exit 1
+fi
+
+if [ -z "$BRANCH" ] ; then
+    BRANCH="sles10-sp3"
+    echo "Branch is not set, checking out from $BRANCH"
+fi
+
+if [ -d "$DESTDIR" ] ; then
+    if [ -z "$force" ] ; then
+        echo "directory $DESTDIR exists, cannot continue"
+        exit 1
+    else
+        if ! rm -rf "$DESTDIR" ; then
+            echo "Cannot remove directory $DESTDIR"
+            exit 1
+        fi
+    fi
+fi
+
+if ! git branch | grep -q "$BRANCH" ; then
+    echo "Branch \"$BRANCH\" does not exist"
+    exit 1
+else
+    echo "Checking out from $BRANCH"
+fi
+
+if ! mkdir $DESTDIR ; then
+    echo "Cannot create directory $DESTDIR"
+    exit 1
+fi
+
+git archive --format=tar --prefix=$RPM-$VERSION/ "$BRANCH" \
+    | bzip2 > $DESTDIR/$RPM-$VERSION.tar.bz2
+
+git show $BRANCH:rpm/$RPM.spec > $DESTDIR/$RPM.spec
+git show $BRANCH:rpm/$RPM.changes > $DESTDIR/$RPM.changes
+
+
+#
+# if the user specified
+if (( $uncommitted_changes )) ; then
+    echo "WARNING: Including uncommitted changes for testing." >&2
+    echo "         Don't submit the package to Autobuild!"     >&2
+
+    patchname=mkinitrd-$(date -u +%Y-%M-%d_%T_%Z).diff
+    git diff HEAD > $DESTDIR/$patchname
+
+    sed -i 's#%setup#%setup\n%patch0 -p1#g' \
+        $DESTDIR/mkinitrd.spec
+    sed -i "s#\(Source0:.*\)#\1\nPatch0:         $patchname#g" \
+        $DESTDIR/mkinitrd.spec
+fi
+
+echo "mkinitrd src rpm copied to $DESTDIR"
