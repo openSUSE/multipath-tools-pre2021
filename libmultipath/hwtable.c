@@ -769,6 +769,21 @@ static struct hwentry default_hw[] = {
 		.checker_name  = TUR,
 		.prio_name     = PRIO_RDAC,
 	},
+	{
+		.vendor        = "STK",
+		.product       = "FLEXLINE 380",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_RDAC,
+	},
 	/*
 	 * SUN arrays
 	 *
@@ -789,6 +804,21 @@ static struct hwentry default_hw[] = {
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+	},
+	{
+		.vendor        = "SUN",
+		.product       = "STK6580_6780",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_RDAC,
 	},
 	/*
 	 * Pivot3 RAIGE
