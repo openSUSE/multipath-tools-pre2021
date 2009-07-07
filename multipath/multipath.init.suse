@@ -73,6 +73,31 @@ case "$1" in
 
 	udevsettle --timeout="$MPATH_DEVICE_TIMEOUT"
 
+	# Wait for FC scan to finish
+	i=0;
+	wait=$MPATH_DEVICE_TIMEOUT
+	while [ "$wait" -gt 0 ] ; do
+	    i=0;
+	    for p in /sys/class/fc_host/host* ; do
+		[ -d $p ] || continue
+		[ -r $p/port_state ] || continue
+		read s < $p/port_state
+		echo "${p##*/}: $s"
+		case "$s" in
+		    Online|Linkdown|Error)
+			continue
+			;;
+		    *)
+		        i=$(( $i + 1 ))
+			;;
+		esac
+	    done
+	    [ "$i" -eq 0 ] && break
+	    echo "$i hosts still not finished"
+	    wait=$((wait - 1))
+	    sleep 1;
+	done
+
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
 
