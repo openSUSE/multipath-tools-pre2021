@@ -22,6 +22,7 @@
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 DAEMON=/sbin/multipathd
 PIDFILE=/var/run/multipathd.pid
+MPATH_INIT_TIMEOUT=10
 ARGS=""
 
 # Set the maximum number of open files
@@ -51,15 +52,19 @@ case "$1" in
 	    ulimit -n $MAX_OPEN_FDS
 	fi
 
-	if [ -f $PIDFILE ]; then
-		PID="$(cat $PIDFILE)"
-		PROCNAME="$(ps -p $PID -o comm=)"
-	fi
+	$DAEMON $ARGS
 
-	if [ "$PROCNAME" != `basename $DAEMON` ]; then
-		$DAEMON $ARGS
+	# Wait for the daemon to start up
+	timeout=$MPATH_INIT_TIMEOUT
+	while [ ! -f $PIDFILE ] ; do
+	    sleep 1
+	    timeout=$(( $timeout - 1 ))
+	    [ $timeout -eq 0 ] && break
+	done
+	if [ $timeout -eq 0 ] ; then
+	    echo -n " (no pidfile)"
+	    rc_failed 1
 	fi
-	
 	# Remember status and be verbose
 	rc_status -v
 	;;
@@ -73,10 +78,18 @@ case "$1" in
 		PROCNAME="$(ps -p $PID -o comm=)"
 	fi
 
-	if [ "$PROCNAME" == `basename $DAEMON` ]; then
+	status=$($DAEMON -k'shutdown')
+	if [ "$status" != "ok" ] ; then
+	    if [ "$PROCNAME" == `basename $DAEMON` ]; then
 		kill -TERM $PID
+	    else
+		echo -n " (pid not found)"
+		rc_failed 1
+		rc_status -v
+		rc_exit
+	    fi
 	fi
-	timeout=10
+	timeout=$MPATH_INIT_TIMEOUT
 	while [ -f $PIDFILE ] ; do
 	    sleep 1
 	    timeout=$(( $timeout - 1 ))

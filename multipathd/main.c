@@ -1400,12 +1400,6 @@ child (void * param)
 				conf->max_fds, strerror(errno));
 	}
 
-	if (pidfile_create(DEFAULT_PIDFILE, getpid())) {
-		if (logsink)
-			log_thread_stop();
-
-		exit(1);
-	}
 	signal_init();
 	setscheduler();
 	set_oom_adj(-16);
@@ -1444,6 +1438,13 @@ child (void * param)
 	}
 	pthread_attr_destroy(&def_attr);
 
+	/* Startup complete, create logfile */
+	if (pidfile_create(DEFAULT_PIDFILE, getpid())) {
+		if (logsink)
+			log_thread_stop();
+
+		exit(1);
+	}
 	pthread_cond_wait(&exit_cond, &exit_mutex);
 
 	/*
