@@ -16,6 +16,7 @@
  * Known prioritizers for use in hwtable.c
  */
 #define PRIO_ALUA "alua"
+#define PRIO_AAS "aas"
 #define PRIO_CONST "const"
 #define PRIO_EMC "emc"
 #define PRIO_HDS "hds"

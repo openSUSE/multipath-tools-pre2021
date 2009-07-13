@@ -160,6 +160,10 @@ of this path. Higher number have a higher priority.
 .B alua
 Generate the path priority based on ALUA status of the path.
 .TP 12
+.B aas
+Generate the path priority based on ALUA status of the path, taking
+into account the 'PREF' setting.
+.TP 12
 .B weightedpath <hbtl|devname> <regex1> <prio1> <regex2> <prio2> ...
 .I hbtl 
 regex can be of SCSI H:B:T:L format  Ex: 1:0:.:. , *:0:0:.

@@ -11,6 +11,7 @@ LIBS = \
 	libprioemc.so \
 	libpriordac.so \
 	libprioalua.so \
+	libprioaas.so \
 	libprioontap.so \
 	libpriohds.so \
 	libprioweightedpath.so
@@ -22,8 +23,14 @@ all: $(LIBS)
 libprioalua.so: alua.o alua_rtpg.o
 	$(CC) $(SHARED_FLAGS) -o $@ $^
 
+libprioaas.so: aas.o alua_rtpg.o
+	$(CC) $(SHARED_FLAGS) -o $@ $^
+
 libprio%.so: %.o
 	$(CC) $(SHARED_FLAGS) -o $@ $^
+
+aas.o: alua.c
+	$(CC) $(CFLAGS) -DAAS -c -o $@ $<
 
 install: $(LIBS)
 	$(INSTALL_PROGRAM) -m 755 libprio*.so $(DESTDIR)$(libdir)
