@@ -53,20 +53,35 @@ assemble_map (struct multipath * mp)
 	int i, j;
 	int shift, freechar;
 	int minio;
-	char * p;
+	char * p, * f;
+	char no_path_retry[] = "queue_if_no_path";
 	struct pathgroup * pgp;
 	struct path * pp;
 
 	minio = mp->minio;
 	p = mp->params;
 	freechar = sizeof(mp->params);
-	
+
+	f = STRDUP(mp->features);
+
+	if (mp->no_path_retry == NO_PATH_RETRY_UNDEF ||
+	    mp->no_path_retry == NO_PATH_RETRY_FAIL) {
+		/* remove queue_if_no_path settings */
+		condlog(3, "%s: remove queue_if_no_path from '%s'",
+			mp->alias, mp->features);
+		remove_feature(&f, no_path_retry);
+	} else {
+		add_feature(&f, no_path_retry);
+	}
+
 	shift = snprintf(p, freechar, "%s %s %i %i",
-			 mp->features, mp->hwhandler,
+			 f, mp->hwhandler,
 			 VECTOR_SIZE(mp->pg), mp->bestpg);
 
+	FREE(f);
+
 	if (shift >= freechar) {
-		fprintf(stderr, "mp->params too small\n");
+		condlog(0, "%s: mp->params too small\n", mp->alias);
 		return 1;
 	}
 	p += shift;
