@@ -78,13 +78,12 @@ case "$1" in
 		PROCNAME="$(ps -p $PID -o comm=)"
 	fi
 
-	status=$($DAEMON -k'shutdown')
+	status=$($DAEMON -k'shutdown' 2> /dev/null)
 	if [ "$status" != "ok" ] ; then
 	    if [ "$PROCNAME" == `basename $DAEMON` ]; then
 		kill -TERM $PID
 	    else
-		echo -n " (pid not found)"
-		rc_failed 1
+		rc_failed 7
 		rc_status -v
 		rc_exit
 	    fi
