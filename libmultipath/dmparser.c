@@ -64,6 +64,10 @@ assemble_map (struct multipath * mp, char * params, int len)
 
 	f = STRDUP(mp->features);
 
+	/*
+	 * We have to set 'queue_if_no_path' here even
+	 * to avoid path failures during map reload.
+	 */
 	if (mp->no_path_retry == NO_PATH_RETRY_UNDEF ||
 	    mp->no_path_retry == NO_PATH_RETRY_FAIL) {
 		/* remove queue_if_no_path settings */
