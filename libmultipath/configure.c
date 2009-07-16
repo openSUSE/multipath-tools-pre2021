@@ -373,8 +373,6 @@ domap (struct multipath * mpp)
 		 */
 #ifndef DAEMON
 		dm_switchgroup(mpp->alias, mpp->bestpg);
-		if (mpp->action != ACT_NOTHING)
-			print_multipath_topology(mpp, conf->verbosity);
 #else
 		mpp->stat_map_loads++;
 		condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
@@ -507,10 +505,15 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 			continue;
 
 		if (mpp->no_path_retry != NO_PATH_RETRY_UNDEF) {
-			if (mpp->no_path_retry == NO_PATH_RETRY_FAIL)
-				dm_queue_if_no_path(mpp->alias, 0);
-			else
-				dm_queue_if_no_path(mpp->alias, 1);
+			if (mpp->no_path_retry == NO_PATH_RETRY_FAIL) {
+				if (!dm_queue_if_no_path(mpp->alias, 0))
+					remove_feature(&mpp->features,
+						       "queue_if_no_path");
+			} else {
+				if (!dm_queue_if_no_path(mpp->alias, 1))
+					add_feature(&mpp->features,
+						    "queue_if_no_path");
+			}
 		}
 		if (mpp->pg_timeout != PGTIMEOUT_UNDEF) {
 			if (mpp->pg_timeout == -PGTIMEOUT_NONE)
@@ -519,6 +522,10 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid)
 				dm_set_pg_timeout(mpp->alias, mpp->pg_timeout);
 		}
 
+#ifndef DAEMON
+		if (mpp->action != ACT_NOTHING)
+			print_multipath_topology(mpp, conf->verbosity);
+#endif
 		if (newmp) {
 			if (mpp->action != ACT_REJECT) {
 				if (!vector_alloc_slot(newmp))

@@ -190,19 +190,19 @@ select_features (struct multipath * mp)
 
 	if ((mpe = find_mpe(mp->wwid))) {
 		if (mpe->features) {
-			mp->features = mpe->features;
+			mp->features = STRDUP(mpe->features);
 			condlog(3, "%s: features = %s (LUN setting)",
 				mp->alias, mp->features);
 			return 0;
 		}
 	}
 	if (mp->hwe && mp->hwe->features) {
-		mp->features = mp->hwe->features;
+		mp->features = STRDUP(mp->hwe->features);
 		condlog(3, "%s: features = %s (controller setting)",
 			mp->alias, mp->features);
 		return 0;
 	}
-	mp->features = conf->features;
+	mp->features = STRDUP(conf->features);
 	condlog(3, "%s: features = %s (internal default)",
 		mp->alias, mp->features);
 	return 0;

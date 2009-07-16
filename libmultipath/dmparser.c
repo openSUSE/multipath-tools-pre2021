@@ -121,6 +121,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 	int num_paths = 0;
 	int num_paths_args = 0;
 	int def_minio = 0;
+	int no_path_retry = NO_PATH_RETRY_UNDEF;
 	struct path * pp;
 	struct pathgroup * pgp;
 
@@ -135,6 +136,8 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 		return 1;
 
 	num_features = atoi(mpp->features);
+	no_path_retry = mpp->no_path_retry;
+	mpp->no_path_retry = NO_PATH_RETRY_UNDEF;
 
 	for (i = 0; i < num_features; i++) {
 		p += get_word(p, &word);
@@ -150,6 +153,11 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 		FREE(word);
 	}
+
+	/* Reset no_path_retry if not set from features */
+	if (mpp->no_path_retry == NO_PATH_RETRY_UNDEF &&
+	    mpp->no_path_retry != no_path_retry)
+		mpp->no_path_retry = no_path_retry;
 
 	/*
 	 * hwhandler
