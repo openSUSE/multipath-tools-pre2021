@@ -1344,12 +1344,6 @@ child (void * param)
 				conf->max_fds, strerror(errno));
 	}
 
-	if (pidfile_create(DEFAULT_PIDFILE, getpid())) {
-		if (logsink)
-			log_thread_stop();
-
-		exit(1);
-	}
 	signal_init();
 	setscheduler();
 	set_oom_adj(-16);
@@ -1378,6 +1372,11 @@ child (void * param)
 	pthread_create(&uevent_thr, &def_attr, ueventloop, vecs);
 	pthread_create(&uxlsnr_thr, &def_attr, uxlsnrloop, vecs);
 	pthread_attr_destroy(&def_attr);
+
+	/* Startup complete, create logfile */
+	if (pidfile_create(DEFAULT_PIDFILE, getpid()))
+		condlog(0, "cannot create pidfile, continuing");
+
 
 	pthread_cond_wait(&exit_cond, &exit_mutex);
 
