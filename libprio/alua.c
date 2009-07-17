@@ -82,7 +82,21 @@ int prio_alua(struct path * pp)
 		return -5;
 
 	rc = get_alua_info(pp->fd);
-	if (rc < 0) {
+	if (rc >= 0) {
+		switch(rc) {
+		case AAS_OPTIMIZED:
+			rc = 50;
+			break;
+		case AAS_NON_OPTIMIZED:
+			rc = 10;
+			break;
+		case AAS_STANDBY:
+			rc = 1;
+			break;
+		default:
+			rc = 0;
+		}
+	} else {
 		switch(-rc) {
 			case ALUA_PRIO_NOT_SUPPORTED:
 				condlog(0, "%s: alua not supported", pp->dev);
