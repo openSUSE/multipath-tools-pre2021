@@ -138,9 +138,9 @@ static struct hwentry default_hw[] = {
 		.prio_name     = DEFAULT_PRIO,
 	},
 	{
-		/* EVA 3000/5000 with new firmware, EVA 4x000/6x00/8x00 */
+		/* EVA 3000/5000 with new firmware, EVA 4x00/6x00/8x00 */
 		.vendor        = "(COMPAQ|HP)",
-		.product       = "HSV1[01]1|HSV2[01]0|HSV300|HSV4[05]0",
+		.product       = "HSV1[01]1|HSV2[01]0|HSV3[046]0|HSV4[05]0",
 		.getuid        = DEFAULT_GETUID,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
@@ -202,6 +202,22 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 	},
 	{
+                 /* HP P2000 product family */
+                .vendor        = "HP",
+                .product       = "P2000 G3 FC",
+                .getuid        = DEFAULT_GETUID,
+                .features      = DEFAULT_FEATURES,
+                .hwhandler     = DEFAULT_HWHANDLER,
+                .selector      = DEFAULT_SELECTOR,
+                .pgpolicy      = GROUP_BY_PRIO,
+                .pgfailback    = -FAILBACK_IMMEDIATE,
+                .rr_weight     = RR_WEIGHT_NONE,
+                .no_path_retry = 18,
+                .minio         = 100,
+                .checker_name  = TUR,
+		.prio_name     = PRIO_ALUA,
+        },
+	{
 		/* HP Smart Array */
 		.vendor        = "HP",
 		.product       = "LOGICAL VOLUME.*",
@@ -218,7 +234,23 @@ static struct hwentry default_hw[] = {
 		.prio_name     = DEFAULT_PRIO,
 	},
 	{
-		/* HP San Virtualization Services Platform */
+                /* HP San Virtualization Services Platform Active-Active configurations */
+                .vendor        = "HP",
+                .product       = "HSVX740",
+                .getuid        = DEFAULT_GETUID,
+                .features      = DEFAULT_FEATURES,
+                .hwhandler     = DEFAULT_HWHANDLER,
+                .selector      = DEFAULT_SELECTOR,
+                .pgpolicy      = GROUP_BY_PRIO,
+                .pgfailback    = FAILBACK_UNDEF,
+                .rr_weight     = RR_WEIGHT_NONE,
+                .no_path_retry = 18,
+                .minio         = 100,
+                .checker_name  = TUR,
+                .prio_name     = PRIO_ALUA,
+        },
+	{
+		/* HP San Virtualization Services Platform Active-Standby configurations */
 		.vendor        = "HP",
 		.product       = "HSVX700",
 		.getuid        = DEFAULT_GETUID,
