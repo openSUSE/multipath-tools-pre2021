@@ -63,6 +63,15 @@ tur (struct checker * c)
 	if (io_hdr.info & SG_INFO_OK_MASK) {
 		int key = 0, asc, ascq;
 
+		if ((io_hdr.status & 0x7e) == 0x18) {
+			/*
+			 * SCSI-3 arrays might return
+			 * reservation conflict on TUR
+			 */
+			MSG(c, MSG_TUR_UP);
+			return PATH_UP;
+		}
+
 		if (io_hdr.sb_len_wr > 3) {
 			if (io_hdr.sbp[0] == 0x72 || io_hdr.sbp[0] == 0x73) {
 				key = io_hdr.sbp[1] & 0x0f;
