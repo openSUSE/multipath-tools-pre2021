@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Jul 31 08:50:50 CEST 2009 - hare@suse.de
+
+- tur path checker incorrectly marks standby paths (bnc#522895)
+- Use average path priority value for path switching
+- Synchronize daemon startup with init file (bnc#519746)
+- Update features when queue_if_no_path is set (bnc#514624)
+
+-------------------------------------------------------------------
 Thu May 28 10:33:57 CEST 2009 - hare@suse.de
 
 - Update hardware table for new HP MSA arrays
