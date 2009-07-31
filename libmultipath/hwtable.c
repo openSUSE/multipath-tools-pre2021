@@ -635,6 +635,27 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 	},
 	/*
+	 * Generic LSI/Engenio controller
+	 *
+	 * Maintainer: Hannes Reinecke
+	 * Mail: hare@suse.de
+	 */
+	{
+		.vendor        = "ENGENIO",
+		.product       = "INF.*",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_QUEUE,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	/*
 	 * NETAPP controller family
 	 *
 	 * Maintainer : Dave Wysochanski
