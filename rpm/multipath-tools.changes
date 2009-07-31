@@ -5,6 +5,8 @@ Fri Jul 31 08:50:50 CEST 2009 - hare@suse.de
 - Use average path priority value for path switching
 - Synchronize daemon startup with init file (bnc#519746)
 - Update features when queue_if_no_path is set (bnc#514624)
+- tur path checker returns 'failed' for reservation conflict
+  (bnc#498413)
 
 -------------------------------------------------------------------
 Thu May 28 10:33:57 CEST 2009 - hare@suse.de
