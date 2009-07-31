@@ -51,6 +51,8 @@ case "$1" in
 	fi
 
 	if [ "$PROCNAME" == `basename $DAEMON` ]; then
+	    echo -n " (already running)"
+	else
 	    $DAEMON $ARGS
 
 	    # Wait for the daemon to start up
