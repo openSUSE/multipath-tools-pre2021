@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Aug  3 09:16:57 CEST 2009 - hare@suse.de
+
+- Fixup spec file to not run %pre/%post scripts during build
+
+-------------------------------------------------------------------
 Fri Jul 31 08:50:50 CEST 2009 - hare@suse.de
 
 - tur path checker incorrectly marks standby paths (bnc#522895)

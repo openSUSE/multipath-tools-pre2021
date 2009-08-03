@@ -77,11 +77,13 @@ mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 [ "$RPM_BUILD_ROOT" != / ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT;
 
 %pre
+[ -f /.buildenv ] && exit 0
 if [ -f /etc/init.d/multipathd ] && dmsetup table | grep -q multipath ; then
     /etc/init.d/multipathd stop
 fi
 
 %post
+[ -f /.buildenv ] && exit 0
 if dmsetup table | grep -q multipath ; then
     /etc/init.d/multipathd start
 fi
