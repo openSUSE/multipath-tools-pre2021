@@ -83,7 +83,7 @@ int prio_alua(struct path * pp)
 
 	rc = get_alua_info(pp->fd);
 	if (rc >= 0) {
-		switch(rc) {
+		switch (rc & 0x0f) {
 		case AAS_OPTIMIZED:
 			rc = 50;
 			break;
@@ -96,6 +96,8 @@ int prio_alua(struct path * pp)
 		default:
 			rc = 0;
 		}
+		if (rc & 0x80)
+			rc += 100;
 	} else {
 		switch(-rc) {
 			case ALUA_PRIO_NOT_SUPPORTED:
