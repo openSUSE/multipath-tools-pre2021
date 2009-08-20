@@ -1025,7 +1025,7 @@ checkerloop (void *ap)
 		pp->checkint = conf->checkint;
 	}
 
-	while (1) {
+	while (conf->checkint > 0) {
 		block_signal(SIGHUP, &old);
 		pthread_cleanup_push(cleanup_lock, vecs->lock);
 		lock(vecs->lock);
@@ -1382,6 +1382,8 @@ child (void * param)
 
 	lock(vecs->lock);
 	remove_maps(vecs, stop_waiter_thread);
+	/* Signal checkerloop */
+	conf->checkint = 0;
 	unlock(vecs->lock);
 
 	pthread_cancel(check_thr);

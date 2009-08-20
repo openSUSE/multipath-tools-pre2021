@@ -336,7 +336,9 @@ exit:
 
 	pthread_mutex_lock(uevq_lockp);
 	pthread_cancel(uevq_thr);
+	pthread_cond_signal(uev_condp);
 	pthread_mutex_unlock(uevq_lockp);
+	pthread_join(uevq_thr, NULL);
 
 out:
 	pthread_mutex_destroy(uevq_lockp);
