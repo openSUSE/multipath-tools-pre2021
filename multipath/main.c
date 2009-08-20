@@ -25,7 +25,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 #include <checkers.h>
 #include <libprio.h>
@@ -488,6 +490,16 @@ main (int argc, char *argv[])
 			goto out;
 		}
 	}
+	if (conf->max_fds) {
+		struct rlimit fd_limit;
+
+		fd_limit.rlim_cur = conf->max_fds;
+		fd_limit.rlim_max = conf->max_fds;
+		if (setrlimit(RLIMIT_NOFILE, &fd_limit) < 0)
+			condlog(0, "can't set open fds limit to %d : %s\n",
+				conf->max_fds, strerror(errno));
+	}
+
 	dm_init();
 
 	if (conf->remove == FLUSH_ONE) {
@@ -504,7 +516,7 @@ main (int argc, char *argv[])
 	}
 	while ((r = configure()) < 0)
 		condlog(3, "restart multipath configuration process");
-	
+
 out:
 	sysfs_cleanup();
 	dm_lib_release();
