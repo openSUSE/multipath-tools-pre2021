@@ -148,6 +148,7 @@ check_state(int fd, struct directio_context *ct, int sync)
 	}
 	ct->running++;
 
+	errno = 0;
 	r = syscall(__NR_io_getevents, ct->ioctx, 1L, 1L, &event, &timeout);
 	LOG(3, "async io getevents returns %li (errno=%s)", r, strerror(errno));
 
