@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Thu Aug 20 16:53:13 CEST 2009 - hare@suse.de
+
+- Log all messages
+- Evaluate PREF setting for ALUA correctly (bnc#521008)
+- Retrigger events for existing device-mapper devices (bnc#517021)
+- Set errno for io_getevents
+- max_fds=unlimited doesn't work (bnc#520023)
+- emc_clariion: Disable ALUA paths for PNR checker
+- Race condition with sysfs attributes (bnc#524018)
+- Race conditions with threads during shutdown (bnc#519746)
+
+-------------------------------------------------------------------
 Mon Aug  3 09:16:57 CEST 2009 - hare@suse.de
 
 - Fixup spec file to not run %pre/%post scripts during build
