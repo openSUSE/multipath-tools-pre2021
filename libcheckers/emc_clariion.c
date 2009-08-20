@@ -48,6 +48,9 @@ struct emc_clariion_checker_LU_context {
 	int inactive_snap;
 };
 
+/* Set if _any_ path reports ALUA, for mixed-mode testing */
+static int alua_mode;
+
 extern void
 hexadecimal_to_ascii(char * wwn, char *wwnstr)
 {
@@ -80,6 +83,9 @@ int emc_clariion_init (struct checker * c)
 		*c->mpcontext = mpctxt;
 		CLR_INACTIVE_SNAP(c);
 	}
+
+	/* Assume non-alua mode to start with. */
+	alua_mode = 0;
 
 	return 0;
 }
@@ -139,6 +145,18 @@ int emc_clariion(struct checker * c)
 		|| (sense_buffer[30] & 0x04) != 0x04) {
 		MSG(c, "emc_clariion_checker: Path not correctly configured "
 		    "for failover");
+		return PATH_DOWN;
+	}
+
+	if (/* Set flag if ALUA mode is detected on any initiator */
+	    (sense_buffer[28] & 0x07) == 0x06) {
+		alua_mode = 1;
+	}
+
+	if (((sense_buffer[28] & 0x07) == 0x04) && alua_mode) {
+		/* One or more initiators reported ALUA, but we are PNR too */
+		MSG(c, "emc_clariion_checker: Paths to this LUN detected in "
+		    "both ALUA and PNR modes");
 		return PATH_DOWN;
 	}
 
