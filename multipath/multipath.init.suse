@@ -82,7 +82,6 @@ case "$1" in
 		[ -d $p ] || continue
 		[ -r $p/port_state ] || continue
 		read s < $p/port_state
-		echo "${p##*/}: $s"
 		case "$s" in
 		    Online|Linkdown|Error)
 			continue
@@ -98,6 +97,10 @@ case "$1" in
 	    sleep 1;
 	done
 
+	# Retrigger events for existing devices
+	for dev in /sys/block/dm-*; do
+	    echo add > $dev/uevent
+	done
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
 
