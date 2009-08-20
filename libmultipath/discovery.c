@@ -125,11 +125,54 @@ path_discovery (vector pathvec, struct config * conf, int flag)
 	return r;
 }
 
+
+/*
+ * the daemon can race udev upon path add,
+ * not multipath(8), ran by udev
+ */
+#if DAEMON
+#define WAIT_MAX_SECONDS 5
+#define WAIT_LOOP_PER_SECOND 5
+
+static int
+wait_for_file (char * filename)
+{
+	int loop;
+	struct stat stats;
+	
+	loop = WAIT_MAX_SECONDS * WAIT_LOOP_PER_SECOND;
+	
+	while (--loop) {
+		if (stat(filename, &stats) == 0)
+			return 0;
+
+		if (errno != ENOENT)
+			return 1;
+
+		usleep(1000 * 1000 / WAIT_LOOP_PER_SECOND);
+	}
+	return 1;
+}
+#else
+static int
+wait_for_file (char * filename)
+{
+	return 0;
+}
+#endif
+
 #define declare_sysfs_get_str(fname) \
 extern int \
 sysfs_get_##fname (struct sysfs_device * dev, char * buff, size_t len) \
 { \
 	char *attr; \
+	char attr_path[SYSFS_PATH_SIZE]; \
+\
+	if (safe_sprintf(attr_path, "%s/%s/%s", sysfs_path, dev->devpath, #fname)) \
+		return 1; \
+\
+	if (wait_for_file(attr_path)) \
+		return 1; \
 \
 	attr = sysfs_attr_get_value(dev->devpath, #fname); \
 	if (!attr) \
