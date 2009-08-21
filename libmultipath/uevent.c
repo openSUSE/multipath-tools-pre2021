@@ -39,6 +39,7 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <limits.h>
 
 #include "memory.h"
 #include "debug.h"
