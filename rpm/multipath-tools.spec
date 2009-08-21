@@ -24,7 +24,7 @@ Url:            http://christophe.varoqui.free.fr/
 License:        BSD 3-clause (or similar) ; GPL v2 or later ; LGPL v2.1 or later ;  Public Domain, Freeware ; MIT License (or similar)
 Group:          System/Base
 Requires:       device-mapper kpartx
-PreReq:         %insserv_prereq %fillup_prereq coreutils grep diffutils
+PreReq:         %insserv_prereq %fillup_prereq coreutils grep
 AutoReqProv:    on
 Version:        0.4.8
 Release:        41
@@ -109,7 +109,8 @@ exit 0
 %config /etc/init.d/multipathd
 %config /etc/init.d/boot.multipath
 %config /etc/udev/rules.d/71-multipath.rules
-/lib/multipath
+/%{_lib}/libmultipath.so
+/%{_lib}/multipath
 /sbin/multipath
 /sbin/multipathd
 %attr (0700, root, root) /var/cache/multipath
