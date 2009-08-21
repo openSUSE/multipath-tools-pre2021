@@ -72,7 +72,7 @@ static int logarea_init (int size)
 int log_init(char *program_name, int size)
 {
 	logdbg(stderr,"enter log_init\n");
-	openlog(program_name, 0, LOG_DAEMON);
+	openlog(program_name, LOG_CONS, LOG_DAEMON);
 
 	if (logarea_init(size))
 		return 1;
@@ -94,6 +94,12 @@ void log_close (void)
 	closelog();
 
 	return;
+}
+
+void log_reset (char *program_name)
+{
+	closelog();
+	openlog(program_name, LOG_CONS, LOG_DAEMON);
 }
 
 int log_enqueue (int prio, const char * fmt, va_list ap)

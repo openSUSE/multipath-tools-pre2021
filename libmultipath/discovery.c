@@ -127,16 +127,22 @@ path_discovery (vector pathvec, struct config * conf, int flag)
 #define declare_sysfs_get_str(fname) \
 extern int \
 sysfs_get_##fname (struct sysfs_device * dev, char * buff, size_t len) \
-{ \
-	char *attr; \
-\
-	attr = sysfs_attr_get_value(dev->devpath, #fname); \
-	if (!attr) \
-		return 1; \
-	if (strlcpy(buff, attr, len) != strlen(attr)) \
-		return 2; \
-	strchop(buff); \
-	return 0; \
+{								       \
+	int size;						       \
+								       \
+	size = sysfs_attr_get_value(dev->devpath, #fname, buff, len);	\
+	if (!size) {							\
+		condlog(3, "%s: attribute %s not found in sysfs",	\
+			dev->kernel, #fname);				\
+		return 1;						\
+	}								\
+	if (size == len) {						\
+		condlog(3, "%s: overflow in attribute %s",		\
+			dev->kernel, #fname);				\
+		return 2;						\
+	}								\
+	strchop(buff);							\
+	return 0;							\
 }
 
 declare_sysfs_get_str(devtype);
@@ -145,38 +151,28 @@ declare_sysfs_get_str(vendor);
 declare_sysfs_get_str(model);
 declare_sysfs_get_str(rev);
 declare_sysfs_get_str(state);
-
-int
-sysfs_get_dev (struct sysfs_device * dev, char * buff, size_t len)
-{
-	char *attr;
-
-	attr = sysfs_attr_get_value(dev->devpath, "dev");
-	if (!attr) {
-		condlog(3, "%s: no 'dev' attribute in sysfs", dev->kernel);
-		return 1;
-	}
-	if (strlcpy(buff, attr, len) != strlen(attr)) {
-		condlog(3, "%s: overflow in 'dev' attribute", dev->kernel);
-		return 2;
-	}
-	return 0;
-}
+declare_sysfs_get_str(dev);
 
 int
 sysfs_get_size (struct sysfs_device * dev, unsigned long long * size)
 {
-	char *attr;
+	char attr[NAME_SIZE];
+	size_t len;
 	int r;
 
-	attr = sysfs_attr_get_value(dev->devpath, "size");
-	if (!attr)
+	len = sysfs_attr_get_value(dev->devpath, "size", attr, NAME_SIZE);
+	if (!len) {
+		condlog(3, "%s: No size attribute in sysfs", dev->devpath);
 		return 1;
+	}
 
 	r = sscanf(attr, "%llu\n", size);
 
-	if (r != 1)
+	if (r != 1) {
+		condlog(3, "%s: Cannot parse size attribute '%s'",
+			dev->devpath, attr);
 		return 1;
+	}
 
 	return 0;
 }
@@ -186,7 +182,8 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 		       unsigned int host, unsigned int channel,
 		       unsigned int target)
 {
-	char attr_path[SYSFS_PATH_SIZE], *attr;
+	char attr_path[SYSFS_PATH_SIZE];
+	size_t len;
 
 	if (safe_sprintf(attr_path,
 			 "/class/fc_transport/target%i:%i:%i",
@@ -195,13 +192,89 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 		return 1;
 	}
 
-	attr = sysfs_attr_get_value(attr_path, "node_name");
-	if (attr) {
-		strlcpy(node, attr, strlen(attr));
+	len = sysfs_attr_get_value(attr_path, "node_name", node, NAME_SIZE);
+	if (!len)
+		return 1;
+
+	return 0;
+}
+
+int
+sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
+{
+	char *rport;
+	char attr_path[SYSFS_PATH_SIZE];
+	char attr_value[NAME_SIZE];
+	int host, num;
+	int rport_channel = -1;
+	int rport_id = -1;
+
+	if (pp->bus != SYSFS_BUS_SCSI) {
+		condlog(4, "%s: no FC settings on non-SCSI device", pp->dev);
 		return 0;
 	}
 
-	return 1;
+	if (dev_loss_tmo == 0 || fast_io_fail_tmo == 0) {
+		condlog(4, "%s: no FC settings", pp->dev);
+		return 0;
+	}
+
+	if (!pp->sysdev) {
+		condlog(3, "%s: no sysfs device set", pp->dev);
+		return 0;
+	}
+
+	condlog(4, "%s: checking rport for %s", pp->dev,
+		pp->sysdev ? pp->sysdev->devpath : NULL);
+
+	rport = strstr(pp->sysdev->devpath, "rport");
+	if (!rport || sscanf(rport, "rport-%d:%d-%d/%*s",
+			     &host, &rport_channel, &rport_id) != 3) {
+		condlog(3, "%s: Invalid devpath %s",
+			pp->dev, pp->sysdev->devpath);
+		return 1;
+	}
+
+	if (rport_channel < 0 && rport_id < 0) {
+		condlog(3, "%s: No rport found", pp->dev);
+		return 0;
+	}
+
+	condlog(4, "%s: using rport-%d:%d-%d for target%d:%d:%d", pp->dev,
+		host, rport_channel, rport_id,
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
+
+	if (safe_sprintf(attr_path,
+			"/class/fc_remote_ports/rport-%d:%d-%d",
+			host, rport_channel, rport_id)) {
+		condlog(1, "attr_path too small");
+		return 0;
+	}
+
+	condlog(4, "%s: set dev_loss_tmo to %d, fast_io_fail to %d",
+		pp->dev, dev_loss_tmo, fast_io_fail_tmo);
+
+	if (dev_loss_tmo < 0)
+		sprintf(attr_value, "%d", 0);
+	else
+		sprintf(attr_value, "%d", dev_loss_tmo);
+	num = sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+				   attr_value, strlen(attr_value));
+	if (num <= 0)
+		condlog(4, "%s: failed to set dev_loss_tmo (%d)",
+			pp->dev, num);
+
+	if (fast_io_fail_tmo < 0)
+		sprintf(attr_value, "%d", 0);
+	else
+		sprintf(attr_value, "%d", fast_io_fail_tmo);
+	num = sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
+				   attr_value, strlen(attr_value));
+	if (num <= 0)
+		condlog(4, "%s: failed to set fast_io_fail_tmo (%d)",
+			pp->dev, num);
+
+	return num == strlen(attr_value) ? 0 : 1;
 }
 
 static int
@@ -238,6 +311,25 @@ devt2devname (char *devname, char *devt)
 		condlog(0, "Invalid device number %s", devt);
 		return 1;
 	}
+
+	sprintf(block_path,"/sys/dev/%u:%u", major, minor);
+	if (stat(block_path, &statbuf) == 0) {
+		/* Newer kernels have /sys/dev */
+		if (S_ISLNK(statbuf.st_mode) &&
+		    readlink(block_path, dev, FILE_NAME_SIZE) > 0) {
+			char *p = strrchr(dev, '/');
+
+			if (!p) {
+				condlog(0, "No sysfs entry for %s\n",
+					block_path);
+				return 1;
+			}
+			p++;
+			strncpy(devname, p, FILE_NAME_SIZE);
+			return 0;
+		}
+	}
+	memset(block_path, 0, FILE_NAME_SIZE);
 
 	if (!(fd = fopen("/proc/partitions", "r"))) {
 		condlog(0, "Cannot open /proc/partitions");
@@ -297,6 +389,7 @@ do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
 	inqCmdBlk[3] = (unsigned char)((mx_resp_len >> 8) & 0xff);
 	inqCmdBlk[4] = (unsigned char) (mx_resp_len & 0xff);
 	memset(&io_hdr, 0, sizeof (struct sg_io_hdr));
+	memset(sense_b, 0, SENSE_BUFF_LEN);
 	io_hdr.interface_id = 'S';
 	io_hdr.cmd_len = sizeof (inqCmdBlk);
 	io_hdr.mx_sb_len = sizeof (sense_b);
@@ -549,14 +642,14 @@ cciss_sysfs_pathinfo (struct path * pp, struct sysfs_device * dev)
 static int
 common_sysfs_pathinfo (struct path * pp, struct sysfs_device *dev)
 {
-	char *attr;
+	size_t len;
 
-	attr = sysfs_attr_get_value(dev->devpath, "dev");
-	if (!attr) {
+	len = sysfs_attr_get_value(dev->devpath, "dev",
+				    pp->dev_t, BLK_DEV_SIZE);
+	if (!len) {
 		condlog(3, "%s: no 'dev' attribute in sysfs", pp->dev);
 		return 1;
 	}
-	strlcpy(pp->dev_t, attr, BLK_DEV_SIZE);
 
 	condlog(3, "%s: dev_t = %s", pp->dev, pp->dev_t);
 
@@ -566,6 +659,44 @@ common_sysfs_pathinfo (struct path * pp, struct sysfs_device *dev)
 	condlog(3, "%s: size = %llu", pp->dev, pp->size);
 
 	return 0;
+}
+
+static int sysfs_get_sdev_state(struct path *pp)
+{
+	struct sysfs_device *parent;
+	char dev_state[32];
+
+	/* check device state */
+	if (!pp->sysdev) {
+		condlog(3, "%s: no sysfs device", pp->dev);
+		return PATH_WILD;
+	}
+	parent = sysfs_device_get_parent(pp->sysdev);
+	if (!parent) {
+		condlog(3, "%s: no parent for '%s'",
+			pp->dev, pp->sysdev->devpath);
+		return PATH_WILD;
+	}
+	if (!strncmp(parent->kernel, "block", 5)) {
+		parent = sysfs_device_get_parent(parent);
+	}
+	if (!parent) {
+		condlog(3, "%s: no block device for '%s'",
+			pp->dev, parent->devpath);
+		return PATH_WILD;
+	}
+	if (!sysfs_get_state(parent, dev_state, 32)) {
+		if (!strncmp(dev_state, "blocked", 7)) {
+			condlog(3, "%s: device blocked", pp->dev);
+			return PATH_PENDING;
+		} else if (!strncmp(dev_state, "running", 7)) {
+			return PATH_UP;
+		}
+		condlog(3, "%s: device in state %s",
+			pp->dev, dev_state);
+		return PATH_DOWN;
+	}
+	return PATH_WILD;
 }
 
 struct sysfs_device *sysfs_device_from_path(struct path *pp)
@@ -640,6 +771,9 @@ sysfs_pathinfo(struct path * pp)
 	if (!strncmp(pp->dev,"cciss",5))
 		strcpy(parent->subsystem,"cciss");
 
+	if (!strncmp(pp->dev,"cciss",5))
+		strcpy(parent->subsystem,"cciss");
+
 	condlog(3, "%s: subsystem = %s", pp->dev, parent->subsystem);
 
 	if (!strncmp(parent->subsystem, "scsi",4))
@@ -699,43 +833,66 @@ cciss_ioctl_pathinfo (struct path * pp, int mask)
 	return 0;
 }
 
-static int
+int
 get_state (struct path * pp)
 {
 	struct checker * c = &pp->checker;
+	int state = PATH_UNCHECKED;
 
 	condlog(3, "%s: get_state", pp->dev);
 
+	if (pp->bus == SYSFS_BUS_SCSI) {
+		pp->sysdev = sysfs_device_from_path(pp);
+		/* Check the sdev state before accessing it */
+		state = sysfs_get_sdev_state(pp);
+		if (state != PATH_UP) {
+			/* Further checking pointless */
+			condlog(3, "%s: state (sysfs) = %s", pp->dev,
+				checker_state_name(state));
+			checker_reset_message(c);
+			return state;
+		}
+	}
 	if (!checker_selected(c)) {
 		select_checker(pp);
 		if (!checker_selected(c)) {
 			condlog(3, "%s: No checker selected", pp->dev);
-			return 1;
+			return PATH_UNCHECKED;
 		}
 		checker_set_fd(c, pp->fd);
 		if (checker_init(c, pp->mpp?&pp->mpp->mpcontext:NULL)) {
 			condlog(3, "%s: checker init failed", pp->dev);
-			return 1;
+			return PATH_UNCHECKED;
 		}
 	}
 	if (path_offline(pp)) {
 		condlog(3, "%s: path offline", pp->dev);
-		pp->state = PATH_DOWN;
-		return 0;
+		return PATH_DOWN;
 	}
-	pp->state = checker_check(c);
-	condlog(3, "%s: state = %i", pp->dev, pp->state);
-	if (pp->state == PATH_DOWN && strlen(checker_message(c)))
+	state = checker_check(c);
+	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
+	if (state == PATH_DOWN && strlen(checker_message(c)))
 		condlog(3, "%s: checker msg is \"%s\"",
 			pp->dev, checker_message(c));
-	return 0;
+	return state;
 }
 
 static int
 get_prio (struct path * pp)
 {
+	int path_state;
+
 	if (!pp)
 		return 0;
+
+	if (pp->bus == SYSFS_BUS_SCSI) {
+		/* Check the sdev state before accessing it */
+		path_state = sysfs_get_sdev_state(pp);
+		if (path_state != PATH_UP) {
+			pp->priority = PRIO_UNDEF;
+			return 0;
+		}
+	}
 
 	if (!pp->prio) {
 		select_prio(pp);
@@ -813,16 +970,22 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	    cciss_ioctl_pathinfo(pp, mask))
 		goto blank;
 
-	if (mask & DI_CHECKER && get_state(pp))
-		goto blank;
+	if (mask & DI_CHECKER) {
+		pp->state = get_state(pp);
+		if (pp->state == PATH_UNCHECKED || pp->state == PATH_WILD)
+			goto blank;
+	}
 
 	 /*
 	  * Retrieve path priority, even for PATH_DOWN paths if it has never
 	  * been successfully obtained before.
 	  */
 	if (mask & DI_PRIO &&
-	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF))
+	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF)) {
+		if (!strlen(pp->wwid))
+			get_uid(pp);
 		get_prio(pp);
+	}
 
 	if (mask & DI_WWID && !strlen(pp->wwid))
 		get_uid(pp);

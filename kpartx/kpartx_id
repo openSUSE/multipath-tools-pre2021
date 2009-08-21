@@ -50,7 +50,7 @@ else
 fi
 
 # Set the name of the table. We're only interested in dmraid,
-# multipath, and kpartx tables; everything else is ignored.
+# multipath, linear, and kpartx tables; everything else is ignored.
 if [ "$dmtbl" = "part" ] ; then
     # The name of the kpartx table is the name of the parent table
     dmname=$($DMSETUP info  -c --noheadings -o name -u $dmuuid)
@@ -60,6 +60,10 @@ if [ "$dmtbl" = "part" ] ; then
     case "$dmuuid" in
 	mpath-*)
 	    dmdeps=$($DMSETUP deps -u $dmuuid)
+	    ;;
+	linear-*)
+	    dmtbl=linear
+	    dmuuid=${dmuuid#*-}
 	    ;;
     esac
 elif [ "$dmtbl" = "mpath" ] ; then
@@ -72,12 +76,15 @@ fi
 
 [ -n "$dmpart" ] && echo "DM_PART=$dmpart"
 
-# Figure out the type of the map. For non-multipath maps it's
-# always 'raid'.
+# Figure out the type of the map. For non-multipath non-linear 
+# maps it's always 'raid'.
 if [ -n "$dmdeps" ] ; then
     case "$dmdeps" in
 	*\(94,*)
             echo "DM_TYPE=dasd"
+	    ;;
+	*\(104,* | *\(105,* | *\(106,* | *\(107,* | *\(108,* | *\(109,* | *\(110,* | *\(112,*)
+	    echo "DM_TYPE=cciss"
 	    ;;
 	*\(9*)
             echo "DM_TYPE=raid"
@@ -86,6 +93,11 @@ if [ -n "$dmdeps" ] ; then
             echo "DM_TYPE=scsi"
 	    ;;
     esac
+    set -- $dmdeps
+    echo "DM_DEPS=$1"
+elif [ "$dmtbl" = linear ]; then
+    echo "DM_TYPE=${dmuuid%%-*}"
+    echo "DM_NAME=${dmuuid#*-}"
 else
     echo "DM_TYPE=raid"
 fi

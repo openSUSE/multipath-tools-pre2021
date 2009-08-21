@@ -151,16 +151,49 @@ Generate the path priority for Hitachi HDS Modular storage arrays.
 Default value is \fBnone\fR.
 .RE
 .TP
+.B prio
+The default program and args to path priority routine. The specified 
+routine should return a numeric value specifying the relative priority 
+of this path. Higher number have a higher priority. 
+.RS
+.TP 12
+.B alua
+Generate the path priority based on ALUA status of the path.
+.TP 12
+.B aas
+Generate the path priority based on ALUA status of the path, taking
+into account the 'PREF' setting.
+.TP 12
+.B weightedpath <hbtl|devname> <regex1> <prio1> <regex2> <prio2> ...
+.I hbtl 
+regex can be of SCSI H:B:T:L format  Ex: 1:0:.:. , *:0:0:.
+.I devname 
+regex can be of device name format  Ex: sda , sd.e
+Generate the path priority based on the regular expression and the 
+priority provided as argument.
+.RE
+.TP
 .B features
-Specify any device-mapper features to be used. The most common of
-these features is
-.I "1 queue_if_no_path" 
-Note that this can also be set via the
+Specify any device-mapper features to be used. Syntax is
+.I num list
+where
+.I num
+is the number of features in
+.I list.
+Possible values for the feature list are
+.RS
+.TP 12
+.B queue_if_no_path
+Queue IO if no path is active; identical to the
 .I no_path_retry
 keyword.
 .TP
+.B no_partitions
+Disable automatic partitions generation via kpartx.
+.RE
+.TP
 .B path_checker
-The default method used to determine the paths' state. Possible values
+The default method used to determine the paths state. Possible values
 are
 .RS
 .TP 12
@@ -238,6 +271,17 @@ this to the system limit from /proc/sys/fs/nr_open. If this is not set, the
 maximum number of open fds is taken from the calling process. It is usually
 1024. To be safe, this should be set to the maximum number of paths plus 32,
 if that number is greated than 1024.
+.B bindings_file
+The full pathname of the binding file to be used when the user_friendly_names option is set. Defaults to
+.I /var/lib/multipath/bindings
+.TP
+.B dev_loss_tmo
+The default dev_loss_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all devices on that port will be removed from sysfs after this timeout. Default is 10.
+.TP
+.B fast_io_fail_tmo
+The default fast_io_fail_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all I/O to the devices on that port will be terminated after this timeout. Should be smaller than
+.B dev_loss_tmo
+setting. Default is 5.
 .
 .SH "blacklist section"
 The
@@ -309,6 +353,8 @@ Index of the container. Mandatory for this subsection.
 The following attributes are optional; if not set the default values
 are taken from the
 .I defaults
+or
+.I devices
 section:
 .sp 1
 .PD .1v
@@ -318,11 +364,15 @@ section:
 .TP
 .B path_selector
 .TP
+.B prio
+.TP
 .B failback
 .TP
 .B no_path_retry
 .TP
 .B rr_min_io
+.TP
+.B features
 .RE
 .PD
 .LP
@@ -371,6 +421,8 @@ section:
 .TP
 .B path_checker
 .TP
+.B prio
+.TP
 .B features
 .TP
 .B prio_callout
@@ -382,6 +434,10 @@ section:
 .B no_path_retry
 .TP
 .B rr_min_io
+.TP
+.B dev_loss_tmo
+.TP
+.B fast_io_fail_tmo
 .RE
 .PD
 .LP

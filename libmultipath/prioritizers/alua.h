@@ -6,4 +6,7 @@
 #define PRIO_ALUA "alua"
 int prio_alua(struct path * pp);
 
+#define PRIO_AAS "aas"
+int prio_aas(struct path * pp);
+
 #endif

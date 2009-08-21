@@ -50,42 +50,58 @@ find_hwe_strmatch (vector hwtable, struct hwentry *hwe)
 	return ret;
 }
 
+static int
+hwe_regmatch (struct hwentry *hwe1, struct hwentry *hwe2)
+{
+	regex_t vre, pre, rre;
+	int retval = 1;
+
+	if (hwe1->vendor &&
+	    regcomp(&vre, hwe1->vendor, REG_EXTENDED|REG_NOSUB))
+		goto out;
+
+	if (hwe1->product &&
+	    regcomp(&pre, hwe1->product, REG_EXTENDED|REG_NOSUB))
+		goto out_vre;
+
+	if (hwe1->revision &&
+	    regcomp(&rre, hwe1->revision, REG_EXTENDED|REG_NOSUB))
+		goto out_pre;
+
+	if ((!hwe1->vendor || !hwe2->vendor ||
+	     !regexec(&vre, hwe2->vendor, 0, NULL, 0)) &&
+	    (!hwe1->product || !hwe2->product ||
+	     !regexec(&pre, hwe2->product, 0, NULL, 0)) &&
+	    (!hwe1->revision || !hwe2->revision ||
+	     !regexec(&rre, hwe2->revision, 0, NULL, 0)))
+		retval = 0;
+
+	if (hwe1->revision)
+		regfree(&rre);
+out_pre:
+	if (hwe1->product)
+		regfree(&pre);
+out_vre:
+	if (hwe1->vendor)
+		regfree(&vre);
+out:
+	return retval;
+}
+
 struct hwentry *
 find_hwe (vector hwtable, char * vendor, char * product, char * revision)
 {
 	int i;
-	struct hwentry *hwe, *ret = NULL;
-	regex_t vre, pre, rre;
+	struct hwentry hwe, *tmp, *ret = NULL;
 
-	vector_foreach_slot (hwtable, hwe, i) {
-		if (hwe->vendor &&
-		    regcomp(&vre, hwe->vendor, REG_EXTENDED|REG_NOSUB))
-			break;
-		if (hwe->product &&
-		    regcomp(&pre, hwe->product, REG_EXTENDED|REG_NOSUB)) {
-			regfree(&vre);
-			break;
-		}
-		if (hwe->revision &&
-		    regcomp(&rre, hwe->revision, REG_EXTENDED|REG_NOSUB)) {
-			regfree(&vre);
-			regfree(&pre);
-			break;
-		}
-		if ((!hwe->vendor || !regexec(&vre, vendor, 0, NULL, 0)) &&
-		    (!hwe->product || !regexec(&pre, product, 0, NULL, 0)) &&
-		    (!hwe->revision || !regexec(&rre, revision, 0, NULL, 0)))
-			ret = hwe;
-
-		if (hwe->revision)
-			regfree(&rre);
-		if (hwe->product)
-			regfree(&pre);
-		if (hwe->vendor)
-			regfree(&vre);
-
-		if (ret)
-			break;
+	hwe.vendor = vendor;
+	hwe.product = product;
+	hwe.revision = revision;
+	vector_foreach_slot (hwtable, tmp, i) {
+		if (hwe_regmatch(tmp, &hwe))
+			continue;
+		ret = tmp;
+		break;
 	}
 	return ret;
 }
@@ -155,6 +171,9 @@ free_hwe (struct hwentry * hwe)
 	if (hwe->prio_name)
 		FREE(hwe->prio_name);
 
+	if (hwe->prio_arg)
+		FREE(hwe->prio_arg);
+
 	if (hwe->bl_product)
 		FREE(hwe->bl_product);
 
@@ -193,6 +212,12 @@ free_mpe (struct mpentry * mpe)
 
 	if (mpe->alias)
 		FREE(mpe->alias);
+
+	if (mpe->prio_name)
+		FREE(mpe->prio_name);
+
+	if (mpe->prio_arg)
+		FREE(mpe->prio_arg);
 
 	FREE(mpe);
 }
@@ -278,6 +303,7 @@ merge_hwe (struct hwentry * hwe1, struct hwentry * hwe2)
 	merge_str(selector);
 	merge_str(checker_name);
 	merge_str(prio_name);
+	merge_str(prio_arg);
 	merge_str(bl_product);
 	merge_num(pgpolicy);
 	merge_num(pgfailback);
@@ -322,10 +348,13 @@ store_hwe (vector hwtable, struct hwentry * dhwe)
 
 	if (dhwe->checker_name && !(hwe->checker_name = set_param_str(dhwe->checker_name)))
 		goto out;
-				
+
 	if (dhwe->prio_name && !(hwe->prio_name = set_param_str(dhwe->prio_name)))
 		goto out;
-				
+
+	if (dhwe->prio_arg && !(hwe->prio_arg = set_param_str(dhwe->prio_arg)))
+		goto out;
+
 	hwe->pgpolicy = dhwe->pgpolicy;
 	hwe->pgfailback = dhwe->pgfailback;
 	hwe->rr_weight = dhwe->rr_weight;
@@ -354,7 +383,7 @@ factorize_hwtable (vector hw)
 	vector_foreach_slot(hw, hwe1, i) {
 		j = i+1;
 		vector_foreach_slot_after(hw, hwe2, j) {
-			if (hwe_strmatch(hwe1, hwe2))
+			if (hwe_regmatch(hwe1, hwe2))
 				continue;
 			/* dup */
 			merge_hwe(hwe1, hwe2);
@@ -399,6 +428,9 @@ free_config (struct config * conf)
 	if (conf->hwhandler)
 		FREE(conf->hwhandler);
 
+	if (conf->bindings_file)
+		FREE(conf->bindings_file);
+
 	if (conf->prio_name)
 		FREE(conf->prio_name);
 
@@ -437,7 +469,8 @@ load_config (char * file)
 	conf->dev_type = DEV_NONE;
 	conf->minio = 1000;
 	conf->max_fds = 0;
-	conf->bindings_file = DEFAULT_BINDINGS_FILE;
+	conf->dev_loss_tmo = DEFAULT_DEV_LOSS_TMO;
+	conf->fast_io_fail_tmo = DEFAULT_FAST_IO_FAIL;
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
 	conf->flush_on_last_del = 0;
 	conf->attribute_flags = 0;
@@ -457,12 +490,15 @@ load_config (char * file)
 	/*
 	 * read the config file
 	 */
+	set_current_keywords(&conf->keywords);
+	alloc_keywords();
 	if (filepresent(file)) {
-		set_current_keywords(&conf->keywords);
 		if (init_data(file, init_keywords)) {
 			condlog(0, "error parsing config file");
 			goto out;
 		}
+	} else {
+		init_keywords();
 	}
 
 	/*
@@ -535,13 +571,18 @@ load_config (char * file)
 	if (conf->hwhandler == NULL)
 		conf->hwhandler = set_default(DEFAULT_HWHANDLER);
 
+	if (conf->bindings_file == NULL)
+		conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
+
 	if (!conf->selector  || !conf->udev_dir || !conf->multipath_dir ||
 	    !conf->getuid    || !conf->features ||
-	    !conf->hwhandler)
+	    !conf->hwhandler || !conf->bindings_file)
 		goto out;
 
-	if (!conf->prio_name)
+	if (!conf->prio_name) {
 		conf->prio_name = set_default(DEFAULT_PRIO);
+		conf->prio_arg = NULL;
+	}
 
 	if (!conf->checker_name)
 		conf->checker_name = set_default(DEFAULT_CHECKER);

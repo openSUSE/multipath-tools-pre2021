@@ -6,7 +6,7 @@
  */
 #include <sys/types.h>
 #include <pwd.h>
-
+#include <string.h>
 #include "checkers.h"
 #include "vector.h"
 #include "hwtable.h"
@@ -110,11 +110,26 @@ def_getuid_callout_handler(vector strvec)
 static int
 def_prio_handler(vector strvec)
 {
-	conf->prio_name = set_value(strvec);
+	char *buff, *result, *temp;
+	char split_char[] = " \t";
 
-	if (!conf->prio_name)
+	buff = set_value(strvec);
+	if (!buff)
 		return 1;
+	temp = buff;
 
+	while ((result = strsep(&temp, split_char))) {
+		if (prio_lookup(result)) {
+			conf->prio_name = STRDUP(result);
+			if (temp)
+				conf->prio_arg = STRDUP(temp);
+			else
+				conf->prio_arg = NULL;
+			break;
+		}
+	}
+
+	FREE(buff);
 	return 0;
 }
 
@@ -274,6 +289,46 @@ def_gid_handler(vector strvec)
 }
 
 static int
+def_dev_loss_tmo_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		conf->dev_loss_tmo = -1;
+	else
+		conf->dev_loss_tmo = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
+def_fast_io_fail_tmo_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		conf->fast_io_fail_tmo = -1;
+	else
+		conf->fast_io_fail_tmo = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
 def_weight_handler(vector strvec)
 {
 	char * buff;
@@ -398,6 +453,17 @@ names_handler(vector strvec)
 		conf->user_friendly_names = 1;
 
 	FREE(buff);
+	return 0;
+}
+
+static int
+bindings_file_handler(vector strvec)
+{
+	conf->bindings_file = set_value(strvec);
+
+	if (!conf->bindings_file)
+		return 1;
+
 	return 0;
 }
 
@@ -725,15 +791,32 @@ static int
 hw_prio_handler(vector strvec)
 {
 	struct hwentry * hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char *buff, *result, *temp;
+	char split_char[] = " \t";
 
 	if (!hwe)
 		return 1;
 
-	hwe->prio_name = set_value(strvec);
-
-	if (!hwe->prio_name)
+	buff = set_value(strvec);
+	if (!buff)
 		return 1;
+	temp = buff;
 
+	while (temp) {
+		result = strsep(&temp, split_char);
+		if (strcmp(result, "")) {
+			if (prio_lookup(result)) {
+				hwe->prio_name = STRDUP(result);
+				if (temp)
+					hwe->prio_arg = STRDUP(temp);
+				else
+					hwe->prio_arg = NULL;
+				break;
+			}
+		}
+	}
+
+	FREE(buff);
 	return 0;
 }
 
@@ -881,6 +964,53 @@ hw_flush_on_last_del_handler(vector strvec)
 		hwe->flush_on_last_del = FLUSH_UNDEF;
 
 	FREE(buff);
+	return 0;
+}
+
+static int
+hw_dev_loss_tmo_handler(vector strvec)
+{
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char * buff;
+
+	if (!hwe)
+		return 1;
+
+	buff = set_value(strvec);
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		hwe->dev_loss_tmo = -1;
+	else
+		hwe->dev_loss_tmo = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
+hw_fast_io_fail_tmo_handler(vector strvec)
+{
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	char * buff;
+
+	if (!hwe)
+		return 1;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (strlen(buff) == 9 &&
+	    !strcmp(buff, "off"))
+		hwe->fast_io_fail_tmo = -1;
+	else
+		hwe->fast_io_fail_tmo = atoi(buff);
+	FREE(buff);
+
 	return 0;
 }
 
@@ -1211,6 +1341,53 @@ mp_flush_on_last_del_handler(vector strvec)
 	return 0;
 }
 
+static int
+mp_features_handler(vector strvec)
+{
+	struct mpentry * mpe = VECTOR_LAST_SLOT(conf->mptable);
+
+	if (!mpe)
+		return 1;
+
+	mpe->features = set_value(strvec);
+
+	if (!mpe->features)
+		return 1;
+
+	return 0;
+}
+
+static int
+mp_prio_handler (vector strvec)
+{
+	struct mpentry *mpe = VECTOR_LAST_SLOT(conf->mptable);
+	char *buff, *result, *temp;
+	char split_char[] = " \t";
+
+	if (!mpe)
+		return 1;
+
+	buff = set_value(strvec);
+	if (!buff)
+		return 1;
+
+	temp = buff;
+
+	while ((result = strsep(&temp, split_char))) {
+		if (prio_lookup(result)) {
+			mpe->prio_name = STRDUP(result);
+			if (temp)
+				mpe->prio_arg = STRDUP(temp);
+			else
+				mpe->prio_arg = NULL;
+			break;
+		}
+	}
+
+	FREE(buff);
+	return 0;
+}
+
 /*
  * config file keywords printing
  */
@@ -1387,6 +1564,31 @@ snprint_mp_flush_on_last_del (char * buff, int len, void * data)
 		return snprintf(buff, len, "yes");
 	}
 	return 0;
+}
+
+static int
+snprint_mp_features (char * buff, int len, void * data)
+{
+	struct mpentry * mpe = (struct mpentry *)data;
+
+	if (!mpe->features)
+		return 0;
+	if (strlen(mpe->features) == strlen(conf->features) &&
+	    !strcmp(mpe->features, conf->features))
+		return 0;
+
+	return snprintf(buff, len, "%s", mpe->features);
+}
+
+static int
+snprint_mp_prio(char * buff, int len, void * data)
+{
+	struct mpentry * mpe = (struct mpentry *)data;
+
+	if (!mpe->prio_name)
+		return 0;
+
+	return snprintf(buff, len, "%s", mpe->prio_name);
 }
 
 static int
@@ -1632,6 +1834,36 @@ snprint_hw_path_checker (char * buff, int len, void * data)
 }
 
 static int
+snprint_hw_dev_loss_tmo (char * buff, int len, void * data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	if (!hwe->dev_loss_tmo)
+		return 0;
+	if (hwe->dev_loss_tmo == conf->dev_loss_tmo)
+		return 0;
+
+	if (hwe->dev_loss_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%u", hwe->dev_loss_tmo);
+}
+
+static int
+snprint_hw_fast_io_fail_tmo (char * buff, int len, void * data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	if (!hwe->fast_io_fail_tmo)
+		return 0;
+	if (hwe->fast_io_fail_tmo == conf->fast_io_fail_tmo)
+		return 0;
+
+	if (hwe->fast_io_fail_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%u", hwe->fast_io_fail_tmo);
+}
+
+static int
 snprint_def_polling_interval (char * buff, int len, void * data)
 {
 	if (conf->checkint == DEFAULT_CHECKINT)
@@ -1813,6 +2045,28 @@ snprint_def_gid(char * buff, int len, void * data)
 }
 
 static int
+snprint_def_dev_loss_tmo (char * buff, int len, void * data)
+{
+	if (!conf->dev_loss_tmo)
+		return 0;
+
+	if (conf->dev_loss_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%d", conf->dev_loss_tmo);
+}
+
+static int
+snprint_def_fast_io_fail_tmo (char * buff, int len, void * data)
+{
+	if (!conf->fast_io_fail_tmo)
+		return 0;
+
+	if (conf->fast_io_fail_tmo < 0)
+		return snprintf(buff, len, "off");
+	return snprintf(buff, len, "%d", conf->fast_io_fail_tmo);
+}
+
+static int
 snprint_def_rr_weight (char * buff, int len, void * data)
 {
 	if (!conf->rr_weight)
@@ -1886,6 +2140,18 @@ snprint_def_user_friendly_names (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_bindings_file (char * buff, int len, void * data)
+{
+	if (conf->bindings_file == NULL)
+		return 0;
+	if (strlen(conf->bindings_file) == strlen(DEFAULT_BINDINGS_FILE) &&
+	    !strcmp(conf->bindings_file, DEFAULT_BINDINGS_FILE))
+		return 0;
+
+	return snprintf(buff, len, "%s", conf->bindings_file);
+}
+
+static int
 snprint_ble_simple (char * buff, int len, void * data)
 {
 	struct blentry * ble = (struct blentry *)data;
@@ -1929,6 +2195,8 @@ init_keywords(void)
 	install_keyword("failback", &default_failback_handler, &snprint_def_failback);
 	install_keyword("rr_min_io", &def_minio_handler, &snprint_def_rr_min_io);
 	install_keyword("max_fds", &max_fds_handler, &snprint_max_fds);
+	install_keyword("dev_loss_tmo", &def_dev_loss_tmo_handler, &snprint_def_dev_loss_tmo);
+	install_keyword("fast_io_fail_tmo", &def_fast_io_fail_tmo_handler, &snprint_def_fast_io_fail_tmo);
 	install_keyword("rr_weight", &def_weight_handler, &snprint_def_rr_weight);
 	install_keyword("no_path_retry", &def_no_path_retry_handler, &snprint_def_no_path_retry);
 	install_keyword("pg_timeout", &def_pg_timeout_handler, &snprint_def_pg_timeout);
@@ -1937,6 +2205,7 @@ init_keywords(void)
 	install_keyword("mode", &def_mode_handler, &snprint_def_mode);
 	install_keyword("uid", &def_uid_handler, &snprint_def_uid);
 	install_keyword("gid", &def_gid_handler, &snprint_def_gid);
+	install_keyword("bindings_file", &bindings_file_handler, &snprint_def_bindings_file);
 	__deprecated install_keyword("default_selector", &def_selector_handler, NULL);
 	__deprecated install_keyword("default_path_grouping_policy", &def_pgpolicy_handler, NULL);
 	__deprecated install_keyword("default_getuid_callout", &def_getuid_callout_handler, NULL);
@@ -1991,6 +2260,8 @@ init_keywords(void)
 	install_keyword("rr_min_io", &hw_minio_handler, &snprint_hw_rr_min_io);
 	install_keyword("pg_timeout", &hw_pg_timeout_handler, &snprint_hw_pg_timeout);
 	install_keyword("flush_on_last_del", &hw_flush_on_last_del_handler, &snprint_hw_flush_on_last_del);
+	install_keyword("dev_loss_tmo", &hw_dev_loss_tmo_handler, &snprint_hw_dev_loss_tmo);
+	install_keyword("fast_io_fail_tmo", &hw_fast_io_fail_tmo_handler, &snprint_hw_fast_io_fail_tmo);
 	install_sublevel_end();
 
 	install_keyword_root("multipaths", &multipaths_handler);
@@ -2000,6 +2271,7 @@ init_keywords(void)
 	install_keyword("alias", &alias_handler, &snprint_mp_alias);
 	install_keyword("path_grouping_policy", &mp_pgpolicy_handler, &snprint_mp_path_grouping_policy);
 	install_keyword("path_selector", &mp_selector_handler, &snprint_mp_selector);
+	install_keyword("prio", &mp_prio_handler, &snprint_mp_prio);
 	install_keyword("failback", &mp_failback_handler, &snprint_mp_failback);
 	install_keyword("rr_weight", &mp_weight_handler, &snprint_mp_rr_weight);
 	install_keyword("no_path_retry", &mp_no_path_retry_handler, &snprint_mp_no_path_retry);
@@ -2009,5 +2281,6 @@ init_keywords(void)
 	install_keyword("mode", &mp_mode_handler, &snprint_mp_mode);
 	install_keyword("uid", &mp_uid_handler, &snprint_mp_uid);
 	install_keyword("gid", &mp_gid_handler, &snprint_mp_gid);
+	install_keyword("features", &mp_features_handler, &snprint_mp_features);
 	install_sublevel_end();
 }

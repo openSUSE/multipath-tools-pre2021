@@ -9,7 +9,7 @@
  *
  * Author(s): Jan Kunigk
  *            S. Bader <shbader@de.ibm.com>
- * 
+ *
  * This file is released under the GPL.
  */
 #include <stdio.h>
@@ -25,16 +25,32 @@
 #define ALUA_PRIO_TPGS_FAILED			4
 #define ALUA_PRIO_NO_INFORMATION		5
 
-int
+static const char * aas_string[] = {
+	[AAS_OPTIMIZED]		= "active/optimized",
+	[AAS_NON_OPTIMIZED]	= "active/non-optimized",
+	[AAS_STANDBY]		= "standby",
+	[AAS_UNAVAILABLE]	= "unavailable",
+	[AAS_RESERVED]		= "invalid/reserved",
+	[AAS_OFFLINE]		= "offline",
+	[AAS_TRANSITIONING]	= "transitioning between states",
+};
+
+static const char *aas_print_string(int rc)
+{
+	rc &= 0x7f;
+
+	if (rc & 0x70)
+		return aas_string[AAS_RESERVED];
+	rc &= 0x0f;
+	if (rc > 3 && rc < 0xe)
+		return aas_string[AAS_RESERVED];
+	else
+		return aas_string[rc];
+}
+
+static int
 get_alua_info(int fd)
 {
-	char *	aas_string[] = {
-		[AAS_OPTIMIZED]		= "active/optimized",
-		[AAS_NON_OPTIMIZED]	= "active/non-optimized",
-		[AAS_STANDBY]		= "standby",
-		[AAS_UNAVAILABLE]	= "unavailable",
-		[AAS_TRANSITIONING]	= "transitioning between states",
-	};
 	int	rc;
 	int	tpg;
 
@@ -54,8 +70,9 @@ get_alua_info(int fd)
 	if (rc < 0)
 		return -ALUA_PRIO_GETAAS_FAILED;
 
-	condlog(3, "aas = [%s]",
-		(rc < 4) ? aas_string[rc] : "invalid/reserved");
+	condlog(3, "aas = %02x [%s]%s", rc, aas_print_string(rc),
+		(rc & 0x80) ? " [preferred]" : "");
+
 	return rc;
 }
 
@@ -68,12 +85,12 @@ int getprio (struct path * pp)
 
 	rc = get_alua_info(pp->fd);
 	if (rc >= 0) {
-		switch(rc) {
+		switch (rc & 0x0f) {
 			case AAS_OPTIMIZED:
-				rc = 50;
+				rc = 4;
 				break;
 			case AAS_NON_OPTIMIZED:
-				rc = 10;
+				rc = 2;
 				break;
 			case AAS_STANDBY:
 				rc = 1;
@@ -81,6 +98,8 @@ int getprio (struct path * pp)
 			default:
 				rc = 0;
 		}
+		if (rc & 0x80)
+			rc += 8;
 	} else {
 		switch(-rc) {
 			case ALUA_PRIO_NOT_SUPPORTED:

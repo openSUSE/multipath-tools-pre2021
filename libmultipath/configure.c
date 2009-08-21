@@ -41,7 +41,7 @@ setup_map (struct multipath * mpp)
 {
 	struct pathgroup * pgp;
 	int i;
-	
+
 	/*
 	 * don't bother if devmap size is unknown
 	 */
@@ -352,7 +352,7 @@ domap (struct multipath * mpp)
 		r = dm_addmap_create(mpp);
 
 		if (!r)
-			 r = dm_addmap_create_ro(mpp);
+			r = dm_addmap_create_ro(mpp);
 
 		lock_multipath(mpp, 0);
 		break;
@@ -365,12 +365,12 @@ domap (struct multipath * mpp)
 			r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias);
 		break;
 
- 	case ACT_RESIZE:
-  		r = dm_addmap_reload(mpp);
-  		if (!r)
-  			r = dm_addmap_reload_ro(mpp);
-  		if (r)
-  			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias);
+	case ACT_RESIZE:
+		r = dm_addmap_reload(mpp);
+		if (!r)
+			r = dm_addmap_reload_ro(mpp);
+		if (r)
+			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias);
 		break;
 
 	case ACT_RENAME:
@@ -389,8 +389,6 @@ domap (struct multipath * mpp)
 		if (!conf->daemon) {
 			/* multipath client mode */
 			dm_switchgroup(mpp->alias, mpp->bestpg);
-			if (mpp->action != ACT_NOTHING)
-				print_multipath_topology(mpp, conf->verbosity);
 		} else  {
 			/* multipath daemon mode */
 			mpp->stat_map_loads++;
@@ -508,7 +506,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 				mpp->action = ACT_REJECT;
 		}
 		verify_paths(mpp, vecs, NULL);
-		
+
 		if (setup_map(mpp)) {
 			remove_map(mpp, vecs, 0);
 			continue;
@@ -533,10 +531,19 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 			continue;
 
 		if (mpp->no_path_retry != NO_PATH_RETRY_UNDEF) {
-			if (mpp->no_path_retry == NO_PATH_RETRY_FAIL)
-				dm_queue_if_no_path(mpp->alias, 0);
-			else
-				dm_queue_if_no_path(mpp->alias, 1);
+			if (mpp->no_path_retry == NO_PATH_RETRY_FAIL) {
+				condlog(3, "%s: unset queue_if_no_path feature",
+					mpp->alias);
+				if (!dm_queue_if_no_path(mpp->alias, 0))
+					remove_feature(&mpp->features,
+						       "queue_if_no_path");
+			} else {
+				condlog(3, "%s: set queue_if_no_path feature",
+					mpp->alias);
+				if (!dm_queue_if_no_path(mpp->alias, 1))
+					add_feature(&mpp->features,
+						    "queue_if_no_path");
+			}
 		}
 		if (mpp->pg_timeout != PGTIMEOUT_UNDEF) {
 			if (mpp->pg_timeout == -PGTIMEOUT_NONE)
@@ -544,6 +551,9 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 			else
 				dm_set_pg_timeout(mpp->alias, mpp->pg_timeout);
 		}
+
+		if (!conf->daemon && mpp->action != ACT_NOTHING)
+			print_multipath_topology(mpp, conf->verbosity);
 
 		if (newmp) {
 			if (mpp->action != ACT_REJECT) {
@@ -595,9 +605,14 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		return NULL;
 
 	if (dev_type == DEV_DEVNODE) {
-		basenamecpy(dev, buff);
+		if (basenamecpy(dev, buff) == 0) {
+			condlog(1, "basename failed for '%s' (%s)",
+				dev, buff);
+			return NULL;
+		}
+
 		pp = find_path_by_dev(pathvec, buff);
-		
+
 		if (!pp) {
 			pp = alloc_path();
 
@@ -620,7 +635,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 
 	if (dev_type == DEV_DEVT) {
 		pp = find_path_by_devt(pathvec, dev);
-		
+
 		if (!pp) {
 			if (devt2devname(buff, dev))
 				return NULL;
@@ -634,7 +649,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 
 			if (pathinfo(pp, conf->hwtable, DI_SYSFS | DI_WWID))
 				return NULL;
-			
+
 			if (store_path(pathvec, pp)) {
 				free_path(pp);
 				return NULL;
@@ -653,8 +668,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		/*
 		 * may be a binding
 		 */
-		refwwid = get_user_friendly_wwid(dev,
-						 conf->bindings_file);
+		refwwid = get_user_friendly_wwid(dev);
 
 		if (refwwid)
 			return refwwid;
@@ -677,3 +691,36 @@ out:
 	return NULL;
 }
 
+extern int reload_map(struct vectors *vecs, struct multipath *mpp)
+{
+	int r;
+
+	update_mpp_paths(mpp, vecs->pathvec);
+
+	if (setup_map(mpp)) {
+		condlog(0, "%s: failed to setup map", mpp->alias);
+		return 1;
+	}
+	select_action(mpp, vecs->mpvec, 1);
+
+	r = domap(mpp);
+	if (r == DOMAP_FAIL || r == DOMAP_RETRY) {
+		condlog(3, "%s: domap (%u) failure "
+			"for reload map", mpp->alias, r);
+		return 1;
+	}
+	if (mpp->no_path_retry != NO_PATH_RETRY_UNDEF) {
+		if (mpp->no_path_retry == NO_PATH_RETRY_FAIL)
+			dm_queue_if_no_path(mpp->alias, 0);
+		else
+			dm_queue_if_no_path(mpp->alias, 1);
+	}
+	if (mpp->pg_timeout != PGTIMEOUT_UNDEF) {
+		if (mpp->pg_timeout == -PGTIMEOUT_NONE)
+			dm_set_pg_timeout(mpp->alias,  0);
+		else
+			dm_set_pg_timeout(mpp->alias, mpp->pg_timeout);
+	}
+
+	return 0;
+}

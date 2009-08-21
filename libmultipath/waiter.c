@@ -28,37 +28,14 @@ struct event_thread *alloc_waiter (void)
 	struct event_thread *wp;
 
 	wp = (struct event_thread *)MALLOC(sizeof(struct event_thread));
+	memset(wp, 0, sizeof(struct event_thread));
 
 	return wp;
 }
 
 void free_waiter (void *data)
 {
-	sigset_t old;
 	struct event_thread *wp = (struct event_thread *)data;
-
-	/*
-	 * indicate in mpp that the wp is already freed storage
-	 */
-	block_signal(SIGHUP, &old);
-	lock(wp->vecs->lock);
-
-	if (wp->mpp)
-		/*
-		 * be careful, mpp may already be freed -- null if so
-		 */
-		wp->mpp->waiter = NULL;
-	else
-		/*
-		* This is OK condition during shutdown.
-		*/
-		condlog(3, "free_waiter, mpp freed before wp=%p (%s).", wp, wp->mapname);
-
-	unlock(wp->vecs->lock);
-	pthread_sigmask(SIG_SETMASK, &old, NULL);
-
-	if (wp->dmt)
-		dm_task_destroy(wp->dmt);
 
 	FREE(wp);
 }
@@ -74,6 +51,12 @@ void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	}
 	thread = wp->thread;
 	condlog(2, "%s: stop event checker thread (%lu)", wp->mapname, thread);
+
+	/*
+	 * indicate in mpp that the wp is already freed storage
+	 */
+	if (wp->mpp)
+		wp->mpp->waiter = NULL;
 
 	pthread_kill(thread, SIGUSR1);
 }
@@ -96,49 +79,50 @@ static sigset_t unblock_signals(void)
 int waiteventloop (struct event_thread *waiter)
 {
 	sigset_t set;
+	struct dm_task *dmt = NULL;
 	int event_nr;
 	int r;
 
 	if (!waiter->event_nr)
 		waiter->event_nr = dm_geteventnr(waiter->mapname);
 
-	if (!(waiter->dmt = dm_task_create(DM_DEVICE_WAITEVENT))) {
+	if (!(dmt = dm_task_create(DM_DEVICE_WAITEVENT))) {
 		condlog(0, "%s: devmap event #%i dm_task_create error",
 				waiter->mapname, waiter->event_nr);
 		return 1;
 	}
 
-	if (!dm_task_set_name(waiter->dmt, waiter->mapname)) {
+	if (!dm_task_set_name(dmt, waiter->mapname)) {
 		condlog(0, "%s: devmap event #%i dm_task_set_name error",
 				waiter->mapname, waiter->event_nr);
-		dm_task_destroy(waiter->dmt);
+		dm_task_destroy(dmt);
 		return 1;
 	}
 
-	if (waiter->event_nr && !dm_task_set_event_nr(waiter->dmt,
+	if (waiter->event_nr && !dm_task_set_event_nr(dmt,
 						      waiter->event_nr)) {
 		condlog(0, "%s: devmap event #%i dm_task_set_event_nr error",
 				waiter->mapname, waiter->event_nr);
-		dm_task_destroy(waiter->dmt);
+		dm_task_destroy(dmt);
 		return 1;
 	}
 
-	dm_task_no_open_count(waiter->dmt);
+	dm_task_no_open_count(dmt);
 
 	/* accept wait interruption */
 	set = unblock_signals();
 
 	/* wait */
-	r = dm_task_run(waiter->dmt);
+	r = dm_task_run(dmt);
 
 	/* wait is over : event or interrupt */
 	pthread_sigmask(SIG_SETMASK, &set, NULL);
 
-	if (!r) /* wait interrupted by signal */
+	dm_task_destroy(dmt);
+
+	if (!r)	/* wait interrupted by signal */
 		return -1;
 
-	dm_task_destroy(waiter->dmt);
-	waiter->dmt = NULL;
 	waiter->event_nr++;
 
 	/*

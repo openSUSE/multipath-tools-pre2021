@@ -1,6 +1,6 @@
 /*
  * Original author : tridge@samba.org, January 2002
- * 
+ *
  * Copyright (c) 2005 Christophe Varoqui
  * Copyright (c) 2005 Benjamin Marzinski, Redhat
  */
@@ -52,7 +52,7 @@ static void new_client(int ux_sock)
 	int fd;
 
 	fd = accept(ux_sock, &addr, &len);
-	
+
 	if (fd == -1)
 		return;
 
@@ -122,7 +122,7 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 
 		/* most of our life is spent in this call */
 		poll_count = poll(polls, i, SLEEP_TIME);
-		
+
 		if (poll_count == -1) {
 			if (errno == EINTR)
 				continue;
@@ -146,13 +146,14 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 					inbuf[len - 1] = 0;
 					condlog(4, "Got request [%s]", inbuf);
 					uxsock_trigger(inbuf, &reply, &rlen,
-							trigger_data);
-
+						       trigger_data);
 					if (reply) {
 						if (send_packet(c->fd, reply,
-						     rlen) != 0) {
+								rlen) != 0) {
 							dead_client(c);
 						}
+						condlog(4, "Reply [%d bytes]",
+							rlen);
 						FREE(reply);
 						reply = NULL;
 					}

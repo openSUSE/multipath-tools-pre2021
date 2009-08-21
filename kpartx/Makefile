@@ -15,21 +15,29 @@ all: $(EXEC)
 
 $(EXEC): $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
-	$(GZIP) $(EXEC).8 > $(EXEC).8.gz
-	
+
 install: $(EXEC) $(EXEC).8
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) -m 755 activate_dm_linear $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -m 755 kpartx_id $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/etc/udev/rules.d
-	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/
+	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
-	$(INSTALL_PROGRAM) -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
+	$(INSTALL_PROGRAM) -m 755 boot-kpartx.sh $(DESTDIR)/lib/mkinitrd/scripts
+	$(INSTALL_PROGRAM) -m 755 setup-kpartx.sh $(DESTDIR)/lib/mkinitrd/scripts
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
-	rm -f $(DESTDIR)$(mandir)/$(EXEC).8.gz
+	rm -f $(DESTDIR)$(bindir)/activate_dm_linear
+	rm -f $(DESTDIR)$(libudevdir)/kpartx_id
+	rm -f $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
+	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
+	rm -f $(DESTDIR)/lib/mkinitrd/scripts/boot-kpartx.sh
+	rm -f $(DESTDIR)/lib/mkinitrd/scripts/setup-kpartx.sh
 
 clean:
-	rm -f core *.o $(EXEC) *.gz
+	rm -f core *.o $(EXEC)

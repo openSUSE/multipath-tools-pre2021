@@ -8,5 +8,5 @@
 "# alias wwid\n" \
 "#\n"
 
-char *get_user_friendly_alias(char *wwid, char *file);
-char *get_user_friendly_wwid(char *alias, char *file);
+char *get_user_friendly_alias(char *wwid);
+char *get_user_friendly_wwid(char *alias);

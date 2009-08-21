@@ -47,6 +47,7 @@
 #include <print.h>
 #include <configure.h>
 #include <prio.h>
+#include <uevent.h>
 
 #include "main.h"
 #include "pidfile.h"
@@ -116,6 +117,9 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 	unsigned int i;
 	int j;
 
+	if (!vecs)
+		return 0;
+
 	vector_foreach_slot (ompv, ompp, i) {
 		if (!find_mp_by_wwid(nmpv, ompp->wwid)) {
 			/*
@@ -158,9 +162,11 @@ sync_map_state(struct multipath *mpp)
 	if (!mpp->pg)
 		return;
 
+	condlog(5, "%s: sync map state", mpp->alias);
+
 	vector_foreach_slot (mpp->pg, pgp, i){
 		vector_foreach_slot (pgp->paths, pp, j){
-			if (pp->state == PATH_UNCHECKED || 
+			if (pp->state == PATH_UNCHECKED ||
 			    pp->state == PATH_WILD)
 				continue;
 			if ((pp->dmstate == PSTATE_FAILED ||
@@ -213,32 +219,32 @@ flush_map(struct multipath * mpp, struct vectors * vecs)
 }
 
 static int
-uev_add_map (struct sysfs_device * dev, struct vectors * vecs)
+uev_add_map (struct uevent * uev, struct vectors * vecs)
 {
-	condlog(2, "%s: add map (uevent)", dev->kernel);
-	return ev_add_map(dev, vecs);
+	int major, minor;
+
+	condlog(2, "%s: add map (uevent)", uev->kernel);
+	major = uevent_get_major(uev);
+	minor = uevent_get_minor(uev);
+	return ev_add_map(uev->kernel, major, minor, vecs);
 }
 
 int
-ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
+ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 {
 	char * alias;
-	char *dev_t;
-	int major, minor;
 	char * refwwid;
 	struct multipath * mpp;
 	int map_present;
 	int r = 1;
 
-	dev_t = sysfs_attr_get_value(dev->devpath, "dev");
-
-	if (!dev_t || sscanf(dev_t, "%d:%d", &major, &minor) != 2)
-		return 1;
-
 	alias = dm_mapname(major, minor);
 
-	if (!alias)
+	if (!alias) {
+		condlog(2, "%s: mapname not found for %d:%d",
+			dev, major, minor);
 		return 1;
+	}
 
 	map_present = dm_map_present(alias);
 
@@ -256,8 +262,7 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 		 * if we create a multipath mapped device as a result
 		 * of uev_add_path
 		 */
-		condlog(0, "%s: devmap already registered",
-			dev->kernel);
+		condlog(0, "%s: devmap already registered", dev);
 		FREE(alias);
 		return 0;
 	}
@@ -267,10 +272,10 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 	 */
 	if (map_present && (mpp = add_map_without_path(vecs, minor, alias))) {
 		sync_map_state(mpp);
-		condlog(2, "%s: devmap %s added", alias, dev->kernel);
+		condlog(2, "%s: devmap %s added", alias, dev);
 		return 0;
 	}
-	refwwid = get_refwwid(dev->kernel, DEV_DEVMAP, vecs->pathvec);
+	refwwid = get_refwwid(dev, DEV_DEVMAP, vecs->pathvec);
 
 	if (refwwid) {
 		r = coalesce_paths(vecs, NULL, refwwid, 0);
@@ -278,9 +283,9 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 	}
 
 	if (!r)
-		condlog(2, "%s: devmap %s added", alias, dev->kernel);
+		condlog(2, "%s: devmap %s added", alias, dev);
 	else
-		condlog(0, "%s: uev_add_map %s failed", alias, dev->kernel);
+		condlog(0, "%s: uev_add_map %s failed", alias, dev);
 
 	FREE(refwwid);
 	FREE(alias);
@@ -288,10 +293,10 @@ ev_add_map (struct sysfs_device * dev, struct vectors * vecs)
 }
 
 static int
-uev_remove_map (struct sysfs_device * dev, struct vectors * vecs)
+uev_remove_map (struct uevent * uev, struct vectors * vecs)
 {
-	condlog(2, "%s: remove map (uevent)", dev->kernel);
-	return ev_remove_map(dev->kernel, vecs);
+	condlog(2, "%s: remove map (uevent)", uev->kernel);
+	return ev_remove_map(uev->kernel, vecs);
 }
 
 int
@@ -306,39 +311,22 @@ ev_remove_map (char * devname, struct vectors * vecs)
 			devname);
 		return 0;
 	}
-	flush_map(mpp, vecs);
-
-	return 0;
+	return flush_map(mpp, vecs);
 }
 
 static int
-uev_umount_map (struct sysfs_device * dev, struct vectors * vecs)
+uev_add_path (struct uevent *uev, struct vectors * vecs)
 {
-	struct multipath * mpp;
+	struct sysfs_device * dev;
 
-	condlog(2, "%s: umount map (uevent)", dev->kernel);
-
-	mpp = find_mp_by_str(vecs->mpvec, dev->kernel);
-
-	if (!mpp)
-		return 0;
-
-	update_mpp_paths(mpp, vecs->pathvec);
-	verify_paths(mpp, vecs, NULL);
-
-	if (!VECTOR_SIZE(mpp->paths))
-		flush_map(mpp, vecs);
-
-	return 0;
-}
-
-static int
-uev_add_path (struct sysfs_device * dev, struct vectors * vecs)
-{
+	dev = sysfs_device_get(uev->devpath);
+	if (!dev) {
+		condlog(2, "%s: not found in sysfs", uev->devpath);
+		return 1;
+	}
 	condlog(2, "%s: add path (uevent)", dev->kernel);
 	return (ev_add_path(dev->kernel, vecs) != 1)? 0 : 1;
 }
-
 
 /*
  * returns:
@@ -352,6 +340,7 @@ ev_add_path (char * devname, struct vectors * vecs)
 	struct multipath * mpp;
 	struct path * pp;
 	char empty_buff[WWID_SIZE] = {0};
+	int start_waiter = 0;
 
 	if (strstr(devname, "..") != NULL) {
 		/*
@@ -409,8 +398,14 @@ rescan:
 	}
 	else {
 		condlog(4,"%s: creating new map", pp->dev);
-		if ((mpp = add_map_with_path(vecs, pp, 1)))
+		if ((mpp = add_map_with_path(vecs, pp, 1))) {
 			mpp->action = ACT_CREATE;
+			/*
+			 * We don't depend on ACT_CREATE, as domap will
+			 * set it to ACT_NOTHING when complete.
+			 */
+			start_waiter = 1;
+		}
 		else
 			return 1; /* leave path added to pathvec */
 	}
@@ -451,7 +446,8 @@ rescan:
 
 	sync_map_state(mpp);
 
-	if (mpp->action == ACT_CREATE &&
+	if ((mpp->action == ACT_CREATE ||
+	     (mpp->action == ACT_NOTHING && start_waiter && !mpp->waiter)) &&
 	    start_waiter_thread(mpp, vecs))
 			goto out;
 
@@ -464,12 +460,19 @@ out:
 }
 
 static int
-uev_remove_path (struct sysfs_device * dev, struct vectors * vecs)
+uev_remove_path (struct uevent *uev, struct vectors * vecs)
 {
+	struct sysfs_device * dev;
 	int retval;
 
-	condlog(2, "%s: remove path (uevent)", dev->kernel);
-	retval = ev_remove_path(dev->kernel, vecs);
+	dev = sysfs_device_get(uev->devpath);
+	if (!dev) {
+		condlog(2, "%s: not found in sysfs", uev->devpath);
+		return 1;
+	}
+	condlog(2, "%s: remove path (uevent)", uev->kernel);
+	retval = ev_remove_path(uev->kernel, vecs);
+
 	if (!retval)
 		sysfs_device_put(dev);
 
@@ -579,6 +582,43 @@ fail:
 }
 
 static int
+uev_update_path (struct uevent *uev, struct vectors * vecs)
+{
+	struct sysfs_device * dev;
+	int retval, ro;
+
+	dev = sysfs_device_get(uev->devpath);
+	if (!dev) {
+		condlog(2, "%s: not found in sysfs", uev->devpath);
+		return 1;
+	}
+	ro = uevent_get_disk_ro(uev);
+
+	if (ro >= 0) {
+		struct path * pp;
+
+		condlog(2, "%s: update path write_protect to '%d' (uevent)",
+			uev->kernel, ro);
+		pp = find_path_by_dev(vecs->pathvec, uev->kernel);
+		if (!pp) {
+			condlog(0, "%s: spurious uevent, path not found",
+				uev->kernel);
+			return 1;
+		}
+		if (pp->mpp)
+			retval = reload_map(vecs, pp->mpp);
+
+		condlog(2, "%s: map %s reloaded (retval %d)",
+			uev->kernel, pp->mpp->alias, retval);
+
+	}
+
+	sysfs_device_put(dev);
+
+	return retval;
+}
+
+static int
 map_discovery (struct vectors * vecs)
 {
 	struct multipath * mpp;
@@ -651,16 +691,11 @@ int
 uev_trigger (struct uevent * uev, void * trigger_data)
 {
 	int r = 0;
-	struct sysfs_device *sysdev;
 	struct vectors * vecs;
 
 	vecs = (struct vectors *)trigger_data;
 
 	if (uev_discard(uev->devpath))
-		return 0;
-
-	sysdev = sysfs_device_get(uev->devpath);
-	if(!sysdev)
 		return 0;
 
 	lock(vecs->lock);
@@ -670,17 +705,13 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 * Add events are ignored here as the tables
 	 * are not fully initialised then.
 	 */
-	if (!strncmp(sysdev->kernel, "dm-", 3)) {
+	if (!strncmp(uev->kernel, "dm-", 3)) {
 		if (!strncmp(uev->action, "change", 6)) {
-			r = uev_add_map(sysdev, vecs);
+			r = uev_add_map(uev, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "remove", 6)) {
-			r = uev_remove_map(sysdev, vecs);
-			goto out;
-		}
-		if (!strncmp(uev->action, "umount", 6)) {
-			r = uev_umount_map(sysdev, vecs);
+			r = uev_remove_map(uev, vecs);
 			goto out;
 		}
 		goto out;
@@ -690,15 +721,19 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 * path add/remove event
 	 */
 	if (filter_devnode(conf->blist_devnode, conf->elist_devnode,
-			   sysdev->kernel) > 0)
+			   uev->kernel) > 0)
 		goto out;
 
 	if (!strncmp(uev->action, "add", 3)) {
-		r = uev_add_path(sysdev, vecs);
+		r = uev_add_path(uev, vecs);
 		goto out;
 	}
 	if (!strncmp(uev->action, "remove", 6)) {
-		r = uev_remove_path(sysdev, vecs);
+		r = uev_remove_path(uev, vecs);
+		goto out;
+	}
+	if (!strncmp(uev->action, "change", 6)) {
+		r = uev_update_path(uev, vecs);
 		goto out;
 	}
 
@@ -751,6 +786,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(SUSPEND+MAP, cli_suspend);
 	set_handler_callback(RESUME+MAP, cli_resume);
 	set_handler_callback(RESIZE+MAP, cli_resize);
+	set_handler_callback(RELOAD+MAP, cli_reload);
 	set_handler_callback(REINSTATE+PATH, cli_reinstate);
 	set_handler_callback(FAIL+PATH, cli_fail);
 	set_handler_callback(DISABLEQ+MAP, cli_disable_queueing);
@@ -758,6 +794,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(DISABLEQ+MAPS, cli_disable_all_queueing);
 	set_handler_callback(RESTOREQ+MAPS, cli_restore_all_queueing);
 	set_handler_callback(QUIT, cli_quit);
+	set_handler_callback(SHUTDOWN, cli_shutdown);
 
 	umask(077);
 	uxsock_listen(&uxsock_trigger, ap);
@@ -765,14 +802,11 @@ uxlsnrloop (void * ap)
 	return NULL;
 }
 
-static int
+int
 exit_daemon (int status)
 {
 	if (status != 0)
 		fprintf(stderr, "bad exit status. see daemon.log\n");
-
-	condlog(3, "unlink pidfile");
-	unlink(DEFAULT_PIDFILE);
 
 	pthread_mutex_lock(&exit_mutex);
 	pthread_cond_signal(&exit_cond);
@@ -927,18 +961,26 @@ check_path (struct vectors * vecs, struct path * pp)
 	else
 		newstate = checker_check(&pp->checker);
 
-	if (newstate < 0) {
+	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
 		pathinfo(pp, conf->hwtable, 0);
 		return;
 	}
 	/*
-	 * Async IO in flight. Keep the previous path state
-	 * and reschedule as soon as possible
+	 * Async IO in flight or path blocked. Keep the previous
+	 * path state and reschedule as soon as possible
 	 */
 	if (newstate == PATH_PENDING) {
 		pp->tick = 1;
 		return;
+	}
+	/*
+	 * Synchronize with kernel state
+	 */
+	if (update_multipath_strings(pp->mpp, vecs->pathvec)) {
+		condlog(1, "%s: Could not synchronize with kernel state\n",
+			pp->dev);
+		pp->dmstate = PSTATE_UNDEF;
 	}
 	if (newstate != pp->state) {
 		int oldstate = pp->state;
@@ -951,8 +993,7 @@ check_path (struct vectors * vecs, struct path * pp)
 		 */
 		pp->checkint = conf->checkint;
 
-		if (newstate == PATH_DOWN || newstate == PATH_SHAKY ||
-		    update_multipath_strings(pp->mpp, vecs->pathvec)) {
+		if (newstate == PATH_DOWN || newstate == PATH_SHAKY) {
 			/*
 			 * proactively fail path in the DM
 			 */
@@ -998,19 +1039,25 @@ check_path (struct vectors * vecs, struct path * pp)
 			enable_group(pp);
 	}
 	else if (newstate == PATH_UP || newstate == PATH_GHOST) {
-		LOG_MSG(4, checker_message(&pp->checker));
-		/*
-		 * double the next check delay.
-		 * max at conf->max_checkint
-		 */
-		if (pp->checkint < (conf->max_checkint / 2))
-			pp->checkint = 2 * pp->checkint;
-		else
-			pp->checkint = conf->max_checkint;
+		if (pp->dmstate == PSTATE_FAILED ||
+		    pp->dmstate == PSTATE_UNDEF) {
+			/* Clear IO errors */
+			reinstate_path(pp, 0);
+		} else {
+			LOG_MSG(4, checker_message(&pp->checker));
+			/*
+			 * double the next check delay.
+			 * max at conf->max_checkint
+			 */
+			if (pp->checkint < (conf->max_checkint / 2))
+				pp->checkint = 2 * pp->checkint;
+			else
+				pp->checkint = conf->max_checkint;
 
-		pp->tick = pp->checkint;
-		condlog(4, "%s: delay next check %is",
+			pp->tick = pp->checkint;
+			condlog(4, "%s: delay next check %is",
 				pp->dev_t, pp->tick);
+		}
 	}
 	else if (newstate == PATH_DOWN)
 		LOG_MSG(2, checker_message(&pp->checker));
@@ -1334,6 +1381,7 @@ child (void * param)
 	pthread_t check_thr, uevent_thr, uxlsnr_thr;
 	pthread_attr_t log_attr, misc_attr;
 	struct vectors * vecs;
+	int rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -1381,12 +1429,6 @@ child (void * param)
 				conf->max_fds, strerror(errno));
 	}
 
-	if (pidfile_create(DEFAULT_PIDFILE, getpid())) {
-		if (logsink)
-			log_thread_stop();
-
-		exit(1);
-	}
 	signal_init();
 	setscheduler();
 	set_oom_adj(-16);
@@ -1410,11 +1452,27 @@ child (void * param)
 	/*
 	 * start threads
 	 */
-	pthread_create(&check_thr, &misc_attr, checkerloop, vecs);
-	pthread_create(&uevent_thr, &misc_attr, ueventloop, vecs);
-	pthread_create(&uxlsnr_thr, &misc_attr, uxlsnrloop, vecs);
+	if ((rc = pthread_create(&check_thr, &misc_attr, checkerloop, vecs))) {
+		condlog(0,"failed to create checker loop thread: %d", rc);
+		exit(1);
+	}
+	if ((rc = pthread_create(&uevent_thr, &misc_attr, ueventloop, vecs))) {
+		condlog(0, "failed to create uevent thread: %d", rc);
+		exit(1);
+	}
+	if ((rc = pthread_create(&uxlsnr_thr, &misc_attr, uxlsnrloop, vecs))) {
+		condlog(0, "failed to create cli listener: %d", rc);
+		exit(1);
+	}
 	pthread_attr_destroy(&misc_attr);
 
+	/* Startup complete, create logfile */
+	if (pidfile_create(DEFAULT_PIDFILE, getpid())) {
+		if (logsink)
+			log_thread_stop();
+
+		exit(1);
+	}
 	pthread_cond_wait(&exit_cond, &exit_mutex);
 
 	/*
@@ -1423,7 +1481,7 @@ child (void * param)
 	block_signal(SIGHUP, NULL);
 	lock(vecs->lock);
 	remove_maps_and_stop_waiters(vecs);
-	free_pathvec(vecs->pathvec, FREE_PATHS);
+	unlock(vecs->lock);
 
 	pthread_cancel(check_thr);
 	pthread_cancel(uevent_thr);
@@ -1437,6 +1495,9 @@ child (void * param)
 	handlers = NULL;
 	free_polls();
 
+	lock(vecs->lock);
+	free_pathvec(vecs->pathvec, FREE_PATHS);
+	vecs->pathvec = NULL;
 	unlock(vecs->lock);
 	/* Now all the waitevent threads will start rushing in. */
 	while (vecs->lock.depth > 0) {
@@ -1450,16 +1511,21 @@ child (void * param)
 	FREE(vecs);
 	vecs = NULL;
 
+	cleanup_checkers();
+	cleanup_prio();
+
+	dm_lib_release();
+	dm_lib_exit();
+
+	/* We're done here */
+	condlog(3, "unlink pidfile");
+	unlink(DEFAULT_PIDFILE);
+
 	condlog(2, "--------shut down-------");
 
 	if (logsink)
 		log_thread_stop();
 
-	dm_lib_release();
-	dm_lib_exit();
-
-	cleanup_prio();
-	cleanup_checkers();
 	/*
 	 * Freeing config must be done after condlog() and dm_lib_exit(),
 	 * because logging functions like dlog() and dm_write_log()
@@ -1509,12 +1575,23 @@ daemonize(void)
 	}
 
 	close(STDIN_FILENO);
-	dup(in_fd);
+	if (dup(in_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/null for input"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(STDOUT_FILENO);
-	dup(out_fd);
+	if (dup(out_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/console for output"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(STDERR_FILENO);
-	dup(out_fd);
-
+	if (dup(out_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/console for error"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(in_fd);
 	close(out_fd);
 	if (chdir("/") < 0)
@@ -1540,7 +1617,9 @@ main (int argc, char *argv[])
 	}
 
 	/* make sure we don't lock any path */
-	chdir("/");
+	if (chdir("/") < 0)
+		fprintf(stderr, "couldn't chdir to '/', continuing\n");
+
 	umask(umask(077) | 022);
 
 	conf = alloc_config();

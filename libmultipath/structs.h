@@ -6,7 +6,7 @@
 #define WWID_SIZE		128
 #define SERIAL_SIZE		64
 #define NODE_NAME_SIZE		19
-#define PATH_STR_SIZE  		16
+#define PATH_STR_SIZE		16
 #define PARAMS_SIZE		1024
 #define FILE_NAME_SIZE		256
 #define CALLOUT_MAX_SIZE	128
@@ -137,6 +137,7 @@ struct path {
 	int pgindex;
 	char * getuid;
 	struct prio * prio;
+	char * prio_arg;
 	struct checker checker;
 	struct multipath * mpp;
 	int fd;
@@ -234,6 +235,8 @@ struct path * first_path (struct multipath * mpp);
 int pathcountgr (struct pathgroup *, int);
 int pathcount (struct multipath *, int);
 void setup_feature(struct multipath *, char *);
+int add_feature (char **, char *);
+int remove_feature (char **, char *);
 
 extern char sysfs_path[PATH_SIZE];
 

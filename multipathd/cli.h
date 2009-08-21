@@ -8,6 +8,8 @@ enum {
 	__REINSTATE,
 	__FAIL,
 	__RESIZE,
+	__RELOAD,
+	__RESET,
 	__DISABLEQ,
 	__RESTOREQ,
 	__PATHS,
@@ -24,6 +26,8 @@ enum {
 	__DEVICES,
 	__FMT,
 	__WILDCARDS,
+	__LOG,
+	__SHUTDOWN,
 	__QUIT,
 };
 
@@ -35,6 +39,8 @@ enum {
 #define RESUME		(1 << __RESUME)
 #define REINSTATE	(1 << __REINSTATE)
 #define FAIL		(1 << __FAIL)
+#define RELOAD		(1 << __RELOAD)
+#define RESET		(1 << __RESET)
 #define RESIZE		(1 << __RESIZE)
 #define DISABLEQ	(1 << __DISABLEQ)
 #define RESTOREQ	(1 << __RESTOREQ)
@@ -49,9 +55,11 @@ enum {
 #define TOPOLOGY	(1 << __TOPOLOGY)
 #define CONFIG		(1 << __CONFIG)
 #define BLACKLIST	(1 << __BLACKLIST)
-#define DEVICES  	(1 << __DEVICES)
-#define FMT 	 	(1 << __FMT)
+#define DEVICES		(1 << __DEVICES)
+#define FMT		(1 << __FMT)
 #define WILDCARDS	(1 << __WILDCARDS)
+#define LOG		(1 << __LOG)
+#define SHUTDOWN	(1 << __SHUTDOWN)
 #define QUIT		(1 << __QUIT)
 
 #define INITIAL_REPLY_LEN 1000

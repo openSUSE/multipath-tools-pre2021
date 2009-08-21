@@ -23,6 +23,7 @@ struct hwentry {
 	char * selector;
 	char * checker_name;
 	char * prio_name;
+	char * prio_arg;
 
 	int pgpolicy;
 	int pgfailback;
@@ -31,6 +32,8 @@ struct hwentry {
 	int minio;
 	int pg_timeout;
 	int flush_on_last_del;
+	int dev_loss_tmo;
+	int fast_io_fail_tmo;
 	char * bl_product;
 };
 
@@ -39,7 +42,10 @@ struct mpentry {
 	char * alias;
 	char * getuid;
 	char * selector;
+	char * features;
 
+	char * prio_name;
+	char * prio_arg;
 	int pgpolicy;
 	int pgfailback;
 	int rr_weight;
@@ -78,6 +84,8 @@ struct config {
 	uid_t uid;
 	gid_t gid;
 	mode_t mode;
+	int dev_loss_tmo;
+	int fast_io_fail_tmo;
 
 	char * dev;
 	char * sysfs_dir;
@@ -89,6 +97,7 @@ struct config {
 	char * hwhandler;
 	char * bindings_file;
 	char * prio_name;
+	char * prio_arg;
 	char * checker_name;
 
 	vector keywords;

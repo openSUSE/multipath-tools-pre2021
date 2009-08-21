@@ -682,6 +682,28 @@ static struct hwentry default_hw[] = {
 		.pgpolicy      = GROUP_BY_PRIO,
 		.pgfailback    = -FAILBACK_IMMEDIATE,
 		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_QUEUE,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	/*
+	 * Generic LSI/Engenio controller
+	 *
+	 * Maintainer: Hannes Reinecke
+	 * Mail: hare@suse.de
+	 */
+	{
+		.vendor        = "ENGENIO",
+		.product       = "INF.*",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
@@ -705,7 +727,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
-		.prio_name     = PRIO_NETAPP,
+		.prio_name     = PRIO_ONTAP,
 	},
 	/*
 	 * IBM NSeries (NETAPP) controller family
@@ -726,7 +748,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
-		.prio_name     = PRIO_NETAPP,
+		.prio_name     = PRIO_ONTAP,
 	},
 	/*
 	 * Pillar Data controller family
@@ -821,6 +843,21 @@ static struct hwentry default_hw[] = {
 		.checker_name  = TUR,
 		.prio_name     = PRIO_RDAC,
 	},
+	{
+		.vendor        = "STK",
+		.product       = "FLEXLINE 380",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_RDAC,
+	},
 	/*
 	 * SUN arrays
 	 *
@@ -841,6 +878,21 @@ static struct hwentry default_hw[] = {
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+	},
+	{
+		.vendor        = "SUN",
+		.product       = "STK6580_6780",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_RDAC,
 	},
 	/*
 	 * Pivot3 RAIGE

@@ -29,6 +29,7 @@ int dm_enablegroup(char * mapname, int index);
 int dm_disablegroup(char * mapname, int index);
 int dm_get_maps (vector mp);
 int dm_geteventnr (char *name);
+int dm_get_major (char *name);
 int dm_get_minor (char *name);
 char * dm_mapname(int major, int minor);
 int dm_remove_partmaps (const char * mapname);

@@ -12,5 +12,6 @@ pthread_cond_t *logev_cond;
 void log_safe(int prio, const char * fmt, va_list ap);
 void log_thread_start(pthread_attr_t *attr);
 void log_thread_stop(void);
+void log_thread_reset(void);
 
 #endif /* _LOG_PTHREAD_H */

@@ -240,14 +240,20 @@ extract_hwe_from_path(struct multipath * mpp)
 static int
 update_multipath_table (struct multipath *mpp, vector pathvec)
 {
+	char params[PARAMS_SIZE] = {0};
+
 	if (!mpp)
 		return 1;
 
-	if (dm_get_map(mpp->alias, &mpp->size, mpp->params))
+	if (dm_get_map(mpp->alias, &mpp->size, params)) {
+		condlog(3, "%s: cannot get map", mpp->alias);
 		return 1;
+	}
 
-	if (disassemble_map(pathvec, mpp->params, mpp))
+	if (disassemble_map(pathvec, params, mpp)) {
+		condlog(3, "%s: cannot disassemble map", mpp->alias);
 		return 1;
+	}
 
 	return 0;
 }
@@ -255,14 +261,20 @@ update_multipath_table (struct multipath *mpp, vector pathvec)
 static int
 update_multipath_status (struct multipath *mpp)
 {
+	char status[PARAMS_SIZE] = {0};
+
 	if (!mpp)
 		return 1;
 
-	if(dm_get_status(mpp->alias, mpp->status))
+	if (dm_get_status(mpp->alias, status)) {
+		condlog(3, "%s: cannot get status", mpp->alias);
 		return 1;
+	}
 
-	if (disassemble_status(mpp->status, mpp))
+	if (disassemble_status(status, mpp)) {
+		condlog(3, "%s: cannot disassemble status", mpp->alias);
 		return 1;
+	}
 
 	return 0;
 }
@@ -456,8 +468,15 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 		 */
 		if (!pp->sysdev || sysfs_get_dev(pp->sysdev,
 						 pp->dev_t, BLK_DEV_SIZE)) {
-			condlog(0, "%s: failed to access path %s", mpp->alias,
-				pp->sysdev ? pp->sysdev->devpath : pp->dev_t);
+			if (pp->state != PATH_DOWN) {
+				condlog(1, "%s: removing valid path %s in state %d",
+					mpp->alias,
+					pp->sysdev?pp->sysdev->devpath:pp->dev_t, pp->state);
+			} else {
+				condlog(3, "%s: failed to access path %s",
+					mpp->alias,
+					pp->sysdev ? pp->sysdev->devpath : pp->dev_t);
+			}
 			count++;
 			vector_del_slot(mpp->paths, i);
 			i--;
@@ -471,6 +490,16 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 				free_path(pp);
 			}
 		} else {
+			int dev_loss_tmo = conf->dev_loss_tmo;
+			int fast_io_fail_tmo = conf->fast_io_fail_tmo;
+
+			if (pp->hwe && pp->hwe->dev_loss_tmo > 0)
+				dev_loss_tmo = pp->hwe->dev_loss_tmo;
+			if (pp->hwe && pp->hwe->fast_io_fail_tmo > 0)
+				fast_io_fail_tmo = pp->hwe->fast_io_fail_tmo;
+
+			sysfs_set_fc_values(pp, dev_loss_tmo,
+					    fast_io_fail_tmo);
 			condlog(4, "%s: verified path %s dev_t %s",
 				mpp->alias, pp->dev, pp->dev_t);
 		}

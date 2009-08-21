@@ -188,6 +188,13 @@
 #	# values  : <group_id>
 #	# default : determined by the process
 #	gid disk
+#	# name    : bindings_file
+#	# scope   : multipath
+#	# desc    : The location of the bindings file that is used with
+#	#           the user_friendly_names option.
+#	# values  : <full_pathname>
+#	# default : "/var/lib/multipath/bindings"
+#	bindings_file "/etc/multipath_bindings"
 #
 #}
 #	
@@ -352,6 +359,18 @@
 #		# default : determined by the process
 #		gid 0
 #
+#		
+#		#
+#		#name	  : prio
+#		#scope    : multipath
+#		#desc     : the function to call to obtain a path weight.
+#		#           Weights are summed for each path group to
+#		#           determine the next PG to use case of failure.  
+#		#default : no callout, all paths equals
+#		# Ex:
+#		# prio	alua
+#		# prio	"weightedpath devname sda 50 sde 10 sdc 50 sdf 10"
+#		prio          "weightedpath hbtl 1:.:.:. 2 4:.:.:. 4"
 #	}
 #	multipath {
 #		wwid	1DEC_____321816758474

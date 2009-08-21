@@ -4,7 +4,6 @@
 extern pthread_attr_t waiter_attr;
 
 struct event_thread {
-	struct dm_task *dmt;
 	pthread_t thread;
 	int event_nr;
 	char mapname[WWID_SIZE];

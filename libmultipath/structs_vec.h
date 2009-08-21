@@ -2,13 +2,8 @@
 #define _STRUCTS_VEC_H
 
 #include "lock.h"
-/*
-struct mutex_lock {
-	pthread_mutex_t *mutex;
-	int depth;
-}; */
 struct vectors {
-	struct mutex_lock lock; /* defined in lock.h */
+	struct mutex_lock lock;
 	vector pathvec;
 	vector mpvec;
 };

@@ -82,6 +82,7 @@ usage (char * progname)
 	fprintf (stderr, "  %s [-d] [-r] [-v lvl] [-p pol] [-b fil] [dev]\n", progname);
 	fprintf (stderr, "  %s -l|-ll|-f [-v lvl] [-b fil] [dev]\n", progname);
 	fprintf (stderr, "  %s -F [-v lvl]\n", progname);
+	fprintf (stderr, "  %s -t\n", progname);
 	fprintf (stderr, "  %s -h\n", progname);
 	fprintf (stderr,
 		"\n"
@@ -92,6 +93,7 @@ usage (char * progname)
 		"  -f      flush a multipath device map\n" \
 		"  -F      flush all multipath device maps\n" \
 		"  -d      dry run, do not create or update devmaps\n" \
+		"  -t      dump internal hardware table\n" \
 		"  -r      force devmap reload\n" \
 		"  -p      policy failover|multibus|group_by_serial|group_by_prio\n" \
 		"  -b fil  bindings file location\n" \
@@ -160,6 +162,7 @@ get_dm_mpvec (vector curmp, vector pathvec, char * refwwid)
 {
 	int i;
 	struct multipath * mpp;
+	char params[PARAMS_SIZE], status[PARAMS_SIZE];
 
 	if (dm_get_maps(curmp))
 		return 1;
@@ -177,10 +180,12 @@ get_dm_mpvec (vector curmp, vector pathvec, char * refwwid)
 			continue;
 		}
 
-		condlog(3, "params = %s", mpp->params);
-		condlog(3, "status = %s", mpp->status);
+		dm_get_map(mpp->alias, &mpp->size, params);
+		condlog(3, "params = %s", params);
+		dm_get_status(mpp->alias, status);
+		condlog(3, "status = %s", status);
 
-		disassemble_map(pathvec, mpp->params, mpp);
+		disassemble_map(pathvec, params, mpp);
 
 		/*
 		 * disassemble_map() can add new paths to pathvec.
@@ -193,7 +198,7 @@ get_dm_mpvec (vector curmp, vector pathvec, char * refwwid)
 		if (conf->list > 1)
 			mpp->bestpg = select_path_group(mpp);
 
-		disassemble_status(mpp->status, mpp);
+		disassemble_status(status, mpp);
 
 		if (conf->list)
 			print_multipath_topology(mpp, conf->verbosity);
@@ -245,14 +250,14 @@ configure (void)
 		else
 			dev = conf->dev;
 	}
-	
+
 	/*
 	 * if we have a blacklisted device parameter, exit early
 	 */
-	if (dev && 
+	if (dev &&
 	    (filter_devnode(conf->blist_devnode, conf->elist_devnode, dev) > 0))
 			goto out;
-	
+
 	/*
 	 * scope limiting must be translated into a wwid
 	 * failing the translation is fatal (by policy)
@@ -319,6 +324,55 @@ out:
 	return r;
 }
 
+static int
+dump_config (void)
+{
+	char * c;
+	char * reply;
+	unsigned int maxlen = 256;
+	int again = 1;
+
+	reply = MALLOC(maxlen);
+
+	while (again) {
+		if (!reply)
+			return 1;
+		c = reply;
+		c += snprint_defaults(c, reply + maxlen - c);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_blacklist(c, reply + maxlen - c);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_blacklist_except(c, reply + maxlen - c);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_hwtable(c, reply + maxlen - c, conf->hwtable);
+		again = ((c - reply) == maxlen);
+		if (again) {
+			reply = REALLOC(reply, maxlen *= 2);
+			continue;
+		}
+		c += snprint_mptable(c, reply + maxlen - c, conf->mptable);
+		again = ((c - reply) == maxlen);
+		if (again)
+			reply = REALLOC(reply, maxlen *= 2);
+	}
+
+	printf("%s", reply);
+	FREE(reply);
+	return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -350,7 +404,7 @@ main (int argc, char *argv[])
 		condlog(0, "multipath tools need sysfs mounted");
 		exit(1);
 	}
-	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:r")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:rt")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -391,23 +445,26 @@ main (int argc, char *argv[])
 			if (conf->pgpolicy_flag == -1) {
 				printf("'%s' is not a valid policy\n", optarg);
 				usage(argv[0]);
-			}                
+			}
 			break;
 		case 'r':
 			conf->force_reload = 1;
 			break;
+		case 't':
+			dump_config();
+			goto out;
 		case 'h':
 			usage(argv[0]);
 		case ':':
 			fprintf(stderr, "Missing option arguement\n");
-			usage(argv[0]);        
+			usage(argv[0]);
 		case '?':
 			fprintf(stderr, "Unknown switch: %s\n", optarg);
 			usage(argv[0]);
 		default:
 			usage(argv[0]);
 		}
-	}        
+	}
 	if (optind < argc) {
 		conf->dev = MALLOC(FILE_NAME_SIZE);
 
@@ -452,7 +509,7 @@ main (int argc, char *argv[])
 	}
 	while ((r = configure()) < 0)
 		condlog(3, "restart multipath configuration process");
-	
+
 out:
 
 	sysfs_cleanup();

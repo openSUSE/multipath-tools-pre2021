@@ -213,12 +213,11 @@ extern int
 select_alias (struct multipath * mp)
 {
 	if (mp->mpe && mp->mpe->alias)
-		mp->alias = mp->mpe->alias;
+		mp->alias = strdup(mp->mpe->alias);
 	else {
 		mp->alias = NULL;
 		if (conf->user_friendly_names)
-			mp->alias = get_user_friendly_alias(mp->wwid,
-					conf->bindings_file);
+			mp->alias = get_user_friendly_alias(mp->wwid);
 		if (mp->alias == NULL){
 			char *alias;
 			if ((alias = MALLOC(WWID_SIZE)) != NULL){
@@ -229,7 +228,7 @@ select_alias (struct multipath * mp)
 			}
 		}
 		if (mp->alias == NULL)
-			mp->alias = mp->wwid;
+			mp->alias = strdup(mp->wwid);
 	}
 
 	return 0;
@@ -238,13 +237,23 @@ select_alias (struct multipath * mp)
 extern int
 select_features (struct multipath * mp)
 {
+	struct mpentry * mpe;
+
+	if ((mpe = find_mpe(mp->wwid))) {
+		if (mpe->features) {
+			mp->features = STRDUP(mpe->features);
+			condlog(3, "%s: features = %s (LUN setting)",
+				mp->alias, mp->features);
+			return 0;
+		}
+	}
 	if (mp->hwe && mp->hwe->features) {
-		mp->features = mp->hwe->features;
+		mp->features = STRDUP(mp->hwe->features);
 		condlog(3, "%s: features = %s (controller setting)",
 			mp->alias, mp->features);
 		return 0;
 	}
-	mp->features = conf->features;
+	mp->features = STRDUP(conf->features);
 	condlog(3, "%s: features = %s (internal default)",
 		mp->alias, mp->features);
 	return 0;
@@ -312,14 +321,28 @@ select_getuid (struct path * pp)
 extern int
 select_prio (struct path * pp)
 {
+	struct mpentry * mpe;
+
+	if ((mpe = find_mpe(pp->wwid))) {
+		if (mpe->prio_name) {
+			pp->prio = prio_lookup(mpe->prio_name);
+			pp->prio_arg = mpe->prio_arg;
+			condlog(3, "%s: prio = %s (LUN setting)",
+				pp->dev, pp->prio->name);
+			return 0;
+		}
+	}
+
 	if (pp->hwe && pp->hwe->prio_name) {
 		pp->prio = prio_lookup(pp->hwe->prio_name);
+		pp->prio_arg = pp->hwe->prio_arg;
 		condlog(3, "%s: prio = %s (controller setting)",
 			pp->dev, pp->hwe->prio_name);
 		return 0;
 	}
 	if (conf->prio_name) {
 		pp->prio = prio_lookup(conf->prio_name);
+		pp->prio_arg = conf->prio_arg;
 		condlog(3, "%s: prio = %s (config file default)",
 			pp->dev, conf->prio_name);
 		return 0;
@@ -423,7 +446,7 @@ select_pg_timeout(struct multipath *mp)
 		return 0;
 	}
 	mp->pg_timeout = PGTIMEOUT_UNDEF;
-	condlog(3, "pg_timeout = NONE (internal default)");
+	condlog(3, "%s: pg_timeout = NONE (internal default)", mp->alias);
 	return 0;
 }
 

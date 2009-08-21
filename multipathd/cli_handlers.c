@@ -19,6 +19,17 @@
 #include "main.h"
 #include "cli.h"
 
+#define REALLOC_REPLY(r, a, m)					\
+	do {							\
+		if ((a)) {					\
+			(r) = REALLOC((r), (m) * 2);		\
+			if ((r)) {				\
+				memset((r) + (m), 0, (m));	\
+				(m) *= 2;			\
+			}					\
+		}						\
+	} while (0)
+
 int
 show_paths (char ** r, int * len, struct vectors * vecs, char * style)
 {
@@ -48,9 +59,7 @@ show_paths (char ** r, int * len, struct vectors * vecs, char * style)
 
 		again = ((c - reply) == (maxlen - 1));
 
-		if (again)
-			reply = REALLOC(reply, maxlen *= 2);
-
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 	*r = reply;
 	*len = (int)(c - reply + 1);
@@ -76,9 +85,7 @@ show_map_topology (char ** r, int * len, struct multipath * mpp)
 		c += snprint_multipath_topology(c, reply + maxlen - c, mpp, 2);
 		again = ((c - reply) == (maxlen - 1));
 
-		if (again)
-			reply = REALLOC(reply, maxlen *= 2);
-
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 	*r = reply;
 	*len = (int)(c - reply + 1);
@@ -110,9 +117,7 @@ show_maps_topology (char ** r, int * len, struct vectors * vecs)
 
 		again = ((c - reply) == (maxlen - 1));
 
-		if (again)
-			reply = REALLOC(reply, maxlen *= 2);
-
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 	*r = reply;
 	*len = (int)(c - reply + 1);
@@ -136,31 +141,46 @@ show_config (char ** r, int * len)
 		c += snprint_defaults(c, reply + maxlen - c);
 		again = ((c - reply) == maxlen);
 		if (again) {
-			reply = REALLOC(reply, maxlen *= 2);
+			reply = REALLOC(reply, maxlen * 2);
+			if (!reply)
+				return 1;
+			memset(reply + maxlen, 0, maxlen);
+			maxlen *= 2;
 			continue;
 		}
 		c += snprint_blacklist(c, reply + maxlen - c);
 		again = ((c - reply) == maxlen);
 		if (again) {
-			reply = REALLOC(reply, maxlen *= 2);
+			reply = REALLOC(reply, maxlen * 2);
+			if (!reply)
+				return 1;
+			memset(reply + maxlen, 0, maxlen);
+			maxlen *= 2;
 			continue;
 		}
 		c += snprint_blacklist_except(c, reply + maxlen - c);
 		again = ((c - reply) == maxlen);
 		if (again) {
-			reply = REALLOC(reply, maxlen *= 2);
+			reply = REALLOC(reply, maxlen * 2);
+			if (!reply)
+				return 1;
+			memset(reply + maxlen, 0, maxlen);
+			maxlen *= 2;
 			continue;
 		}
 		c += snprint_hwtable(c, reply + maxlen - c, conf->hwtable);
 		again = ((c - reply) == maxlen);
 		if (again) {
-			reply = REALLOC(reply, maxlen *= 2);
+			reply = REALLOC(reply, maxlen * 2);
+			if (!reply)
+				return 1;
+			memset(reply + maxlen, 0, maxlen);
+			maxlen *= 2;
 			continue;
 		}
 		c += snprint_mptable(c, reply + maxlen - c, conf->mptable);
 		again = ((c - reply) == maxlen);
-		if (again)
-			reply = REALLOC(reply, maxlen *= 2);
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 	*r = reply;
 	*len = (int)(c - reply + 1);
@@ -289,8 +309,7 @@ show_maps (char ** r, int *len, struct vectors * vecs, char * style)
 
 		again = ((c - reply) == (maxlen - 1));
 
-		if (again)
-			reply = REALLOC(reply, maxlen *= 2);
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 	*r = reply;
 	*len = (int)(c - reply + 1);
@@ -383,9 +402,8 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
-	int minor;
+	int major, minor;
 	char dev_path[PATH_SIZE];
-	struct sysfs_device *sysdev;
 
 	condlog(2, "%s: add map (operator)", param);
 
@@ -400,13 +418,13 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 		condlog(2, "%s: not a device mapper table", param);
 		return 0;
 	}
-	sprintf(dev_path,"/block/dm-%d", minor);
-	sysdev = sysfs_device_get(dev_path);
-	if (!sysdev) {
-		condlog(2, "%s: not found in sysfs", param);
+	major = dm_get_major(param);
+	if (major < 0) {
+		condlog(2, "%s: not a device mapper table", param);
 		return 0;
 	}
-	return ev_add_map(sysdev, vecs);
+	sprintf(dev_path,"dm-%d", minor);
+	return ev_add_map(dev_path, major, minor, vecs);
 }
 
 int
@@ -573,6 +591,80 @@ cli_disable_all_queueing(void *v, char **reply, int *len, void *data)
 }
 
 int
+reload_paths(struct multipath *mpp, struct vectors * vecs)
+{
+	struct pathgroup *pgp;
+	struct path *pp;
+	int i, j, err = 1;
+	char *dev;
+	vector path_names;
+
+	path_names = vector_alloc();
+	if (!path_names){
+		condlog(0, "%s: unable to allcoate space for pathnames vector",
+			mpp->alias);
+		return 1;
+	}
+	vector_foreach_slot(mpp->pg, pgp, i) {
+		vector_foreach_slot(pgp->paths, pp, j) {
+
+			dev = strdup(pp->dev);
+			if (!dev) {
+				condlog(0, "%s: unable to allocate path name",
+					mpp->alias);
+				goto out;
+			}
+			if (!vector_alloc_slot(path_names)){
+				condlog(0, "%s: unable to allocate path name slot", 
+					mpp->alias);
+				free(dev);
+				goto out;
+			}
+			vector_set_slot(path_names, dev);
+		}
+	}
+	vector_foreach_slot(path_names, dev, i) {
+		err = ev_remove_path(dev, vecs);
+		if (err) {
+			condlog(0, "%s: couldn't remove path '%s' : %s",
+				mpp->alias, dev, strerror(errno));
+			goto out;
+		}
+		err = ev_add_path(dev, vecs);
+		if (err)
+			condlog(0, "%s: couldn't add path '%s' : %s",
+				mpp->alias, dev, strerror(errno));
+	}
+out:
+	vector_foreach_slot(path_names, dev, i)
+		free(dev);
+	vector_free(path_names);
+	return err;
+}
+
+int
+cli_reload(void *v, char **reply, int *len, void *data)
+{
+	struct vectors * vecs = (struct vectors *)data;
+	char * mapname = get_keyparam(v, MAP);
+	struct multipath *mpp;
+	int minor;
+
+	condlog(2, "%s: reload map (operator)", mapname);
+	if (sscanf(mapname, "dm-%d", &minor) == 1)
+		mpp = find_mp_by_minor(vecs->mpvec, minor);
+	else
+		mpp = find_mp_by_alias(vecs->mpvec, mapname);
+
+	if (!mpp) {
+		condlog(0, "%s: invalid map name. cannot reload", mapname);
+		return 1;
+	}
+
+	return reload_map(vecs, mpp);
+}
+
+int
 cli_switch_group(void * v, char ** reply, int * len, void * data)
 {
 	char * mapname = get_keyparam(v, MAP);
@@ -599,13 +691,12 @@ cli_suspend(void * v, char ** reply, int * len, void * data)
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
 	int r = dm_simplecmd_noflush(DM_DEVICE_SUSPEND, param);
+	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	condlog(2, "%s: suspend (operator)", param);
 
 	if (!r) /* error */
 		return 1;
-
-	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	if (!mpp)
 		return 1;
@@ -620,13 +711,12 @@ cli_resume(void * v, char ** reply, int * len, void * data)
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
 	int r = dm_simplecmd_noflush(DM_DEVICE_RESUME, param);
+	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	condlog(2, "%s: resume (operator)", param);
 
 	if (!r) /* error */
 		return 1;
-
-	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, param);
 
 	if (!mpp)
 		return 1;
@@ -765,4 +855,21 @@ int
 cli_quit (void * v, char ** reply, int * len, void * data)
 {
 	return 0;
+}
+
+int
+cli_reset_log (void * v, char ** reply, int * len, void * data)
+{
+	condlog(3, "reset (operator)");
+	log_thread_reset();
+	condlog(3, "reset done");
+	return 0;
+}
+
+int
+cli_shutdown (void * v, char ** reply, int * len, void * data)
+{
+	condlog(3, "shutdown (operator)");
+
+	return exit_daemon(0);
 }

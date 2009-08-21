@@ -38,52 +38,57 @@
 #include <linux/netlink.h>
 #include <pthread.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #include "memory.h"
 #include "debug.h"
+#include "list.h"
 #include "uevent.h"
 
 typedef int (uev_trigger)(struct uevent *, void * trigger_data);
 
 pthread_t uevq_thr;
-struct uevent *uevqhp, *uevqtp;
+LIST_HEAD(uevq);
 pthread_mutex_t uevq_lock, *uevq_lockp = &uevq_lock;
-pthread_mutex_t uevc_lock, *uevc_lockp = &uevc_lock;
 pthread_cond_t  uev_cond,  *uev_condp  = &uev_cond;
-uev_trigger *my_uev_trigger;
-void * my_trigger_data;
+static uev_trigger *my_uev_trigger;
+static void * my_trigger_data;
 
 static struct uevent * alloc_uevent (void)
 {
-	return (struct uevent *)MALLOC(sizeof(struct uevent));
+	struct uevent *uev = MALLOC(sizeof(struct uevent));
+
+	if (uev)
+		INIT_LIST_HEAD(&uev->node);
+
+	return uev;
 }
 
+/*
+ * Called with uevq_lockp held
+ */
 void
-service_uevq(void)
+service_uevq(struct list_head *tmpq)
 {
-	int empty;
-	struct uevent *uev;
+	struct uevent *uev, *tmp;
 
-	do {
-		pthread_mutex_lock(uevq_lockp);
-		empty = (uevqhp == NULL);
-		if (!empty) {
-			uev = uevqhp;
-			uevqhp = uev->next;
-			if (uevqtp == uev)
-				uevqtp = uev->next;
-			pthread_mutex_unlock(uevq_lockp);
+	list_for_each_entry_safe(uev, tmp, tmpq, node) {
+		list_del_init(&uev->node);
 
-			if (my_uev_trigger && my_uev_trigger(uev,
-							my_trigger_data))
-				condlog(0, "uevent trigger error");
+		if (my_uev_trigger && my_uev_trigger(uev, my_trigger_data))
+			condlog(0, "uevent trigger error");
 
-			FREE(uev);
-		}
-		else {
-			pthread_mutex_unlock(uevq_lockp);
-		}
-	} while (empty == 0);
+		FREE(uev);
+	}
+}
+
+static void uevq_stop(void *arg)
+{
+	condlog(3, "Stopping uev queue");
+	pthread_mutex_lock(uevq_lockp);
+	my_uev_trigger = NULL;
+	pthread_cond_signal(uev_condp);
+	pthread_mutex_unlock(uevq_lockp);
 }
 
 /*
@@ -92,15 +97,27 @@ service_uevq(void)
 static void *
 uevq_thread(void * et)
 {
+
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	while (1) {
-		pthread_mutex_lock(uevc_lockp);
-		pthread_cond_wait(uev_condp, uevc_lockp);
-		pthread_mutex_unlock(uevc_lockp);
+		LIST_HEAD(uevq_tmp);
 
-		service_uevq();
+		pthread_mutex_lock(uevq_lockp);
+		/*
+		 * Condition signals are unreliable,
+		 * so make sure we only wait if we have to.
+		 */
+		if (list_empty(&uevq)) {
+			pthread_cond_wait(uev_condp, uevq_lockp);
+		}
+		list_splice_init(&uevq, &uevq_tmp);
+		pthread_mutex_unlock(uevq_lockp);
+		if (!my_uev_trigger)
+			break;
+		service_uevq(&uevq_tmp);
 	}
+	condlog(3, "Terminating uev service queue");
 	return NULL;
 }
 
@@ -117,6 +134,7 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	int rcvszsz = sizeof(rcvsz);
 	unsigned int *prcvszsz = (unsigned int *)&rcvszsz;
 	pthread_attr_t attr;
+	size_t stacksize;
 	const int feature_on = 1;
 
 	my_uev_trigger = uev_trigger;
@@ -128,15 +146,37 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	 * thereby not getting to empty the socket's receive buffer queue
 	 * often enough.
 	 */
-	uevqhp = uevqtp = NULL;
+	INIT_LIST_HEAD(&uevq);
 
 	pthread_mutex_init(uevq_lockp, NULL);
-	pthread_mutex_init(uevc_lockp, NULL);
 	pthread_cond_init(uev_condp, NULL);
 
-	pthread_attr_init(&attr);
-	pthread_attr_setstacksize(&attr, 64 * 1024);
-	pthread_create(&uevq_thr, &attr, uevq_thread, NULL);
+	if (pthread_attr_init(&attr)) {
+		condlog(0, "can't initiatlize uevq attribute");
+		goto out;
+	}
+	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
+		stacksize = PTHREAD_STACK_MIN;
+
+	/* Check if stacksize is large enough */
+	if (stacksize < (64 * 1024))
+		stacksize = 64 * 1024;
+
+	/* Set stacksize and reinitialize attr if failed */
+	if (stacksize > PTHREAD_STACK_MIN &&
+	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
+	    pthread_attr_init(&attr)) {
+		condlog(0, "can't set uevq stacksize");
+		goto out;
+	}
+	if (pthread_create(&uevq_thr, &attr, uevq_thread, NULL) != 0) {
+		condlog(0, "can't start uevq thread");
+		goto out;
+	}
+
+	pthread_attr_destroy(&attr);
+
+	pthread_cleanup_push(uevq_stop, NULL);
 
 	/*
 	 * First check whether we have a udev socket
@@ -263,6 +303,10 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 			condlog(3, "unrecognized message header");
 			continue;
 		}
+		if ((size_t)buflen > sizeof(buf)-1) {
+			condlog(2, "buffer overflow for received uevent");
+			buflen = sizeof(buf)-1;
+		}
 
 		uev = alloc_uevent();
 
@@ -310,38 +354,96 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		uev->envp[i] = NULL;
 
 		condlog(3, "uevent '%s' from '%s'", uev->action, uev->devpath);
+		uev->kernel = strrchr(uev->devpath, '/');
+		if (uev->kernel)
+			uev->kernel++;
 
 		/* print payload environment */
 		for (i = 0; uev->envp[i] != NULL; i++)
-			condlog(3, "%s", uev->envp[i]);
+			condlog(5, "%s", uev->envp[i]);
 
 		/*
 		 * Queue uevent and poke service pthread.
 		 */
 		pthread_mutex_lock(uevq_lockp);
-		if (uevqtp)
-			uevqtp->next = uev;
-		else
-			uevqhp = uev;
-		uevqtp = uev;
-		uev->next = NULL;
-		pthread_mutex_unlock(uevq_lockp);
-
-		pthread_mutex_lock(uevc_lockp);
+		list_add_tail(&uev->node, &uevq);
 		pthread_cond_signal(uev_condp);
-		pthread_mutex_unlock(uevc_lockp);
+		pthread_mutex_unlock(uevq_lockp);
 	}
 
 exit:
 	close(sock);
 
+	pthread_cleanup_pop(1);
+
 	pthread_mutex_lock(uevq_lockp);
 	pthread_cancel(uevq_thr);
 	pthread_mutex_unlock(uevq_lockp);
 
+out:
 	pthread_mutex_destroy(uevq_lockp);
-	pthread_mutex_destroy(uevc_lockp);
 	pthread_cond_destroy(uev_condp);
 
 	return 1;
 }
+
+extern int
+uevent_get_major(struct uevent *uev)
+{
+	char *p, *q;
+	int i, major = -1;
+
+	for (i = 0; uev->envp[i] != NULL; i++) {
+		if (!strncmp(uev->envp[i], "MAJOR", 5) && strlen(uev->envp[i]) > 6) {
+			p = uev->envp[i] + 6;
+			major = strtoul(p, &q, 10);
+			if (p == q) {
+				condlog(2, "invalid major '%s'", p);
+				major = -1;
+			}
+			break;
+		}
+	}
+	return major;
+}
+
+extern int
+uevent_get_minor(struct uevent *uev)
+{
+	char *p, *q;
+	int i, minor = -1;
+
+	for (i = 0; uev->envp[i] != NULL; i++) {
+		if (!strncmp(uev->envp[i], "MINOR", 5) && strlen(uev->envp[i]) > 6) {
+			p = uev->envp[i] + 6;
+			minor = strtoul(p, &q, 10);
+			if (p == q) {
+				condlog(2, "invalid minor '%s'", p);
+				minor = -1;
+			}
+			break;
+		}
+	}
+	return minor;
+}
+
+extern int
+uevent_get_disk_ro(struct uevent *uev)
+{
+	char *p, *q;
+	int i, ro = -1;
+
+	for (i = 0; uev->envp[i] != NULL; i++) {
+		if (!strncmp(uev->envp[i], "DISK_RO", 6) && strlen(uev->envp[i]) > 7) {
+			p = uev->envp[i] + 8;
+			ro = strtoul(p, &q, 10);
+			if (p == q) {
+				condlog(2, "invalid read_only setting '%s'", p);
+				ro = -1;
+			}
+			break;
+		}
+	}
+	return ro;
+}
+

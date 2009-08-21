@@ -13,6 +13,7 @@
 #include "structs.h"
 #include "util.h"
 #include "debug.h"
+#include "config.h"
 
 #define WORD_SIZE 64
 
@@ -47,25 +48,44 @@ merge_words (char ** dst, char * word, int space)
  * Transforms the path group vector into a proper device map string
  */
 int
-assemble_map (struct multipath * mp)
+assemble_map (struct multipath * mp, char * params, int len)
 {
 	int i, j;
 	int shift, freechar;
 	int minio;
-	char * p;
+	char * p, * f;
+	char no_path_retry[] = "queue_if_no_path";
 	struct pathgroup * pgp;
 	struct path * pp;
 
 	minio = mp->minio;
-	p = mp->params;
-	freechar = sizeof(mp->params);
+	p = params;
+	freechar = len;
+
+	f = STRDUP(mp->features);
+
+	/*
+	 * We have to set 'queue_if_no_path' here even
+	 * to avoid path failures during map reload.
+	 */
+	if (mp->no_path_retry == NO_PATH_RETRY_UNDEF ||
+	    mp->no_path_retry == NO_PATH_RETRY_FAIL) {
+		/* remove queue_if_no_path settings */
+		condlog(3, "%s: remove queue_if_no_path from '%s'",
+			mp->alias, mp->features);
+		remove_feature(&f, no_path_retry);
+	} else {
+		add_feature(&f, no_path_retry);
+	}
 
 	shift = snprintf(p, freechar, "%s %s %i %i",
-			 mp->features, mp->hwhandler,
+			 f, mp->hwhandler,
 			 VECTOR_SIZE(mp->pg), mp->bestpg);
 
+	FREE(f);
+
 	if (shift >= freechar) {
-		fprintf(stderr, "mp->params too small\n");
+		condlog(0, "%s: params too small\n", mp->alias);
 		return 1;
 	}
 	p += shift;
@@ -76,7 +96,7 @@ assemble_map (struct multipath * mp)
 		shift = snprintf(p, freechar, " %s %i 1", mp->selector,
 				 VECTOR_SIZE(pgp->paths));
 		if (shift >= freechar) {
-			fprintf(stderr, "mp->params too small\n");
+			condlog(0, "%s: params too small\n", mp->alias);
 			return 1;
 		}
 		p += shift;
@@ -88,11 +108,14 @@ assemble_map (struct multipath * mp)
 			if (mp->rr_weight == RR_WEIGHT_PRIO
 			    && pp->priority > 0)
 				tmp_minio = minio * pp->priority;
-
+			if (!strlen(pp->dev_t) ) {
+				condlog(0, "dev_t not set for '%s'\n", pp->dev);
+				return 1;
+			}
 			shift = snprintf(p, freechar, " %s %d",
 					 pp->dev_t, tmp_minio);
 			if (shift >= freechar) {
-				fprintf(stderr, "mp->params too small\n");
+				condlog(0, "%s: params too small\n", mp->alias);
 				return 1;
 			}
 			p += shift;
@@ -100,10 +123,13 @@ assemble_map (struct multipath * mp)
 		}
 	}
 	if (freechar < 1) {
-		fprintf(stderr, "mp->params too small\n");
+		condlog(0, "%s: params too small\n", mp->alias);
 		return 1;
 	}
 	snprintf(p, 1, "\n");
+
+	condlog(3, "%s: assembled map [%s]\n", mp->alias, params);
+
 	return 0;
 }
 
@@ -120,10 +146,13 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 	int num_paths = 0;
 	int num_paths_args = 0;
 	int def_minio = 0;
+	int no_path_retry = NO_PATH_RETRY_UNDEF;
 	struct path * pp;
 	struct pathgroup * pgp;
 
 	p = params;
+
+	condlog(3, "%s: disassemble map [%s]\n", mpp->alias, params);
 
 	/*
 	 * features
@@ -134,6 +163,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 		return 1;
 
 	num_features = atoi(mpp->features);
+	no_path_retry = mpp->no_path_retry;
 
 	for (i = 0; i < num_features; i++) {
 		p += get_word(p, &word);
@@ -152,6 +182,10 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 		FREE(word);
 	}
+	/* Update no_path_retry if not set from features */
+	if (no_path_retry == NO_PATH_RETRY_QUEUE &&
+	    no_path_retry == mpp->no_path_retry)
+		mpp->no_path_retry = NO_PATH_RETRY_UNDEF;
 
 	/*
 	 * hwhandler
@@ -286,7 +320,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 				strncpy(pp->dev_t, word, BLK_DEV_SIZE);
 
 				/* Only call this in multipath client mode */
-				if (!mpp->waiter && store_path(pathvec, pp))
+				if (!conf->daemon && store_path(pathvec, pp))
 					goto out1;
 			}
 			FREE(word);
@@ -359,6 +393,8 @@ disassemble_status (char * params, struct multipath * mpp)
 	struct pathgroup * pgp;
 
 	p = params;
+
+	condlog(3, "%s: disassemble status [%s]\n", mpp->alias, params);
 
 	/*
 	 * features

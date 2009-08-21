@@ -223,6 +223,8 @@ dm_addmap (int task, const char *target, struct multipath *mpp, int use_uuid,
 	if (mpp->attribute_flags & (1 << ATTR_GID) &&
 	    !dm_task_set_gid(dmt, mpp->gid))
 		goto freeout;
+	condlog(4, "%s: addmap [0 %llu %s %s]\n", mpp->alias, mpp->size,
+		target, mpp->params);
 
 	dm_task_no_open_count(dmt);
 
@@ -333,7 +335,10 @@ dm_get_map(char * name, unsigned long long * size, char * outparams)
 	if (size)
 		*size = length;
 
-	if (snprintf(outparams, PARAMS_SIZE, "%s", params) <= PARAMS_SIZE)
+	if (outparams) {
+		if (snprintf(outparams, PARAMS_SIZE, "%s", params) <= PARAMS_SIZE)
+			r = 0;
+	} else
 		r = 0;
 out:
 	dm_task_destroy(dmt);
@@ -498,6 +503,31 @@ dm_get_opencount (const char * mapname)
 		goto out;
 
 	r = info.open_count;
+out:
+	dm_task_destroy(dmt);
+	return r;
+}
+
+int
+dm_get_major (char * mapname)
+{
+	int r = -1;
+	struct dm_task *dmt;
+	struct dm_info info;
+
+	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
+		return 0;
+
+	if (!dm_task_set_name(dmt, mapname))
+		goto out;
+
+	if (!dm_task_run(dmt))
+		goto out;
+
+	if (!dm_task_get_info(dmt, &info))
+		goto out;
+
+	r = info.major;
 out:
 	dm_task_destroy(dmt);
 	return r;
