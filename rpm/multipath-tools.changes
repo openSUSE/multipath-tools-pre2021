@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Aug 21 15:49:47 CEST 2009 - hare@suse.de
+
+- Update to latest upstream git version
+- Merge in SLES11 fixes
+- Build package from git tree
+
+-------------------------------------------------------------------
 Fri Jun 19 10:35:46 CEST 2009 - coolo@novell.com
 
 - disable as-needed for this package as it fails to build with it
