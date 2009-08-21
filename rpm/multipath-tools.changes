@@ -4,6 +4,7 @@ Fri Aug 21 15:49:47 CEST 2009 - hare@suse.de
 - Update to latest upstream git version
 - Merge in SLES11 fixes
 - Build package from git tree
+- Implement '-u' option for kpartx (bnc#517442)
 
 -------------------------------------------------------------------
 Fri Jun 19 10:35:46 CEST 2009 - coolo@novell.com

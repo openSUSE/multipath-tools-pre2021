@@ -31,11 +31,11 @@ ENV{DM_PART}=="?*", \
 
 # Create dm tables for partitions
 ENV{DM_STATE}!="SUSPENDED", ENV{DM_DEPS}!="0", ENV{DM_UUID}=="mpath-*", \
-        RUN+="/sbin/kpartx -a -p _part /dev/$kernel"
+        RUN+="/sbin/kpartx -u -p _part /dev/$kernel"
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="DMRAID-*", \
-        RUN+="/sbin/kpartx -a -p _part /dev/$kernel"
+        RUN+="/sbin/kpartx -u -p _part /dev/$kernel"
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="linear-*", \
-        RUN+="/sbin/kpartx -a -p _part /dev/$kernel"
+        RUN+="/sbin/kpartx -u -p _part /dev/$kernel"
 
 LABEL="kpartx_end"
 
