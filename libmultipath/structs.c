@@ -122,6 +122,7 @@ alloc_multipath (void)
 	if (mpp) {
 		mpp->bestpg = 1;
 		mpp->mpcontext = NULL;
+		mpp->no_path_retry = NO_PATH_RETRY_UNDEF;
 	}
 	return mpp;
 }
