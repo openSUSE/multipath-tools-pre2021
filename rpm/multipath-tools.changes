@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Thu Oct 22 16:29:35 CEST 2009 - hare@suse.de
+
+- Make 'param' local (bnc#548708)
+- Include multipath-fix.patch in git tree.
+
+-------------------------------------------------------------------
+Tue Sep  8 20:56:53 UTC 2009 - aj@suse.de
+
+- Fix last patch, one caller of dm_simplecmd was not updated
+  (multipath-fix.patch).
+
+-------------------------------------------------------------------
 Fri Aug 21 15:49:47 CEST 2009 - hare@suse.de
 
 - Update to latest upstream git version
