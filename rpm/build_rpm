@@ -29,6 +29,12 @@ while [ $# -gt 0 ] ; do
             ;;
         -f|--force)
             force=1;
+	    update=;
+            shift;
+            ;;
+        -u|--update)
+            update=1;
+	    force=;
             shift;
             ;;
         --uncommitted-changes)
@@ -36,7 +42,7 @@ while [ $# -gt 0 ] ; do
             shift;
             ;;
         *)
-            echo "Usage: build_rpm [-f] [-d dir|--destdir=DIR] " \
+            echo "Usage: build_rpm [-f|-u] [-d dir|--destdir=DIR] " \
                  "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes]"
             exit 1;
             ;;
@@ -56,10 +62,10 @@ if [ -z "$BRANCH" ] ; then
 fi
 
 if [ -d "$DESTDIR" ] ; then
-    if [ -z "$force" ] ; then
+    if [ -z "$force" ] && [ -z "$update" ] ; then
         echo "directory $DESTDIR exists, cannot continue"
         exit 1
-    else
+    elif [ -z "$update" ] ; then
         if ! rm -rf "$DESTDIR" ; then
             echo "Cannot remove directory $DESTDIR"
             exit 1
@@ -74,7 +80,7 @@ else
     echo "Checking out from $BRANCH"
 fi
 
-if ! mkdir $DESTDIR ; then
+if [ -z "$update" ] && ! mkdir $DESTDIR ; then
     echo "Cannot create directory $DESTDIR"
     exit 1
 fi
