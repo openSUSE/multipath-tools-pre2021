@@ -577,7 +577,7 @@ main(int argc, char **argv){
 					continue;
 
 				if (!dm_simplecmd(DM_DEVICE_REMOVE,
-							partname)) {
+						  partname, 1)) {
 					r++;
 					continue;
 				}

@@ -37,7 +37,7 @@
 #include "util.h"
 
 extern int
-setup_map (struct multipath * mpp)
+setup_map (struct multipath * mpp, char * params, int params_size)
 {
 	struct pathgroup * pgp;
 	int i;
@@ -97,7 +97,7 @@ setup_map (struct multipath * mpp)
 	 * transform the mp->pg vector of vectors of paths
 	 * into a mp->params strings to feed the device-mapper
 	 */
-	if (assemble_map(mpp)) {
+	if (assemble_map(mpp, params, params_size)) {
 		condlog(0, "%s: problem assembing map", mpp->alias);
 		return 1;
 	}
@@ -309,7 +309,7 @@ lock_multipath (struct multipath * mpp, int lock)
 #define DOMAP_DRY	3
 
 extern int
-domap (struct multipath * mpp)
+domap (struct multipath * mpp, char * params)
 {
 	int r = 0;
 
@@ -349,26 +349,26 @@ domap (struct multipath * mpp)
 			break;
 		}
 
-		r = dm_addmap_create(mpp);
+		r = dm_addmap_create(mpp, params);
 
 		if (!r)
-			r = dm_addmap_create_ro(mpp);
+			r = dm_addmap_create_ro(mpp, params);
 
 		lock_multipath(mpp, 0);
 		break;
 
 	case ACT_RELOAD:
-		r = dm_addmap_reload(mpp);
+		r = dm_addmap_reload(mpp, params);
 		if (!r)
-			r = dm_addmap_reload_ro(mpp);
+			r = dm_addmap_reload_ro(mpp, params);
 		if (r)
 			r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias);
 		break;
 
 	case ACT_RESIZE:
-		r = dm_addmap_reload(mpp);
+		r = dm_addmap_reload(mpp, params);
 		if (!r)
-			r = dm_addmap_reload_ro(mpp);
+			r = dm_addmap_reload_ro(mpp, params);
 		if (r)
 			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias);
 		break;
@@ -393,7 +393,7 @@ domap (struct multipath * mpp)
 			/* multipath daemon mode */
 			mpp->stat_map_loads++;
 			condlog(2, "%s: load table [0 %llu %s %s]", mpp->alias,
-				mpp->size, TGT_MPATH, mpp->params);
+				mpp->size, TGT_MPATH, params);
 			/*
 			 * Required action is over, reset for the stateful daemon.
 			 * But don't do it for creation as we use in the caller the
@@ -435,6 +435,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 	int r = 1;
 	int k, i;
 	char empty_buff[WWID_SIZE];
+	char params[PARAMS_SIZE];
 	struct multipath * mpp;
 	struct path * pp1;
 	struct path * pp2;
@@ -507,7 +508,8 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		}
 		verify_paths(mpp, vecs, NULL);
 
-		if (setup_map(mpp)) {
+		params[0] = '\0';
+		if (setup_map(mpp, params, PARAMS_SIZE)) {
 			remove_map(mpp, vecs, 0);
 			continue;
 		}
@@ -515,7 +517,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		if (mpp->action == ACT_UNDEF)
 			select_action(mpp, curmp, force_reload);
 
-		r = domap(mpp);
+		r = domap(mpp, params);
 
 		if (r == DOMAP_FAIL || r == DOMAP_RETRY) {
 			condlog(3, "%s: domap (%u) failure "
@@ -693,17 +695,19 @@ out:
 
 extern int reload_map(struct vectors *vecs, struct multipath *mpp)
 {
+	char params[PARAMS_SIZE];
 	int r;
 
 	update_mpp_paths(mpp, vecs->pathvec);
 
-	if (setup_map(mpp)) {
+	params[0] = '\0';
+	if (setup_map(mpp, params, PARAMS_SIZE)) {
 		condlog(0, "%s: failed to setup map", mpp->alias);
 		return 1;
 	}
 	select_action(mpp, vecs->mpvec, 1);
 
-	r = domap(mpp);
+	r = domap(mpp, params);
 	if (r == DOMAP_FAIL || r == DOMAP_RETRY) {
 		condlog(3, "%s: domap (%u) failure "
 			"for reload map", mpp->alias, r);
