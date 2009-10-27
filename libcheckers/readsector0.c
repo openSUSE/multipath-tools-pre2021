@@ -30,7 +30,7 @@ readsector0 (struct checker * c)
 	unsigned char sbuf[SENSE_BUFF_LEN];
 	int ret;
 
-	ret = sg_read(c->fd, &buf[0], &sbuf[0]);
+	ret = sg_read(c->fd, &buf[0], 4096, &sbuf[0], SENSE_BUFF_LEN);
 
 	switch (ret)
 	{

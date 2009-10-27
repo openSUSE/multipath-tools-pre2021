@@ -3,6 +3,6 @@
 
 #define SENSE_BUFF_LEN 32
 
-int sg_read (int sg_fd, unsigned char * buff, unsigned char * senseBuff);
+int sg_read (int sg_fd, unsigned char *, int, unsigned char *, int);
 
 #endif /* _LIBSG_H */

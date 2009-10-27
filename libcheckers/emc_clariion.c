@@ -196,7 +196,8 @@ int emc_clariion(struct checker * c)
 	if (sense_buffer[4] == 2) {/* if active path */
 		unsigned char buf[4096];
 
-		ret = sg_read(c->fd, &buf[0], sbb = &sb[0]);
+		ret = sg_read(c->fd, &buf[0], 4096,
+			      sbb = &sb[0], SENSE_BUFF_LEN);
 		if (ret == PATH_DOWN) {
 			hexadecimal_to_ascii(ct->wwn, wwnstr);
 
