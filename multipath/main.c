@@ -416,7 +416,7 @@ main (int argc, char *argv[])
 			conf->verbosity = atoi(optarg);
 			break;
 		case 'b':
-			conf->bindings_file = optarg;
+			conf->bindings_file = strdup(optarg);
 			break;
 		case 'd':
 			conf->dry_run = 1;
