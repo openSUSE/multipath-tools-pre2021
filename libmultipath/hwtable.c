@@ -627,6 +627,75 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
 	},
+	{
+		/* IBM IPR */
+		.vendor        = "IBM",
+		.product       = "IPR.*",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "1 queue_if_no_path",
+		.hwhandler     = "1 alua",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_ALUA,
+	},
+	/*
+	 * Generic LSI/Engenio controller
+	 *
+	 * Maintainer: Hannes Reinecke
+	 * Mail: hare@suse.de
+	 */
+	{
+		.vendor        = "(LSI|ENGENIO)",
+		.product       = "INF.*",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	{
+		/* DELL MD32xx/MD32xxi */
+		.vendor        = "DELL",
+		.product       = "MD32xx|MD32xxi",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	{
+		/* DELL MD3000/MD3000i */
+		.vendor        = "DELL",
+		.product       = "MD3000|MD3000i",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
 	/*
 	 * NETAPP controller family
 	 *
