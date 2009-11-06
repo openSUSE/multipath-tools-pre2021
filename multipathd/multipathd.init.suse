@@ -123,8 +123,10 @@ case "$1" in
 	## Like force-reload, but if daemon does not support
 	## signalling, do nothing (!)
 
-	# If it does not support reload:
-	exit 3
+	$DAEMON -k"reconfigure" > /dev/null 2>&1
+
+	# Remember status and be quiet
+	rc_status
 	;;
     status)
 	echo -n "Checking for multipathd: "
