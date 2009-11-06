@@ -76,7 +76,7 @@ get_alua_info(int fd)
 	return rc;
 }
 
-#ifndef AAS
+#ifdef AAS
 int getprio (struct path * pp)
 {
 	int rc;
@@ -90,10 +90,10 @@ int getprio (struct path * pp)
 
 		switch (rc & 0x0f) {
 			case AAS_OPTIMIZED:
-				rc = 4;
+				rc = 50;
 				break;
 			case AAS_NON_OPTIMIZED:
-				rc = 2;
+				rc = 10;
 				break;
 			case AAS_STANDBY:
 				rc = 1;
@@ -101,7 +101,8 @@ int getprio (struct path * pp)
 			default:
 				rc = 0;
 		}
-		rc += pref;
+		if (pref)
+			rc += 500;
 	} else {
 		switch(-rc) {
 			case ALUA_PRIO_NOT_SUPPORTED:
@@ -130,7 +131,7 @@ int getprio(struct path * pp)
 
 	rc = get_alua_info(pp->fd);
 	if (rc >= 0) {
-		switch(rc & 0x80) {
+		switch(rc & 0x0f) {
 			case AAS_OPTIMIZED:
 				rc = 50;
 				break;
