@@ -7,6 +7,7 @@
 #include "../libcheckers/checkers.h"
 #include "../libmultipath/vector.h"
 #include "../libmultipath/structs.h"
+#include "../libmultipath/config.h"
 
 #include "const.h"
 #include "random.h"

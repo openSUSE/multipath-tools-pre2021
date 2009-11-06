@@ -47,7 +47,7 @@ const char *aas_print_string(int rc)
 }
 
 int
-get_alua_info(int fd)
+get_alua_info(char *dev, int fd)
 {
 	int	rc;
 	int	tpg;
@@ -63,12 +63,12 @@ get_alua_info(int fd)
 	if (tpg < 0)
 		return -ALUA_PRIO_RTPG_FAILED;
 
-	condlog(3, "reported target port group is %i", tpg);
+	condlog(3, "%s: reported target port group is %i", dev, tpg);
 	rc = get_asymmetric_access_state(fd, tpg);
 	if (rc < 0)
 		return -ALUA_PRIO_GETAAS_FAILED;
 
-	condlog(3, "aas = [%s]%s", aas_print_string(rc),
+	condlog(3, "%s: aas = [%s]%s", dev, aas_print_string(rc),
 		(rc & 0x80) ? " [preferred]" : "");
 
 	return rc;
@@ -81,8 +81,10 @@ int prio_alua(struct path * pp)
 	if (pp->fd < 0)
 		return -5;
 
-	rc = get_alua_info(pp->fd);
+	rc = get_alua_info(pp->dev, pp->fd);
 	if (rc >= 0) {
+		int preferred = rc & 0x80;
+
 		switch (rc & 0x0f) {
 		case AAS_OPTIMIZED:
 			rc = 50;
@@ -96,7 +98,13 @@ int prio_alua(struct path * pp)
 		default:
 			rc = 0;
 		}
-		if (rc & 0x80)
+		/*
+		 * Preferred path checking might trigger an
+		 * explicit failover, so we need to check if
+		 * the hardware handler is active
+		 */
+		if (preferred && pp->hwe && pp->hwe->hwhandler &&
+		    *pp->hwe->hwhandler != '0')
 			rc += 100;
 	} else {
 		switch(-rc) {
