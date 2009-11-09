@@ -83,7 +83,7 @@ case "$1" in
 	$PROGRAM -v 0
 
 	# Wait for all multipathed devices to appear
-	maplist=$(/sbin/dmsetup ls --target multipath | sed 's/\(^[^ ()]*\)[\t ]*.*/\1/p')
+	maplist=$(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | sed -n 's/\(^[^ ()]*\)[\t ]*.*/\1/p')
 	for map in $maplist; do
 	    wait=$MPATH_DEVICE_TIMEOUT
 	    while [ $wait -gt 0 ] ; do
