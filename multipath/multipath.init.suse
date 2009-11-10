@@ -99,6 +99,7 @@ case "$1" in
 
 	# Retrigger events for existing devices
 	for dev in /sys/block/dm-*; do
+	    [ -e "$dev" ] || continue
 	    echo add > $dev/uevent
 	done
 	# Start the program directly as checkproc doesn't work here
@@ -107,7 +108,9 @@ case "$1" in
 	udevsettle --timeout="$MPATH_DEVICE_TIMEOUT"
 
 	# Wait for all multipathed devices to appear
-	for map in $(/sbin/dmsetup ls --target multipath | sed 's/\(^[^ ()]*\)[\t ]*.*/\1/p'); do
+	for map in $(/sbin/dmsetup ls --target multipath \
+	    | sed '/No devices/d' \
+	    | sort -n +2 | sed -n 's/\(^[^ ()]*\)[\t ]*.*/\1/p' ) ; do
 	    wait=$MPATH_DEVICE_TIMEOUT
 	    while [ $wait -gt 0 ] ; do
 		[ -e /dev/disk/by-name/$map ] && break
