@@ -169,28 +169,6 @@ def_minio_handler(vector strvec)
 }
 
 static int
-get_sys_max_fds(void)
-{
-	FILE *file;
-	int nr_open;
-
-	file = fopen("/proc/sys/fs/nr_open", "r");
-	if (!file) {
-		fprintf(stderr, "Cannot open /proc/sys/fs/nr_open : %s\n",
-			strerror(errno));
-		return 0;
-	}
-	if (fscanf(file, "%d", &nr_open) != 1) {
-		fprintf(stderr, "Cannot read max open fds from /proc/sys/fs/nr_open: %s\n",
-			strerror(errno));
-		nr_open = 0;
-	}
-	fclose(file);
-	return nr_open;
-}
-
-
-static int
 max_fds_handler(vector strvec)
 {
 	char * buff;
@@ -203,7 +181,7 @@ max_fds_handler(vector strvec)
 
 	if (strlen(buff) == 3 &&
 	    !strcmp(buff, "max"))
-		conf->max_fds = get_sys_max_fds();
+		conf->max_fds = MAX_FDS_UNLIMITED;
 	else
 		conf->max_fds = atoi(buff);
 	FREE(buff);
