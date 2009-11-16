@@ -20,6 +20,9 @@
 
 load_modules
 
+# Better wait for all devices to settle
+wait_for_events
+
 # check for multipath parameter in /proc/cmdline
 mpath_status=$(get_param multipath)
 
