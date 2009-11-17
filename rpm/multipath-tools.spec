@@ -31,7 +31,7 @@ Release:        41
 Summary:        Tools to Manage Multipathed Devices with the device-mapper
 Source:         multipath-tools-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-Patch0:         %{name}-%{version}-opensuse-11.2.diff.bz2
+Patch0:         %{name}-%{version}-sles11-sp1.diff.bz2
 
 %description
 This package provides the tools to manage multipathed devices by
@@ -87,7 +87,17 @@ mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 %clean
 [ "$RPM_BUILD_ROOT" != / ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT;
 
+%pre
+[ -f /.buildenv ] && exit 0
+if [ -f /etc/init.d/multipathd ] && dmsetup --target multipath table | grep -q multipath ; then
+    /etc/init.d/multipathd stop
+fi
+
 %post
+[ -f /.buildenv ] && exit 0
+if dmsetup --target multipath table | grep -q multipath ; then
+    /etc/init.d/multipathd start
+fi
 [ -x /sbin/mkinitrd_setup ] && mkinitrd_setup
 exit 0
 #{insserv /etc/init.d/multipathd}
