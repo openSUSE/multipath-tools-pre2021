@@ -1,8 +1,36 @@
 -------------------------------------------------------------------
+Tue Nov 17 16:36:19 CET 2009 - hare@suse.de
+
+- Merge in changes from OpenSUSE 11.2
+- Update 'no_path_retry' correctly for failed paths (bnc#534666)
+- Update no_path_retry setting when evaluating features (bnc#542145)
+- directio: block count calculation wrong (bnc#549028)
+- multipath segfaults if configuration file contains errors
+  (bnc#540118)
+
+-------------------------------------------------------------------
 Thu Oct 22 16:29:35 CEST 2009 - hare@suse.de
 
 - Make 'param' local (bnc#548708)
 - Include multipath-fix.patch in git tree.
+
+-------------------------------------------------------------------
+Mon Sep 28 15:34:02 CEST 2009 - hare@suse.de
+
+- Fixup strip whitespaces from getuid output (bnc#542085)
+- Change prefix for DASD devices to 'ccw'
+- Update no_path_retry setting when evaluating features (bnc#542145)
+
+-------------------------------------------------------------------
+Wed Sep 16 12:54:03 CEST 2009 - hare@suse.de
+
+- Update features when queue_if_no_path is set (bnc#511607)
+- Ignore error messages when multipathd is not started
+- Add debugging output for feature changes
+- Add generic LSI/Engenio controller (bnc#508030)
+- Update 'no_path_retry' correctly for failed paths (bnc#534666)
+- TUR checker should not return 'failed' for reservation conflict
+  (bnc#498413)
 
 -------------------------------------------------------------------
 Tue Sep  8 20:56:53 UTC 2009 - aj@suse.de
@@ -19,9 +47,124 @@ Fri Aug 21 15:49:47 CEST 2009 - hare@suse.de
 - Implement '-u' option for kpartx (bnc#517442)
 
 -------------------------------------------------------------------
+Mon Jul 13 12:24:34 CEST 2009 - hare@suse.de
+
+- Check for errors in pthread_create()
+- Lock vectors during shutdown
+- Cleanup various MALLOC/REALLOC callers
+- Fix multipathd crash on shutdown
+- Do not run kpartx on dm-uevent messages (bnc#473352)
+- Set pthread stacksize correctly (bnc#485287)
+- Add STK arrays to internal hardware table (bnc#503855)
+- Correct persistent symlink for cciss (bnc#497997)
+- Backport some fixes from upstream (bnc#445023)
+- Add 'reset log' cli command
+- no_path_retry <N> causes I/O to fail (bnc#485281)
+- Terminate uevent service queue
+- Wait for daemon to shutdown (bnc#481389)
+- Update cli request processing
+- Safe memory allocation in cli_handlers
+- Use 'LOG_CONS' option for openlog()
+- Remove sysfs attribute cache
+- Add 'shutdown' cli command
+- Display FC error messages correctly
+- Wait for devices in init script (bnc#487586)
+- Always synchronize with dm state (bnc#447887)
+- Add 'aas' path prioritizer (bnc#472069)
+- Synchronize daemon startup with init file (bnc#481389)
+- Merge feature string in assemble_map (bnc#507793)
+
+ -------------------------------------------------------------------
 Fri Jun 19 10:35:46 CEST 2009 - coolo@novell.com
 
 - disable as-needed for this package as it fails to build with it
+
+-------------------------------------------------------------------
+Fri Mar 20 10:43:12 CET 2009 - hare@suse.de
+
+- Reset checker message for blocked checkers
+- Increase priority for EMC Clariion arrays (bnc#484529)
+- Start waiter threads for single paths correctly (bnc#473841)
+- Use pthread_sigmask in alias.c when called from daemon.
+
+-------------------------------------------------------------------
+Thu Mar 19 12:09:03 CET 2009 - hare@suse.de
+
+- Add %pre and %post scripts to stop multipathd during update
+- Don't set FC parameter on non-SCSI devices
+- multipath -t crashes with invalid configuration file
+
+-------------------------------------------------------------------
+Fri Mar 13 14:21:05 CET 2009 - hare@suse.de
+
+- Don't remove partition mappings on stop (bnc#468826)
+- Set stacksize for log thread
+- Terminate all I/O before flushing maps (bnc#475523)
+- Select 'features' keyword from multipath setting (bnc#465009)
+
+-------------------------------------------------------------------
+Tue Mar 10 12:46:36 CET 2009 - hare@suse.de
+
+- Use lists for uevent processing (bnc#478874)
+- Set stacksize of uevent handling thread (bnc#478874)
+- Increase uevent buffer size
+- Strip trailing blanks from wwid
+- Stack overflow in uev_trigger (bnc#476540)
+
+-------------------------------------------------------------------
+Thu Feb 26 12:36:40 CET 2009 - hare@suse.de
+
+- Fixup multibus zero path handling (bnc#476330)
+- Update checker handling for blocked devices
+- Only pass block events to multipathd
+- Clean up uevent processing (bnc#478874)
+- Set stacksize correctly for event processing thread (bnc#478874)
+
+-------------------------------------------------------------------
+Mon Feb 23 16:36:32 CET 2009 - hare@suse.de
+
+- Remove stray umask() call (bnc#458598)
+- Don't call kpartx if no paths are active (bnc#473352)
+
+-------------------------------------------------------------------
+Thu Feb 19 16:26:32 CET 2009 - hare@suse.de
+
+- Multipathd dies immediately after startup (bnc#473029)
+- Return ghost state if port is in standby (bnc#475816)
+- Switch off queue_if_no_path before removing paths (bnc#475523)
+
+-------------------------------------------------------------------
+Mon Feb  9 14:53:01 CET 2009 - hare@suse.de
+
+- Fix leastpending loadbalancer output (bnc#444199)
+- Start waitevent checker on new paths (bnc#473841)
+- Use 'noflush' for kpartx (bnc#473352)
+
+-------------------------------------------------------------------
+Fri Feb  6 15:00:45 CET 2009 - hare@suse.de
+
+- Display multipath output for leastpending loadbalancer
+  properly (bnc#444199)
+
+-------------------------------------------------------------------
+Wed Feb  4 11:38:31 CET 2009 - hare@suse.de
+
+- Set queue_if_no_path setting during map reload (bnc#472253)
+- Remove obsolete 'umount map' uevent handling
+- Retry TUR on driver errors (bnc#456961)
+
+-------------------------------------------------------------------
+Tue Feb  3 11:22:41 CET 2009 - hare@suse.de
+
+- Copy persistent bindings file into initramfs (bnc#468804)
+- Invert DM_STATE check for kpartx rules (bnc#440959)
+
+-------------------------------------------------------------------
+Mon Feb  2 11:27:51 CET 2009 - hare@suse.de
+
+- Correct dbg_malloc() definition
+- Fix more memory leaks
+- Double free on path release (bnc#458393)
 
 -------------------------------------------------------------------
 Mon Jan 26 14:17:57 CET 2009 - hare@suse.de

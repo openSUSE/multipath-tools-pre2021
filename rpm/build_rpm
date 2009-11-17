@@ -4,7 +4,7 @@
 #
 
 RPM="multipath-tools"
-BRANCH="opensuse-11.2"
+BRANCH="sles11-sp1"
 BASEVER="0.4.8"
 DESTDIR="/tmp/$RPM"
 uncommitted_changes=0
