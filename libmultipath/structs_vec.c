@@ -461,6 +461,8 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 	if (!mpp)
 		return 0;
 
+	select_no_path_retry(mpp);
+
 	vector_foreach_slot (mpp->paths, pp, i) {
 		/*
 		 * see if path is in sysfs
@@ -497,6 +499,21 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 			if (pp->hwe && pp->hwe->fast_io_fail_tmo > 0)
 				fast_io_fail_tmo = pp->hwe->fast_io_fail_tmo;
 
+			if (mpp->no_path_retry > 0) {
+				int no_path_retry_tmo = mpp->no_path_retry * conf->checkint;
+
+				if (no_path_retry_tmo > MAX_DEV_LOSS_TMO)
+					no_path_retry_tmo = MAX_DEV_LOSS_TMO;
+				if (no_path_retry_tmo > dev_loss_tmo)
+					dev_loss_tmo = no_path_retry_tmo;
+					condlog(4, "%s: update dev_loss_tmo"
+						" to %d\n", mpp->alias,
+						dev_loss_tmo);
+			} else if (mpp->no_path_retry == NO_PATH_RETRY_QUEUE) {
+				dev_loss_tmo = MAX_DEV_LOSS_TMO;
+				condlog(4, "%s: update dev_loss_tmo"
+					" to %d\n", mpp->alias, dev_loss_tmo);
+			}
 			sysfs_set_fc_values(pp, dev_loss_tmo,
 					    fast_io_fail_tmo);
 			condlog(4, "%s: verified path %s dev_t %s",
