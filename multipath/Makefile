@@ -28,8 +28,10 @@ install:
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(man5dir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).conf.5 $(DESTDIR)$(man5dir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
-	$(INSTALL_PROGRAM) -m 755 boot-multipath.sh $(DESTDIR)/lib/mkinitrd/scripts
-	$(INSTALL_PROGRAM) -m 755 setup-multipath.sh $(DESTDIR)/lib/mkinitrd/scripts
+	$(SED) 's/@LIB@/$(LIB)/g' boot-multipath.sh > $(DESTDIR)/lib/mkinitrd/scripts/boot-multipath.sh
+	chmod 755 $(DESTDIR)/lib/mkinitrd/scripts/boot-multipath.sh
+	$(SED) 's/@LIB@/$(LIB)/g' setup-multipath.sh > $(DESTDIR)/lib/mkinitrd/scripts/setup-multipath.sh
+	chmod 755 $(DESTDIR)/lib/mkinitrd/scripts/setup-multipath.sh
 
 uninstall:
 	rm $(DESTDIR)/etc/udev/rules.d/multipath.rules

@@ -33,6 +33,7 @@ syslibdir   = $(prefix)/$(LIB)
 libdir	    = $(prefix)/$(LIB)/multipath
 
 GZIP        = /bin/gzip -9 -c
+SED         = sed
 INSTALL_PROGRAM = install
 
 OPTFLAGS     = -pipe -g -Wall -Wunused -Wstrict-prototypes
