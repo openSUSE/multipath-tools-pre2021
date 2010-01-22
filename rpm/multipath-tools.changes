@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Fri Jan 22 16:19:17 CET 2010 - hare@suse.de
+
+- Fix mkinitrd scripts for 64bit (bnc572143)
+- Remove logical partitions maps with 'multipath -f'
+
+-------------------------------------------------------------------
+Fri Jan 22 14:30:36 CET 2010 - ro@suse.de
+
+- testing for existence of /lib64 is not sufficient to find out
+  if we are building for a lib64 platform 
+
+-------------------------------------------------------------------
+Mon Jan 11 15:10:18 CET 2010 - hare@suse.de
+
+- Update dev_loss_tmo for no_path_retry (bnc#492469)
+
+-------------------------------------------------------------------
 Tue Nov 17 16:36:19 CET 2009 - hare@suse.de
 
 - Merge in changes from OpenSUSE 11.2
