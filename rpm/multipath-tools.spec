@@ -78,10 +78,10 @@ Authors:
 # This package failed when testing with -Wl,-as-needed being default.
 # So we disable it here, if you want to retest, just delete this comment and the line below.
 export SUSE_ASNEEDED=0
-make OPTFLAGS="$RPM_OPT_FLAGS"
+make OPTFLAGS="$RPM_OPT_FLAGS" LIB=%_lib
 
 %install
-make DESTDIR=$RPM_BUILD_ROOT install
+make DESTDIR=$RPM_BUILD_ROOT LIB=%_lib install
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 
 %clean
