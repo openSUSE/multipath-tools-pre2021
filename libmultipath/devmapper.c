@@ -569,7 +569,7 @@ dm_flush_map (const char * mapname)
 	if (dm_type(mapname, TGT_MPATH) <= 0)
 		return 0; /* nothing to do */
 
-	if (dm_remove_partmaps(mapname))
+	if (dm_remove_partmaps(mapname, mapname))
 		return 1;
 
 	if (dm_get_opencount(mapname)) {
@@ -913,19 +913,69 @@ bad:
 }
 
 int
-dm_remove_partmaps (const char * mapname)
+dm_remove_partmap (const char * partmap, const char *parentname, char *dev_t)
+{
+	char params[PARAMS_SIZE];
+	unsigned long long size;
+	int r = 0;
+
+	if (
+		/*
+		 * if devmap target is "linear"
+		 */
+		(dm_type(partmap, TGT_PART) > 0) &&
+
+		/*
+		 * and the parent map is part of the part map
+		 */
+		strstr(partmap, parentname) &&
+
+		/*
+		 * and we can fetch the map table from the kernel
+		 */
+		!dm_get_map((char *)partmap, &size, &params[0]) &&
+
+		/*
+		 * and the part maps over the parent map
+		 */
+		strstr(params, dev_t)
+		) {
+		/*
+		 * Then we have to check if there are other maps
+		 * referencing this one.
+		 */
+		if (dm_get_opencount(partmap)) {
+			/*
+			 * Yes, so check those before proceeding
+			 */
+			r = dm_remove_partmaps(partmap, parentname);
+		} else {
+			/*
+			 * No, continue with removal
+			 */
+			condlog(4, "removing partition map %s",
+				partmap);
+			dm_simplecmd_flush(DM_DEVICE_REMOVE, partmap);
+			r = 1;
+		}
+	}
+
+	return r;
+}
+
+int
+dm_remove_partmaps (const char * mapname, const char * parentname)
 {
 	struct dm_task *dmt;
 	struct dm_names *names;
 	unsigned next = 0;
-	char params[PARAMS_SIZE];
-	unsigned long long size;
 	char dev_t[32];
 	int r = 1;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
 		return 1;
 
+restart:
 	dm_task_no_open_count(dmt);
 
 	if (!dm_task_run(dmt))
@@ -943,42 +993,14 @@ dm_remove_partmaps (const char * mapname)
 		goto out;
 
 	do {
-		if (
-		    /*
-		     * if devmap target is "linear"
-		     */
-		    (dm_type(names->name, TGT_PART) > 0) &&
-
-		    /*
-		     * and the multipath mapname and the part mapname start
-		     * the same
-		     */
-		    !strncmp(names->name, mapname, strlen(mapname)) &&
-
-		    /*
-		     * and the opencount is 0 for us to allow removal
-		     */
-		    !dm_get_opencount(names->name) &&
-
-		    /*
-		     * and we can fetch the map table from the kernel
-		     */
-		    !dm_get_map(names->name, &size, &params[0]) &&
-
-		    /*
-		     * and the table maps over the multipath map
-		     */
-		    strstr(params, dev_t)
-		   ) {
-				/*
-				 * then it's a kpartx generated partition.
-				 * remove it.
-				 */
-				condlog(4, "partition map %s removed",
-					names->name);
-				dm_simplecmd_flush(DM_DEVICE_REMOVE, names->name);
-		   }
-
+		if (strcmp(names->name, parentname) > 0) {
+			/*
+			 * We need to restart the loop as we have removed
+			 * arbitrary elements from the list
+			 */
+			if (dm_remove_partmap(names->name, parentname, dev_t))
+				goto restart;
+		}
 		next = names->next;
 		names = (void *) names + next;
 	} while (next);
