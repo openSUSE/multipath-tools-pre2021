@@ -33,7 +33,7 @@ int dm_geteventnr (char *name);
 int dm_get_major (char *name);
 int dm_get_minor (char *name);
 char * dm_mapname(int major, int minor);
-int dm_remove_partmaps (const char * mapname, const char * uuid);
+int dm_remove_partmaps (const char * mapname);
 int dm_get_uuid(char *name, char *uuid);
 int dm_get_info (char * mapname, struct dm_info ** dmi);
 int dm_rename (char * old, char * new);
