@@ -15,9 +15,14 @@ if [ -x /sbin/dmsetup ]; then
 		dm_uuid=$(dmsetup info -c --noheadings -o uuid -j $blockmajor -m $blockminor)
 		case $dm_uuid in
 		    part*)
-		    	dm_uuid="${dm_uuid#*-}"
-				kpartx_blockdev="$kpartx_blockdev $(majorminor2blockdev $(dmsetup info -u $dm_uuid --noheadings -c -o major,minor))"
-				root_kpartx=1
+		    		dm_uuid="${dm_uuid#*-}"
+				kpartx_bd=$(dmsetup info -u $dm_uuid --noheadings -c -o major,minor 2>/dev/null)
+				if [ "$kpartx_bd" ]; then
+				    kpartx_blockdev="$kpartx_blockdev $(majorminor2blockdev $kpartx_bd)"
+				    root_kpartx=1
+				else
+				    kpartx_blockdev="$kpartx_blockdev $bd"
+				fi
 				;;
 			*)
 				kpartx_blockdev="$kpartx_blockdev $bd"
