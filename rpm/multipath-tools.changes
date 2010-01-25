@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Jan 25 14:44:43 CET 2010 - hare@suse.de
+
+- Fixup kpartx initrd script to handle loop devices (bnc#523749)
+- Switch off 'queue_if_no_path' before removing maps (bnc#475523)
+- Update logical partition handling (bnc#551827)
+
+-------------------------------------------------------------------
 Fri Jan 22 16:19:17 CET 2010 - hare@suse.de
 
 - Fix mkinitrd scripts for 64bit (bnc572143)
