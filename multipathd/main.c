@@ -1014,6 +1014,9 @@ checkerloop (void *ap)
 	unsigned int i;
 	sigset_t old;
 
+	if (setpriority(PRIO_PROCESS, 0, -15) < 0)
+		condlog(2, "Cannot increate scheduling priority");
+
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 	vecs = (struct vectors *)ap;
 	condlog(2, "path checkers start up");
