@@ -561,20 +561,19 @@ dm_flush_map (const char * mapname, int flush_io)
 	if (flush_io) {
 		if (!dm_queue_if_no_path((char *)mapname, 0)) {
 			/*
-			 * Do a suspend/resume cycle here to
-			 * flush all outstanding I/Os
+			 * Suspend the map to flush
+			 * all outstanding I/Os
 			 */
 			dm_simplecmd(DM_DEVICE_SUSPEND, mapname, 0);
-			dm_simplecmd(DM_DEVICE_RESUME, mapname, 0);
 		} else
 			condlog(3, "%s: could not unset queue_if_no_path", mapname);
 	}
 	if (dm_remove_partmaps(mapname))
-		return 1;
+		goto out;
 
 	if (dm_get_opencount(mapname)) {
 		condlog(2, "%s: map in use", mapname);
-		return 1;
+		goto out;
 	}
 
 	r = dm_simplecmd(DM_DEVICE_REMOVE, mapname, 0);
@@ -583,6 +582,12 @@ dm_flush_map (const char * mapname, int flush_io)
 		condlog(4, "multipath map %s removed", mapname);
 		return 0;
 	}
+out:
+	/*
+	 * Resume the map to restore the original state
+	 */
+	dm_simplecmd(DM_DEVICE_RESUME, mapname, 0);
+
 	return 1;
 }
 
