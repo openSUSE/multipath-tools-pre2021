@@ -345,8 +345,8 @@ out:
 	return r;
 }
 
-extern int
-dm_get_uuid(char *name, char *uuid)
+static int
+dm_get_prefixed_uuid(const char *name, char *uuid)
 {
 	struct dm_task *dmt;
 	const char *uuidtmp;
@@ -363,12 +363,8 @@ dm_get_uuid(char *name, char *uuid)
 		goto uuidout;
 
 	uuidtmp = dm_task_get_uuid(dmt);
-	if (uuidtmp) {
-		if (!strncmp(uuidtmp, UUID_PREFIX, UUID_PREFIX_LEN))
-			strcpy(uuid, uuidtmp + UUID_PREFIX_LEN);
-		else
-			strcpy(uuid, uuidtmp);
-	}
+	if (uuidtmp)
+		strcpy(uuid, uuidtmp);
 	else
 		uuid[0] = '\0';
 
@@ -376,6 +372,47 @@ dm_get_uuid(char *name, char *uuid)
 uuidout:
 	dm_task_destroy(dmt);
 	return r;
+}
+
+extern int
+dm_get_uuid(char *name, char *uuid)
+{
+	char uuidtmp[WWID_SIZE];
+
+	if (dm_get_prefixed_uuid(name, uuidtmp))
+		return 1;
+
+	if (!strncmp(uuidtmp, UUID_PREFIX, UUID_PREFIX_LEN))
+		strcpy(uuid, uuidtmp + UUID_PREFIX_LEN);
+	else
+		strcpy(uuid, uuidtmp);
+
+	return 0;
+}
+
+/*
+ * returns:
+ *    0 : if both uuids end with same suffix which starts with UUID_PREFIX
+ *    1 : otherwise
+ */
+int
+dm_compare_uuid(const char* mapname1, const char* mapname2)
+{
+	char *p1, *p2;
+	char uuid1[WWID_SIZE], uuid2[WWID_SIZE];
+
+	if (dm_get_prefixed_uuid(mapname1, uuid1))
+		return 1;
+
+	if (dm_get_prefixed_uuid(mapname2, uuid2))
+		return 1;
+
+	p1 = strstr(uuid1, UUID_PREFIX);
+	p2 = strstr(uuid2, UUID_PREFIX);
+	if (p1 && p2 && !strcmp(p1, p2))
+		return 0;
+
+	return 1;
 }
 
 extern int
@@ -987,11 +1024,10 @@ dm_remove_partmaps (const char * mapname)
 		    (dm_type(names->name, TGT_PART) > 0) &&
 
 		    /*
-		     * and the multipath mapname and the part mapname start
-		     * the same. We're only comparing up to the last 2 chars
-		     * as these might contain the partition number.
+		     * and both uuid end with same suffix starting
+		     * at UUID_PREFIX
 		     */
-		    !strncmp(names->name, mapname, strlen(mapname) - 2) &&
+		    (!dm_compare_uuid(names->name, mapname)) &&
 
 		    /*
 		     * and we can fetch the map table from the kernel
