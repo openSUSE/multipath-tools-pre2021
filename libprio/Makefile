@@ -8,9 +8,11 @@ include ../Makefile.inc
 
 OBJS = libprio.o random.o const.o hp_sw.o emc.o rdac.o alua.o alua_rtpg.o ontap.o hds.o command.o
 
+OBJS_DAEMON := $(OBJS:%.o=%-daemon.o)
+
 CFLAGS += -I$(multipathdir)
 
-all: $(BUILD)
+all: $(BUILD) daemon
 
 prepare:
 	@file *-$(BUILD).a >/dev/null 2>&1 || rm -f core *.o *.gz
@@ -21,9 +23,15 @@ klibc: prepare $(OBJS)
 glibc: prepare $(OBJS)
 	ar rs libprio-glibc.a *.o
 
+daemon: $(OBJS_DAEMON)
+	ar rs libprio-daemon.a *-daemon.o
+
 install:
 
 uninstall:
 
 clean:
 	rm -f core *.a *.o *.gz
+
+%-daemon.o : %.c
+	$(CC) -c $(CFLAGS) -DDAEMON $< -o $@

@@ -20,8 +20,8 @@ LDFLAGS = -lpthread -ldevmapper -lreadline -lncurses
 # object files
 #
 OBJS = main.o pidfile.o uxlsnr.o uxclnt.o cli.o cli_handlers.o \
-       $(MULTIPATHLIB)-glibc.a $(CHECKERSLIB)-glibc.a \
-       $(LIBPRIO)-glibc.a
+       $(MULTIPATHLIB)-glibc.a $(CHECKERSLIB)-daemon.a \
+       $(LIBPRIO)-daemon.a
 
 
 #
@@ -37,11 +37,11 @@ klibc:
 $(EXEC): clean $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
 
-$(LIBPRIO)-glibc.a:
-	$(MAKE) -C $(libpriodir) BUILD=glibc glibc
+$(LIBPRIO)-daemon.a:
+	$(MAKE) -C $(libpriodir) BUILD=glibc daemon
 
-$(CHECKERSLIB)-glibc.a:
-	$(MAKE) -C $(checkersdir) BUILD=glibc glibc
+$(CHECKERSLIB)-daemon.a:
+	$(MAKE) -C $(checkersdir) BUILD=glibc daemon
 
 $(MULTIPATHLIB)-glibc.a:
 	$(MAKE) -C $(multipathdir) DAEMON=1 BUILD=glibc glibc
