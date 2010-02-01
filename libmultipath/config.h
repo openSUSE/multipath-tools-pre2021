@@ -77,6 +77,7 @@ struct config {
 	int user_friendly_names;
 	int pg_timeout;
 	int max_fds;
+	int async_timeout;
 	int force_reload;
 	int daemon;
 	int flush_on_last_del;

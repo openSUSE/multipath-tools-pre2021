@@ -447,6 +447,26 @@ def_flush_on_last_del_handler(vector strvec)
 }
 
 static int
+def_async_timeout_handler(vector strvec)
+{
+	int async_timeout;
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	if (sscanf(buff, "%d", &async_timeout) == 1 && async_timeout >= 0)
+		conf->async_timeout = async_timeout;
+	else
+		conf->async_timeout = 0;
+
+	FREE(buff);
+	return 0;
+}
+
+static int
 names_handler(vector strvec)
 {
 	char * buff;
@@ -2040,6 +2060,15 @@ snprint_max_fds (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_async_timeout (char * buff, int len, void * data)
+{
+	if (conf->async_timeout > 0)
+		return snprintf(buff, len, "%i", conf->async_timeout);
+
+	return 0;
+}
+
+static int
 snprint_def_mode(char * buff, int len, void * data)
 {
 	if ((conf->attribute_flags & (1 << ATTR_MODE)) == 0)
@@ -2215,6 +2244,7 @@ init_keywords(void)
 	install_keyword("failback", &default_failback_handler, &snprint_def_failback);
 	install_keyword("rr_min_io", &def_minio_handler, &snprint_def_rr_min_io);
 	install_keyword("max_fds", &max_fds_handler, &snprint_max_fds);
+	install_keyword("async_timeout", &def_async_timeout_handler, &snprint_def_async_timeout);
 	install_keyword("dev_loss_tmo", &def_dev_loss_tmo_handler, &snprint_def_dev_loss_tmo);
 	install_keyword("fast_io_fail_tmo", &def_fast_io_fail_tmo_handler, &snprint_def_fast_io_fail_tmo);
 	install_keyword("rr_weight", &def_weight_handler, &snprint_def_rr_weight);

@@ -148,6 +148,11 @@ void checker_set_async (struct checker * c)
 	c->sync = 0;
 }
 
+void checker_set_async_timeout (struct checker * c, int timeout)
+{
+	c->sync = -timeout;
+}
+
 void checker_enable (struct checker * c)
 {
 	c->disable = 0;
