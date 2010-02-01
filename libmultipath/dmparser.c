@@ -164,6 +164,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 	num_features = atoi(mpp->features);
 	no_path_retry = mpp->no_path_retry;
+	mpp->no_path_retry = NO_PATH_RETRY_UNDEF;
 
 	for (i = 0; i < num_features; i++) {
 		p += get_word(p, &word);
@@ -182,10 +183,17 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 		FREE(word);
 	}
-	/* Update no_path_retry if not set from features */
-	if (no_path_retry == NO_PATH_RETRY_QUEUE &&
-	    no_path_retry == mpp->no_path_retry)
-		mpp->no_path_retry = NO_PATH_RETRY_UNDEF;
+
+	/*
+	 * Reset no_path_retry.
+	 * - if not set from features
+	 * - if queue_if_no_path is set from features but
+	 *   no_path_retry > 0 is selected.
+	 */
+	if ((mpp->no_path_retry == NO_PATH_RETRY_UNDEF ||
+	     mpp->no_path_retry == NO_PATH_RETRY_QUEUE) &&
+	    mpp->no_path_retry != no_path_retry)
+		mpp->no_path_retry = no_path_retry;
 
 	/*
 	 * hwhandler
