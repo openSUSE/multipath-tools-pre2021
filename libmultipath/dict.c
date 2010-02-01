@@ -46,6 +46,17 @@ verbosity_handler(vector strvec)
 }
 
 static int
+max_polling_interval_handler(vector strvec)
+{
+	char *buff;
+
+	buff = VECTOR_SLOT(strvec, 1);
+	conf->max_checkint = atoi(buff);
+
+	return 0;
+}
+
+static int
 udev_dir_handler(vector strvec)
 {
 	conf->udev_dir = set_value(strvec);
@@ -1474,6 +1485,14 @@ snprint_def_verbosity (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_max_polling_interval (char * buff, int len, void * data)
+{
+	if (conf->max_checkint == MAX_CHECKINT(conf->checkint))
+		return 0;
+	return snprintf(buff, len, "%i", conf->max_checkint);
+}
+
+static int
 snprint_def_udev_dir (char * buff, int len, void * data)
 {
 	if (!conf->udev_dir)
@@ -1711,6 +1730,7 @@ init_keywords(void)
 	install_keyword_root("defaults", NULL);
 	install_keyword("verbosity", &verbosity_handler, &snprint_def_verbosity);
 	install_keyword("polling_interval", &polling_interval_handler, &snprint_def_polling_interval);
+	install_keyword("max_polling_interval", &max_polling_interval_handler, &snprint_def_max_polling_interval);
 	install_keyword("udev_dir", &udev_dir_handler, &snprint_def_udev_dir);
 	install_keyword("selector", &def_selector_handler, &snprint_def_selector);
 	install_keyword("path_grouping_policy", &def_pgpolicy_handler, &snprint_def_path_grouping_policy);
