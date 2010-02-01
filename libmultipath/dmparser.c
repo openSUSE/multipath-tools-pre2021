@@ -154,8 +154,14 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 		FREE(word);
 	}
 
-	/* Reset no_path_retry if not set from features */
-	if (mpp->no_path_retry == NO_PATH_RETRY_UNDEF &&
+	/*
+	 * Reset no_path_retry.
+	 * - if not set from features
+	 * - if queue_if_no_path is set from features but
+	 *   no_path_retry > 0 is selected.
+	 */
+	if ((mpp->no_path_retry == NO_PATH_RETRY_UNDEF ||
+	     mpp->no_path_retry == NO_PATH_RETRY_QUEUE) &&
 	    mpp->no_path_retry != no_path_retry)
 		mpp->no_path_retry = no_path_retry;
 
