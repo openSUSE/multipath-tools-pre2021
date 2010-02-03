@@ -19,6 +19,7 @@
 
 #include "../libmultipath/debug.h"
 #include "../libmultipath/sg_include.h"
+#include "../libmultipath/uevent.h"
 
 #define TUR_CMD_LEN 6
 #define HEAVY_CHECK_COUNT       10
@@ -196,6 +197,7 @@ libcheck_check (struct checker * c)
 		return tur_check(c);
 	else {
 		struct timespec tsp;
+		pthread_attr_t attr;
 		int tur_status, r;
 
 		/*
@@ -219,13 +221,15 @@ libcheck_check (struct checker * c)
 		}
 
 		tur_timeout(&tsp);
-		r = pthread_create(&ct->thread, NULL, tur_thread, c);
+		setup_thread_attr(&attr, 32 * 1024, 1);
+		r = pthread_create(&ct->thread, &attr, tur_thread, c);
 		if (r) {
 			pthread_mutex_unlock(&ct->lock);
 			condlog(3, "tur thread creation failure %d", r);
 			MSG(c, MSG_TUR_FAILED);
 			return PATH_WILD;
 		}
+		pthread_attr_destroy(&attr);
 		r = pthread_cond_timedwait(&ct->running, &ct->lock, &tsp);
 		pthread_mutex_unlock(&ct->lock);
 		if (r == ETIMEDOUT) {
