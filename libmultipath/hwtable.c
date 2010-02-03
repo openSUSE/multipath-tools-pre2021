@@ -245,22 +245,6 @@ static struct hwentry default_hw[] = {
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
 	},
-	{
-		.vendor        = "EMC",
-		.product       = "Invista",
-		.bl_product    = "LUNZ",
-		.getuid        = DEFAULT_GETUID,
-		.getprio       = NULL,
-		.features      = DEFAULT_FEATURES,
-		.hwhandler     = DEFAULT_HWHANDLER,
-		.selector      = DEFAULT_SELECTOR,
-		.pgpolicy      = FAILOVER,
-		.pgfailback    = FAILBACK_UNDEF,
-		.rr_weight     = RR_WEIGHT_NONE,
-		.no_path_retry = 5,
-		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
-	},
 	/*
 	 * EMC / Clariion controller family
 	 *
@@ -297,6 +281,22 @@ static struct hwentry default_hw[] = {
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = EMC_CLARIION,
 		.prio_name     = PRIO_EMC,
+	},
+	{
+		.vendor        = "EMC",
+		.product       = "Invista",
+		.bl_product    = "LUNZ",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = FAILOVER,
+		.pgfailback    = FAILBACK_UNDEF,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 5,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = DEFAULT_PRIO,
 	},
 	/*
 	 * Fujitsu controller family
