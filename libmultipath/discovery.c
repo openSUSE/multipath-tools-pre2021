@@ -661,44 +661,6 @@ common_sysfs_pathinfo (struct path * pp, struct sysfs_device *dev)
 	return 0;
 }
 
-static int sysfs_get_sdev_state(struct path *pp)
-{
-	struct sysfs_device *parent;
-	char dev_state[32];
-
-	/* check device state */
-	if (!pp->sysdev) {
-		condlog(3, "%s: no sysfs device", pp->dev);
-		return PATH_WILD;
-	}
-	parent = sysfs_device_get_parent(pp->sysdev);
-	if (!parent) {
-		condlog(3, "%s: no parent for '%s'",
-			pp->dev, pp->sysdev->devpath);
-		return PATH_WILD;
-	}
-	if (!strncmp(parent->kernel, "block", 5)) {
-		parent = sysfs_device_get_parent(parent);
-	}
-	if (!parent) {
-		condlog(3, "%s: no block device for '%s'",
-			pp->dev, parent->devpath);
-		return PATH_WILD;
-	}
-	if (!sysfs_get_state(parent, dev_state, 32)) {
-		if (!strncmp(dev_state, "blocked", 7)) {
-			condlog(3, "%s: device blocked", pp->dev);
-			return PATH_PENDING;
-		} else if (!strncmp(dev_state, "running", 7)) {
-			return PATH_UP;
-		}
-		condlog(3, "%s: device in state %s",
-			pp->dev, dev_state);
-		return PATH_DOWN;
-	}
-	return PATH_WILD;
-}
-
 struct sysfs_device *sysfs_device_from_path(struct path *pp)
 {
 	char sysdev[FILE_NAME_SIZE];
@@ -715,10 +677,13 @@ path_offline (struct path * pp)
 	struct sysfs_device * parent;
 	char buff[SCSI_STATE_SIZE];
 
+	if (pp->bus != SYSFS_BUS_SCSI)
+		return PATH_UP;
+
 	pp->sysdev = sysfs_device_from_path(pp);
 	if (!pp->sysdev) {
 		condlog(1, "%s: failed to get sysfs information", pp->dev);
-		return 1;
+		return PATH_WILD;
 	}
 
 	parent = sysfs_device_get_parent(pp->sysdev);
@@ -728,20 +693,25 @@ path_offline (struct path * pp)
 		parent = sysfs_device_get_parent(parent);
 	if (!parent) {
 		condlog(1, "%s: failed to get parent", pp->dev);
-		return 1;
+		return PATH_WILD;
 	}
 
 	if (sysfs_get_state(parent, buff, SCSI_STATE_SIZE))
-		return 1;
+		return PATH_WILD;
 
 	condlog(3, "%s: state = %s", pp->dev, buff);
 
 	if (!strncmp(buff, "offline", 7)) {
 		pp->offline = 1;
-		return 1;
+		return PATH_DOWN;
 	}
 	pp->offline = 0;
-	return 0;
+	if (!strncmp(buff, "blocked", 7))
+		return PATH_PENDING;
+	else if (!strncmp(buff, "running", 7))
+		return PATH_UP;
+
+	return PATH_DOWN;
 }
 
 extern int
@@ -837,22 +807,10 @@ int
 get_state (struct path * pp)
 {
 	struct checker * c = &pp->checker;
-	int state = PATH_UNCHECKED;
+	int state;
 
 	condlog(3, "%s: get_state", pp->dev);
 
-	if (pp->bus == SYSFS_BUS_SCSI) {
-		pp->sysdev = sysfs_device_from_path(pp);
-		/* Check the sdev state before accessing it */
-		state = sysfs_get_sdev_state(pp);
-		if (state != PATH_UP) {
-			/* Further checking pointless */
-			condlog(3, "%s: state (sysfs) = %s", pp->dev,
-				checker_state_name(state));
-			checker_reset_message(c);
-			return state;
-		}
-	}
 	if (!checker_selected(c)) {
 		select_checker(pp);
 		if (!checker_selected(c)) {
@@ -865,13 +823,14 @@ get_state (struct path * pp)
 			return PATH_UNCHECKED;
 		}
 	}
-	if (path_offline(pp)) {
-		condlog(3, "%s: path offline", pp->dev);
-		return PATH_DOWN;
+	state = path_offline(pp);
+	if (state != PATH_UP) {
+		condlog(3, "%s: path inaccessible", pp->dev);
+		return state;
 	}
 	state = checker_check(c);
 	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
-	if (state == PATH_DOWN && strlen(checker_message(c)))
+	if (state != PATH_UP && strlen(checker_message(c)))
 		condlog(3, "%s: checker msg is \"%s\"",
 			pp->dev, checker_message(c));
 	return state;
@@ -885,13 +844,10 @@ get_prio (struct path * pp)
 	if (!pp)
 		return 0;
 
-	if (pp->bus == SYSFS_BUS_SCSI) {
-		/* Check the sdev state before accessing it */
-		path_state = sysfs_get_sdev_state(pp);
-		if (path_state != PATH_UP) {
-			pp->priority = PRIO_UNDEF;
-			return 0;
-		}
+	path_state = path_offline(pp);
+	if (path_state != PATH_UP) {
+		pp->priority = PRIO_UNDEF;
+		return 0;
 	}
 
 	if (!pp->prio) {
