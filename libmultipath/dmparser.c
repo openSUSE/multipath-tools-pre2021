@@ -64,6 +64,11 @@ assemble_map (struct multipath * mp)
 
 	f = STRDUP(mp->features);
 
+	/*
+	 * We have to set 'queue_if_no_path' here even
+	 * when no_path_retry is set to a positive value
+	 * to avoid path failures during map reload.
+	 */
 	if (mp->no_path_retry == NO_PATH_RETRY_UNDEF ||
 	    mp->no_path_retry == NO_PATH_RETRY_FAIL) {
 		/* remove queue_if_no_path settings */
@@ -86,13 +91,13 @@ assemble_map (struct multipath * mp)
 	}
 	p += shift;
 	freechar -= shift;
-	
+
 	vector_foreach_slot (mp->pg, pgp, i) {
 		pgp = VECTOR_SLOT(mp->pg, i);
 		shift = snprintf(p, freechar, " %s %i 1", mp->selector,
 				 VECTOR_SIZE(pgp->paths));
 		if (shift >= freechar) {
-			fprintf(stderr, "mp->params too small\n");
+			condlog(0, "%s: mp->params too small\n", mp->alias);
 			return 1;
 		}
 		p += shift;
@@ -108,7 +113,8 @@ assemble_map (struct multipath * mp)
 			shift = snprintf(p, freechar, " %s %d",
 					 pp->dev_t, tmp_minio);
 			if (shift >= freechar) {
-				fprintf(stderr, "mp->params too small\n");
+				condlog(0, "%s: mp->params too small\n",
+					mp->alias);
 				return 1;
 			}
 			p += shift;
@@ -116,7 +122,7 @@ assemble_map (struct multipath * mp)
 		}
 	}
 	if (freechar < 1) {
-		fprintf(stderr, "mp->params too small\n");
+		condlog(0, "%s: mp->params too small\n", mp->alias);
 		return 1;
 	}
 	snprintf(p, 1, "\n");
