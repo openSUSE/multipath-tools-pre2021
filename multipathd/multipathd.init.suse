@@ -3,11 +3,7 @@
 #
 # Author: Hannes Reinecke <feedback@suse.de>
 #
-# init.d/routed
-#
-#   and symbolic its link
-#
-# /usr/sbin/rcrouted
+# init.d/multipathd
 #
 ### BEGIN INIT INFO
 # Provides:          multipathd
