@@ -124,7 +124,6 @@ check_state(int fd, struct directio_context *ct, int sync)
 	struct stat	sb;
 	int		rc = PATH_UNCHECKED;
 	long		r;
-	int		async_timeout = sync < 0? -sync : ASYNC_TIMEOUT_SEC;
 
 	if (fstat(fd, &sb) == 0) {
 		LOG(4, "called for %x", (unsigned) sb.st_rdev);
@@ -156,7 +155,7 @@ check_state(int fd, struct directio_context *ct, int sync)
 		    strerror(errno));
 		rc = PATH_UNCHECKED;
 	} else if (r < 1L) {
-		if (ct->running > async_timeout || sync) {
+		if (ct->running > ct->async_timeout || sync) {
 			LOG(3, "abort check on timeout");
 			rc = PATH_DOWN;
 		} else {

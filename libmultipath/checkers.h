@@ -97,6 +97,7 @@ struct checker {
 	void *handle;
 	int fd;
 	int sync;
+	int async_timeout;
 	int disable;
 	char name[CHECKER_NAME_LEN];
 	char message[CHECKER_MSG_LEN];       /* comm with callers */
