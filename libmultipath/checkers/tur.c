@@ -28,13 +28,15 @@
 #define MSG_TUR_DOWN	"tur checker reports path is down"
 #define MSG_TUR_GHOST	"tur checker reports path is in standby state"
 #define MSG_TUR_RUNNING	"tur checker still running"
+#define MSG_TUR_TIMEOUT	"tur checker timed out"
 #define MSG_TUR_FAILED	"tur checker failed to initialize"
 
 struct tur_checker_context {
 	int state;
+	int running;
 	pthread_t thread;
 	pthread_mutex_t lock;
-	pthread_cond_t running;
+	pthread_cond_t active;
 };
 
 int libcheck_init (struct checker * c)
@@ -47,7 +49,7 @@ int libcheck_init (struct checker * c)
 	memset(ct, 0, sizeof(struct tur_checker_context));
 
 	ct->state = PATH_UNCHECKED;
-	pthread_cond_init(&ct->running, NULL);
+	pthread_cond_init(&ct->active, NULL);
 	pthread_mutex_init(&ct->lock, NULL);
 	c->context = ct;
 
@@ -60,7 +62,7 @@ void libcheck_free (struct checker * c)
 		struct tur_checker_context *ct = c->context;
 
 		pthread_mutex_destroy(&ct->lock);
-		pthread_cond_destroy(&ct->running);
+		pthread_cond_destroy(&ct->active);
 		free(c->context);
 	}
 	return;
@@ -155,22 +157,30 @@ void *tur_thread(void *ctx)
 {
 	struct checker *c = ctx;
 	struct tur_checker_context *ct = c->context;
-	int state;
+	int state, signal_thread = 1;
 
 	condlog(3, "tur checker starting up");
 
 	/* TUR checker start up */
 	pthread_mutex_lock(&ct->lock);
 	ct->state = PATH_PENDING;
+	pthread_mutex_unlock(&ct->lock);
 
 	state = tur_check(c);
 
 	/* TUR checker done */
-	ct->state = state;
+	pthread_mutex_lock(&ct->lock);
+	/* Paranoia check: Another thread might have been started */
+	if (ct->thread == pthread_self())
+		ct->state = state;
+	else
+		signal_thread = 0;
 	pthread_mutex_unlock(&ct->lock);
-	pthread_cond_signal(&ct->running);
+	if (signal_thread)
+		pthread_cond_signal(&ct->active);
 
-	condlog(3, "tur checker finished, state %d", state);
+	condlog(3, "tur checker finished, state %s",
+		checker_state_name(state));
 	return ((void *)0);
 }
 
@@ -182,66 +192,84 @@ void tur_timeout(struct timespec *tsp)
 	gettimeofday(&now, NULL);
 	tsp->tv_sec = now.tv_sec;
 	tsp->tv_nsec = now.tv_usec * 1000;
-	tsp->tv_nsec += 100000; /* Wait for 100 msec */
+	tsp->tv_nsec += 5;
 }
 
 extern int
 libcheck_check (struct checker * c)
 {
 	struct tur_checker_context *ct = c->context;
+	struct timespec tsp;
+	pthread_attr_t attr;
+	int tur_status, r;
+
 
 	if (!ct)
 		return PATH_UNCHECKED;
 
 	if (c->sync)
 		return tur_check(c);
-	else {
-		struct timespec tsp;
-		pthread_attr_t attr;
-		int tur_status, r;
 
-		/*
-		 * Async mode
-		 */
-		r = pthread_mutex_trylock(&ct->lock);
-		if (r == EBUSY) {
-			condlog(3, "tur checker still not finished");
-			MSG(c, MSG_TUR_RUNNING);
-			return PATH_PENDING;
-		} else if (r != 0) {
-			condlog(3, "tur mutex lock failed with %d", r);
-			MSG(c, MSG_TUR_FAILED);
-			return PATH_WILD;
-		}
-		if (ct->state != PATH_UNCHECKED) {
-			r = ct->state;
+	/*
+	 * Async mode
+	 */
+	r = pthread_mutex_lock(&ct->lock);
+	if (r != 0) {
+		condlog(2, "tur mutex lock failed with %d", r);
+		MSG(c, MSG_TUR_FAILED);
+		return PATH_WILD;
+	}
+
+	if (ct->running) {
+		/* TUR checker running */
+		if (ct->state == PATH_PENDING ||
+		    ct->state == PATH_UNCHECKED) {
+			if (ct->running > c->async_timeout) {
+				condlog(3, "abort tur checker on timeout");
+				ct->running = 0;
+				ct->thread = 0;
+				MSG(c, MSG_TUR_TIMEOUT);
+				tur_status = PATH_DOWN;
+			} else {
+				condlog(3, "tur checker still not finished");
+				ct->running++;
+				MSG(c, MSG_TUR_RUNNING);
+				tur_status = PATH_PENDING;
+			}
+		} else {
+			/* TUR checker done */
+			ct->running = 0;
+			tur_status = ct->state;
 			ct->state = PATH_UNCHECKED;
-			pthread_mutex_unlock(&ct->lock);
-			return r;
 		}
-
+		pthread_mutex_unlock(&ct->lock);
+	} else {
+		/* Start new TUR checker */
 		tur_timeout(&tsp);
 		setup_thread_attr(&attr, 32 * 1024, 1);
 		r = pthread_create(&ct->thread, &attr, tur_thread, c);
 		if (r) {
 			pthread_mutex_unlock(&ct->lock);
-			condlog(3, "tur thread creation failure %d", r);
+			condlog(2, "tur thread creation failure %d", r);
 			MSG(c, MSG_TUR_FAILED);
 			return PATH_WILD;
 		}
 		pthread_attr_destroy(&attr);
-		r = pthread_cond_timedwait(&ct->running, &ct->lock, &tsp);
+		r = pthread_cond_timedwait(&ct->active, &ct->lock, &tsp);
+		ct->running = 1;
+		tur_status = ct->state;
 		pthread_mutex_unlock(&ct->lock);
 		if (r == ETIMEDOUT) {
 			condlog(3, "tur checker still running");
 			tur_status = PATH_PENDING;
 		} else if (r != 0) {
-			condlog(3, "tur checker failed waiting with %d", r);
+			condlog(2, "tur checker failed waiting with %d", r);
 			MSG(c, MSG_TUR_FAILED);
 			tur_status = PATH_WILD;
-		} else
-			tur_status = ct->state;
-
-		return tur_status;
+		} else {
+			ct->running = 0;
+		}
 	}
+
+	return tur_status;
 }
