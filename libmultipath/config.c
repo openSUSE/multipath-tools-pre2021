@@ -556,8 +556,6 @@ load_config (char * file)
 		if (!conf->mptable)
 			goto out;
 	}
-	if (conf->selector == NULL)
-		conf->selector = set_default(DEFAULT_SELECTOR);
 
 	if (conf->udev_dir == NULL)
 		conf->udev_dir = set_default(DEFAULT_UDEVDIR);
@@ -565,18 +563,11 @@ load_config (char * file)
 	if (conf->getuid == NULL)
 		conf->getuid = set_default(DEFAULT_GETUID);
 
-	if (conf->features == NULL)
-		conf->features = set_default(DEFAULT_FEATURES);
-
-	if (conf->hwhandler == NULL)
-		conf->hwhandler = set_default(DEFAULT_HWHANDLER);
-
 	if (conf->bindings_file == NULL)
 		conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
 
-	if (!conf->selector  || !conf->udev_dir || !conf->multipath_dir ||
-	    !conf->getuid    || !conf->features ||
-	    !conf->hwhandler || !conf->bindings_file)
+	if (!conf->udev_dir || !conf->multipath_dir ||
+	    !conf->getuid    || !conf->bindings_file)
 		goto out;
 
 	if (!conf->prio_name) {

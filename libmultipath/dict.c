@@ -1660,7 +1660,7 @@ snprint_hw_getuid_callout (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->getuid)
+	if (!hwe->getuid || !conf->getuid)
 		return 0;
 	if (strlen(hwe->getuid) == strlen(conf->getuid) &&
 	    !strcmp(hwe->getuid, conf->getuid))
@@ -1674,7 +1674,7 @@ snprint_hw_prio (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->prio_name)
+	if (!hwe->prio_name || !conf->prio_name)
 		return 0;
 	if (!strcmp(hwe->prio_name, conf->prio_name))
 		return 0;
@@ -1687,7 +1687,7 @@ snprint_hw_features (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->features)
+	if (!hwe->features || !conf->features)
 		return 0;
 	if (strlen(hwe->features) == strlen(conf->features) &&
 	    !strcmp(hwe->features, conf->features))
@@ -1701,7 +1701,7 @@ snprint_hw_hardware_handler (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->hwhandler)
+	if (!hwe->hwhandler || !conf->hwhandler)
 		return 0;
 	if (strlen(hwe->hwhandler) == strlen(conf->hwhandler) &&
 	    !strcmp(hwe->hwhandler, conf->hwhandler))
@@ -1715,7 +1715,7 @@ snprint_hw_selector (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->selector)
+	if (!hwe->selector || !conf->selector)
 		return 0;
 	if (strlen(hwe->selector) == strlen(conf->selector) &&
 	    !strcmp(hwe->selector, conf->selector))
@@ -1731,7 +1731,7 @@ snprint_hw_path_grouping_policy (char * buff, int len, void * data)
 
 	char str[POLICY_NAME_SIZE];
 
-	if (!hwe->pgpolicy)
+	if (!hwe->pgpolicy || !conf->pgpolicy)
 		return 0;
 	if (hwe->pgpolicy == conf->pgpolicy)
 		return 0;
@@ -1746,7 +1746,7 @@ snprint_hw_failback (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->pgfailback)
+	if (!hwe->pgfailback || !conf->pgfailback)
 		return 0;
 	if (hwe->pgfailback == conf->pgfailback)
 		return 0;
@@ -1769,7 +1769,7 @@ snprint_hw_rr_weight (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->rr_weight)
+	if (!hwe->rr_weight || !conf->rr_weight)
 		return 0;
 	if (hwe->rr_weight == conf->rr_weight)
 		return 0;
@@ -1856,7 +1856,7 @@ snprint_hw_path_checker (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->checker_name)
+	if (!hwe->checker_name || !conf->checker_name)
 		return 0;
 	if (!strcmp(hwe->checker_name, conf->checker_name))
 		return 0;

@@ -203,7 +203,13 @@ select_selector (struct multipath * mp)
 			mp->alias, mp->selector);
 		return 0;
 	}
-	mp->selector = conf->selector;
+	if (conf->selector) {
+		mp->selector = conf->selector;
+		condlog(3, "%s: selector = %s (config file default)",
+			mp->alias, mp->selector);
+		return 0;
+	}
+	mp->selector = set_default(DEFAULT_SELECTOR);
 	condlog(3, "%s: selector = %s (internal default)",
 		mp->alias, mp->selector);
 	return 0;
@@ -246,8 +252,11 @@ select_features (struct multipath * mp)
 	} else if (mp->hwe && mp->hwe->features) {
 		mp->features = STRDUP(mp->hwe->features);
 		origin = "controller setting";
-	} else {
+	} else if (conf->features) {
 		mp->features = STRDUP(conf->features);
+		origin = "config file default";
+	} else {
+		mp->features = set_default(DEFAULT_FEATURES);
 		origin = "internal default";
 	}
 	condlog(3, "%s: features = %s (%s)",
@@ -273,7 +282,13 @@ select_hwhandler (struct multipath * mp)
 			mp->alias, mp->hwhandler);
 		return 0;
 	}
-	mp->hwhandler = conf->hwhandler;
+	if (conf->hwhandler) {
+		mp->hwhandler = conf->hwhandler;
+		condlog(3, "%s: hwhandler = %s (config file default)",
+			mp->alias, mp->hwhandler);
+		return 0;
+	}
+	mp->hwhandler = set_default(DEFAULT_HWHANDLER);
 	condlog(3, "%s: hwhandler = %s (internal default)",
 		mp->alias, mp->hwhandler);
 	return 0;
