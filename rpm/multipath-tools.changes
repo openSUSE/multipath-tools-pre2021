@@ -1,4 +1,25 @@
 -------------------------------------------------------------------
+Thu Feb  4 11:28:36 CET 2010 - hare@suse.de
+
+- Add hardware defaults for EMC Invista (bnc#573870)
+- Use '--replace-whitespace' for scsi_id (bnc#572209)
+- Asynchronous mode for tur checker (bnc#552688)
+- Update queue_if_no_path after sync with kernel state
+  (bnc#570932)
+- Add 'max_polling_interval' config variable (bnc#570932)
+- Add 'async_timeout' configuration variable (bnc#570932)
+- Use default scsi_id callout for EMC Symmetrix (bnc#528481)
+- Update path_offline() to return device status
+- Update filename in init script
+- Fixes from upstream:
+  * do not allow 0 size for multipath devices
+  * Add nexenta comstart hardware defaults
+  * Add checks for conf->xxx
+  * Add %z wildcard to display path serial
+  * don't pretend config file has setup parameters
+  * documentation fixes
+
+-------------------------------------------------------------------
 Mon Jan 25 14:44:43 CET 2010 - hare@suse.de
 
 - Fixup kpartx initrd script to handle loop devices (bnc#523749)
