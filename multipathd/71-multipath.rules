@@ -5,7 +5,7 @@
 KERNEL!="dm-*", GOTO="multipath_end"
 ACTION=="offline|remove", GOTO="multipath_end"
 
-ENV{DM_STATE}!="ACTIVE", GOTO="multipath_end"
+ENV{DM_STATE}=="SUSPENDED*", GOTO="multipath_end"
 
 PROGRAM="/sbin/dmsetup table -j %M -m %m", \
 	RESULT=="*multipath*", ENV{ID_DMTYPE}="multipath"
