@@ -1,4 +1,35 @@
 -------------------------------------------------------------------
+Mon Feb  8 14:38:36 CET 2010 - hare@suse.de
+
+- Update 'no_path_retry' correctly for failed paths (bnc#534666)
+- directio: block count calculation wrong (bnc#549028)
+- multipath segfaults if configuration file contains errors
+  (bnc#540118)
+- multipath -b segfaults (bnc#551852)
+- alua: Evaluation of preferred path setting failed
+- init script fails if no devices are detected (bnc#553277)
+- max_fds parameter doesn't work properly (bnc#530023)
+- Wrong device_handler name for hp-sw (bnc#566846)
+- I/O hang with RDAC path checker on unmapped volumes (bnc#549196)
+- Correct logging for prio and checkers
+- Release memory on error in alua prioritizer
+- Increase scheduling priority for multipath daemon
+- Update queue_if_no_path after sync with kernel state (bnc#570932)
+- Add 'max_polling_interval' config variable (bnc#570932)
+- Add EMC Invista to internal hardware table (bnc#573873)
+- Correctly update features string in assemble_map() (bnc#507793)
+- Update no_path_retry setting when evaluating features
+  (bnc#542145)
+- Update debugging messages on feature change
+- Update hwtable with new LSI arrays (bnc#551888)
+- Use default scsi_id callout for EMC Symmetrix (bnc#528481)
+- No persistent name symlink is created for read-only devices
+  (bnc#546367)
+- multipathd: support 'reload' in init script (bnc#549916)
+- udev warning message on device names longer than 256 chars
+  (bnc#569706)
+
+-------------------------------------------------------------------
 Thu Aug 20 16:53:13 CEST 2009 - hare@suse.de
 
 - Log all messages
