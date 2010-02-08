@@ -282,6 +282,22 @@ static struct hwentry default_hw[] = {
 		.checker_name  = EMC_CLARIION,
 		.prio_name     = PRIO_EMC,
 	},
+	{
+		.vendor        = "EMC",
+		.product       = "Invista",
+		.bl_product    = "LUNZ",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = FAILOVER,
+		.pgfailback    = FAILBACK_UNDEF,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 5,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = DEFAULT_PRIO,
+	},
 	/*
 	 * Fujitsu controller family
 	 *
@@ -635,6 +651,59 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 	},
 	/*
+	 * IBM Power Virtual SCSI Devices
+	 *
+	 * Maintainer : Brian King, IBM
+	 * Mail : brking@linux.vnet.ibm.com
+	 */
+	{
+		/* AIX VDASD */
+		.vendor        = "AIX",
+		.product       = "VDASD",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = MULTIBUS,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = (300 / DEFAULT_CHECKINT),
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = DIRECTIO,
+		.prio_name     = DEFAULT_PRIO,
+	},
+	{
+		/* DELL MD3000 */
+		.vendor        = "DELL",
+		.product       = "MD3000",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "1 queue_if_no_path",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	{
+		/* DELL MD3000i */
+		.vendor        = "DELL",
+		.product       = "MD3000i",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "1 queue_if_no_path",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_QUEUE,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	/*
 	 * Generic LSI/Engenio controller
 	 *
 	 * Maintainer: Hannes Reinecke
@@ -687,6 +756,53 @@ static struct hwentry default_hw[] = {
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
 	},
+	{
+		/* DELL MD32xx */
+		.vendor        = "DELL",
+		.product       = "MD32xx",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	{
+		/* DELL MD32xxi */
+		.vendor        = "DELL",
+		.product       = "MD32xxi",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	{
+		.vendor        = "ENGENIO",
+		.product       = "INF.*",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_QUEUE,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
 	/*
 	 * NETAPP controller family
 	 *
@@ -707,6 +823,27 @@ static struct hwentry default_hw[] = {
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
 		.prio_name     = PRIO_ONTAP,
+	},
+	/*
+	 * NEXENTA/COMSTAR controller family
+	 *
+	 * Maintainer : Yacine Kheddache
+	 * Mail : yacine@alyseo.com
+	 */
+	{
+		.vendor        = "NEXENTA",
+		.product       = "COMSTAR",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "1 queue_if_no_path",
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_SERIAL,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 30,
+		.minio         = 128,
+		.checker_name  = DIRECTIO,
+		.prio_name     = DEFAULT_PRIO,
 	},
 	/*
 	 * IBM NSeries (NETAPP) controller family
@@ -909,10 +1046,10 @@ static struct hwentry default_hw[] = {
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
 	},
-	/* SUN/LSI 2540 */
+	/* SUN/LSI 2510, 2540, 2530, 2540 */
 	{
 		.vendor        = "SUN",
-		.product       = "LCSM100_F",
+		.product       = "LCSM100_[IEFS]",
 		.getuid        = DEFAULT_GETUID,
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = "1 rdac",
@@ -921,6 +1058,22 @@ static struct hwentry default_hw[] = {
 		.pgfailback    = -FAILBACK_IMMEDIATE,
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+	},
+	/* LSI Generic rdac storage */
+	{
+		.vendor        = "(LSI|ENGENIO)",
+		.product       = "INF-01-00",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
 		.minio         = DEFAULT_MINIO,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
