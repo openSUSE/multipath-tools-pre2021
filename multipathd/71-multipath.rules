@@ -7,11 +7,9 @@ ACTION=="offline|remove", GOTO="multipath_end"
 
 ENV{DM_STATE}=="SUSPENDED*", GOTO="multipath_end"
 
-PROGRAM="/sbin/dmsetup table -j %M -m %m", \
-	RESULT=="*multipath*", ENV{ID_DMTYPE}="multipath"
-RESULT=="", GOTO="multipath_end"
-
-RESULT=="*linear*", PROGRAM="/sbin/kpartx_id %M %m", RESULT=="*", ENV{ID_DMTYPE}="linear"
+ENV{DM_UUID}=="", GOTO="multipath_end"
+ENV{DM_UUID}=="mpath-*", ENV{ID_DMTYPE}="multipath"
+ENV{DM_UUID}=="part*", PROGRAM="/sbin/kpartx_id %M %m", RESULT=="*", ENV{ID_DMTYPE}="linear"
 
 ENV{ID_DMTYPE}=="linear|multipath", IMPORT{program}="/sbin/mpath_id %M %m"
 
