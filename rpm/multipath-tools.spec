@@ -119,7 +119,7 @@ exit 0
 %config /etc/init.d/multipathd
 %config /etc/init.d/boot.multipath
 %config /etc/udev/rules.d/71-multipath.rules
-/%{_lib}/libmultipath.so
+/%{_lib}/libmultipath.so.0
 /%{_lib}/multipath
 /sbin/multipath
 /sbin/multipathd
