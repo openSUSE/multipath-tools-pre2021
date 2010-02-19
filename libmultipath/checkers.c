@@ -148,6 +148,11 @@ void checker_set_async (struct checker * c)
 	c->sync = 0;
 }
 
+void checker_set_async_timeout (struct checker * c, int timeout)
+{
+	c->async_timeout = timeout;
+}
+
 void checker_enable (struct checker * c)
 {
 	c->disable = 0;
@@ -161,6 +166,7 @@ void checker_disable (struct checker * c)
 int checker_init (struct checker * c, void ** mpctxt_addr)
 {
 	c->mpcontext = mpctxt_addr;
+	c->async_timeout = ASYNC_TIMEOUT_SEC;
 	return c->init(c);
 }
 

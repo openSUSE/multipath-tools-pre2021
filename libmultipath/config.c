@@ -472,6 +472,7 @@ load_config (char * file)
 	conf->dev_loss_tmo = DEFAULT_DEV_LOSS_TMO;
 	conf->fast_io_fail_tmo = DEFAULT_FAST_IO_FAIL;
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
+	conf->async_timeout = ASYNC_TIMEOUT_SEC;
 
 	/*
 	 * preload default hwtable

@@ -282,6 +282,10 @@ The default dev_loss_tmo setting for an FC remote port in seconds. If an rport h
 The default fast_io_fail_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all I/O to the devices on that port will be terminated after this timeout. Should be smaller than
 .B dev_loss_tmo
 setting. Default is 5.
+.TP
+.B async_timeout
+The timeout for asynchronous I/O calls. Any asynchronous I/O returning after this timeout is assumed to be an error. Used eg. in the 'directio' path checker.
+Default is 30.
 .
 .SH "blacklist section"
 The
