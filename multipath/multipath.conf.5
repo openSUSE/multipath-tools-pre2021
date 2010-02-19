@@ -310,6 +310,18 @@ if that number is greated than 1024.
 .B bindings_file
 The full pathname of the binding file to be used when the user_friendly_names option is set. Defaults to
 .I /var/lib/multipath/bindings
+.TP
+.B dev_loss_tmo
+The default dev_loss_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all devices on that port will be removed from sysfs after this timeout. Default is 10.
+.TP
+.B fast_io_fail_tmo
+The default fast_io_fail_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all I/O to the devices on that port will be terminated after this timeout. Should be smaller than
+.B dev_loss_tmo
+setting. Default is 5.
+.TP
+.B async_timeout
+The timeout for asynchronous I/O calls. Any asynchronous I/O returning after this timeout is assumed to be an error. Used eg. in the 'directio' path checker.
+Default is 30.
 .
 .SH "blacklist section"
 The

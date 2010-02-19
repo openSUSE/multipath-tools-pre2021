@@ -15,6 +15,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = DIRECTIO,
 		.message    = "",
 		.context    = NULL,
@@ -25,6 +26,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = TUR,
 		.message    = "",
 		.context    = NULL,
@@ -35,6 +37,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = HP_SW,
 		.message    = "",
 		.context    = NULL,
@@ -45,6 +48,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = EMC_CLARIION,
 		.message    = "",
 		.context    = NULL,
@@ -55,6 +59,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = RDAC,
 		.message    = "",
 		.context    = NULL,
@@ -65,6 +70,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = READSECTOR0,
 		.message    = "",
 		.context    = NULL,
@@ -75,6 +81,7 @@ static struct checker checkers[] = {
 	{
 		.fd         = 0,
 		.sync       = 1,
+		.async_timeout = ASYNC_TIMEOUT_SEC,
 		.name       = CCISS_TUR,
 		.message    = "",
 		.context    = NULL,
@@ -83,7 +90,7 @@ static struct checker checkers[] = {
 		.free       = cciss_free
 	},
 
-	{0, 1, 0, "", "", NULL, NULL, NULL, NULL},
+	{0, 1, 0, 0, "", "", NULL, NULL, NULL, NULL},
 };
 
 void checker_set_fd (struct checker * c, int fd)
@@ -99,6 +106,11 @@ void checker_set_sync (struct checker * c)
 void checker_set_async (struct checker * c)
 {
 	c->sync = 0;
+}
+
+void checker_set_async_timeout (struct checker * c, int timeout)
+{
+	c->async_timeout = timeout;
 }
 
 void checker_enable (struct checker * c)

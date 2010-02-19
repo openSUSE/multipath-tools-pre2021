@@ -879,6 +879,7 @@ check_path (struct vectors * vecs, struct path * pp)
 	 * Honored only by checker implementing the said mode.
 	 */
 	checker_set_async(&pp->checker);
+	checker_set_async_timeout(&pp->checker, conf->async_timeout);
 
 	newstate = checker_check(&pp->checker);
 
