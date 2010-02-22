@@ -821,6 +821,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(RESTOREQ+MAP, cli_restore_queueing);
 	set_handler_callback(DISABLEQ+MAPS, cli_disable_all_queueing);
 	set_handler_callback(RESTOREQ+MAPS, cli_restore_all_queueing);
+	set_handler_callback(RESET+LOG, cli_reset_log);
 	set_handler_callback(QUIT, cli_quit);
 	set_handler_callback(SHUTDOWN, cli_shutdown);
 

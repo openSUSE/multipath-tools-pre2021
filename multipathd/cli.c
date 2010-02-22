@@ -381,7 +381,7 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data)
 
 	h = find_handler(fingerprint(cmdvec));
 
-	if (!h) {
+	if (!h || !h->fn) {
 		*reply = genhelp_handler();
 		*len = strlen(*reply) + 1;
 		free_keys(cmdvec);

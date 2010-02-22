@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Feb 22 10:08:44 CET 2010 - hare@suse.de
+
+- 'reset log' cli command crashes daemon (bnc#577889)
+
+-------------------------------------------------------------------
 Thu Feb  4 11:28:36 CET 2010 - hare@suse.de
 
 - Add hardware defaults for EMC Invista (bnc#573870)
