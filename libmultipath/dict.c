@@ -460,7 +460,7 @@ def_async_timeout_handler(vector strvec)
 	if (sscanf(buff, "%d", &async_timeout) == 1 && async_timeout >= 0)
 		conf->async_timeout = async_timeout;
 	else
-		conf->async_timeout = 0;
+		conf->async_timeout = ASYNC_TIMEOUT_SEC;
 
 	FREE(buff);
 	return 0;
@@ -2062,7 +2062,7 @@ snprint_max_fds (char * buff, int len, void * data)
 static int
 snprint_def_async_timeout (char * buff, int len, void * data)
 {
-	if (conf->async_timeout > 0)
+	if (conf->async_timeout != ASYNC_TIMEOUT_SEC)
 		return snprintf(buff, len, "%i", conf->async_timeout);
 
 	return 0;

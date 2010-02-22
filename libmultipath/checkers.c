@@ -166,6 +166,7 @@ void checker_disable (struct checker * c)
 int checker_init (struct checker * c, void ** mpctxt_addr)
 {
 	c->mpcontext = mpctxt_addr;
+	c->async_timeout = ASYNC_TIMEOUT_SEC;
 	return c->init(c);
 }
 
