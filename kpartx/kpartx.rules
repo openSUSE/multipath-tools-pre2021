@@ -13,6 +13,9 @@ ENV{DM_DEPS}=="0", GOTO="kpartx_end"
 
 ENV{DM_UUID}=="?*", IMPORT{program}=="kpartx_id %M %m $env{DM_UUID}"
 
+ENV{DM_UUID}=="mpath-*", IMPORT{program}="/sbin/blkid -o udev -p $tempnode"
+ENV{DM_PART}=="?*", IMPORT{program}="/sbin/blkid -o udev -p $tempnode"
+
 OPTIONS="link_priority=50"
 
 # Create persistent links for multipath tables
@@ -34,6 +37,12 @@ ENV{DM_MPATH}=="?*", ENV{DM_PART}=="?*", \
 	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_MPATH}-part$env{DM_PART}"
 ENV{DM_WWN}=="?*", ENV{DM_PART}=="?*", \
 	SYMLINK+="disk/by-id/wwn-$env{DM_WWN}-part$env{DM_PART}"
+
+# Create persistent by-label/by-uuid links
+ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", \
+	SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
+ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", \
+	SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
 
 # Create dm tables for partitions
 ENV{DM_STATE}!="SUSPENDED", ENV{DM_UUID}=="mpath-*", \
