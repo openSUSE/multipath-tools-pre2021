@@ -17,6 +17,13 @@ ENV{ID_DMTYPE}=="linear|multipath", IMPORT{program}="/sbin/mpath_id %M %m"
 ENV{ID_DMTYPE}=="multipath", ENV{ID_MPATH}=="?*", \
 	SYMLINK+="disk/by-id/$env{ID_BUS}-$env{ID_MPATH}"
 
+ENV{ID_DMTYPE}=="linear|multipath", ENV{ID_MPATH}=="?*", \
+	IMPORT{program}="/sbin/vol_id --export $tempnode"
+ENV{ID_DMTYPE}=="multipath", ENV{ID_FS_UUID}=="?*", \
+	SYMLINK+="disk/by-uuid/$env{ID_FS_UUID}"
+ENV{ID_DMTYPE}=="multipath", ENV{ID_FS_LABEL_SAFE}=="?*", \
+	SYMLINK+="disk/by-label/$env{ID_FS_LABEL_SAFE}"
+
 # Create dm tables for partitions on multipath devices
 ENV{ID_DMTYPE}=="multipath", ENV{ID_MPATH}=="?*", \
 	RUN+="/sbin/kpartx -a -p -part /dev/$kernel"
