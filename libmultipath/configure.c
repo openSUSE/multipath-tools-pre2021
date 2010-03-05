@@ -167,7 +167,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 	if (!find_mp_by_wwid(curmp, mpp->wwid)) {
 		condlog(2, "%s: remove (wwid changed)", cmpp->alias);
 		dm_flush_map(mpp->alias);
-		strncat(cmpp->wwid, mpp->wwid, WWID_SIZE);
+		strncat(cmpp->wwid, mpp->wwid, WWID_SIZE-strlen(cmpp->wwid)-1);
 		drop_multipath(curmp, cmpp->wwid, KEEP_PATHS);
 		mpp->action = ACT_CREATE;
 		condlog(3, "%s: set ACT_CREATE (map wwid change)",

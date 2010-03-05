@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Feb 26 12:37:10 UTC 2010 - coolo@novell.com
+
+- fix buffer overflow in strncat
+
+-------------------------------------------------------------------
 Mon Feb 22 10:08:44 CET 2010 - hare@suse.de
 
 - 'reset log' cli command crashes daemon (bnc#577889)
