@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Mar  5 09:34:37 CET 2010 - hare@suse.de
+
+- Fixup 'async_timeout' initialization again (bnc#580413)
+
+-------------------------------------------------------------------
 Fri Feb 26 12:37:10 UTC 2010 - coolo@novell.com
 
 - fix buffer overflow in strncat
