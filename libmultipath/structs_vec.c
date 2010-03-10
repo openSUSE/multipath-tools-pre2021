@@ -461,6 +461,7 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 	if (!mpp)
 		return 0;
 
+	select_features(mpp);
 	select_no_path_retry(mpp);
 
 	vector_foreach_slot (mpp->paths, pp, i) {
