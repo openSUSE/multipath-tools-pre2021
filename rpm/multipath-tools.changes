@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Mar  5 09:34:37 CET 2010 - hare@suse.de
+
+- Fixup 'async_timeout' initialization (bnc#580413)
+- Add persistent symlinks for by-label and by-uuid (bnc#576979)
+
+-------------------------------------------------------------------
 Fri Feb 19 15:25:32 CET 2010 - hare@suse.de
 
 - Add 'async_timeout' config variable (bnc#570932)

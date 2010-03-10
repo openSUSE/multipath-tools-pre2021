@@ -364,6 +364,7 @@ load_config (char * file)
 	conf->dev_type = DEV_NONE;
 	conf->minio = 1000;
 	conf->max_fds = 0;
+	conf->async_timeout = ASYNC_TIMEOUT_SEC;
 
 	/*
 	 * read the config file

@@ -1648,10 +1648,7 @@ snprint_max_fds (char * buff, int len, void * data)
 static int
 snprint_def_async_timeout (char * buff, int len, void * data)
 {
-	if (conf->async_timeout != ASYNC_TIMEOUT_SEC)
-		return snprintf(buff, len, "%i", conf->async_timeout);
-
-	return 0;
+	return snprintf(buff, len, "%i", conf->async_timeout);
 }
 
 static int
