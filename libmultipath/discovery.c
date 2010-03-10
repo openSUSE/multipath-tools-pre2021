@@ -230,8 +230,7 @@ sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
 	rport = strstr(pp->sysdev->devpath, "rport");
 	if (!rport || sscanf(rport, "rport-%d:%d-%d/%*s",
 			     &host, &rport_channel, &rport_id) != 3) {
-		condlog(3, "%s: Invalid devpath %s",
-			pp->dev, pp->sysdev->devpath);
+		condlog(3, "%s: Not a FC device", pp->dev);
 		return 1;
 	}
 
