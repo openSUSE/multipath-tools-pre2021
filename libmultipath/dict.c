@@ -1905,7 +1905,7 @@ snprint_def_polling_interval (char * buff, int len, void * data)
 static int
 snprint_def_verbosity (char * buff, int len, void * data)
 {
-	if (conf->checkint == DEFAULT_VERBOSITY)
+	if (conf->verbosity == DEFAULT_VERBOSITY)
 		return 0;
 	return snprintf(buff, len, "%i", conf->verbosity);
 }
@@ -2014,7 +2014,7 @@ snprint_def_path_checker (char * buff, int len, void * data)
 	if (strlen(conf->checker_name) == strlen(DEFAULT_CHECKER) &&
 	    !strcmp(conf->checker_name, DEFAULT_CHECKER))
 		return 0;
-	
+
 	return snprintf(buff, len, "%s", conf->checker_name);
 }
 
@@ -2062,6 +2062,8 @@ snprint_max_fds (char * buff, int len, void * data)
 static int
 snprint_def_async_timeout (char * buff, int len, void * data)
 {
+	if (conf->async_timeout == ASYNC_TIMEOUT_SEC)
+		return 0;
 	return snprintf(buff, len, "%i", conf->async_timeout);
 }
 
