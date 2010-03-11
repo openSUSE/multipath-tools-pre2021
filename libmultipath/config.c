@@ -466,6 +466,9 @@ load_config (char * file)
 	if (!conf->verbosity)
 		conf->verbosity = DEFAULT_VERBOSITY;
 
+	conf->checkint = DEFAULT_CHECKINT;
+	conf->max_checkint = MAX_CHECKINT(conf->checkint);
+
 	conf->dev_type = DEV_NONE;
 	conf->minio = 1000;
 	conf->max_fds = 0;
