@@ -1219,10 +1219,6 @@ reconfigure (struct vectors * vecs)
 
 	conf->verbosity = old->verbosity;
 
-	if (!conf->checkint) {
-		conf->checkint = DEFAULT_CHECKINT;
-		conf->max_checkint = MAX_CHECKINT(conf->checkint);
-	}
 	configure(vecs, 1);
 	free_config(old);
 	return 0;
@@ -1401,10 +1397,6 @@ child (void * param)
 	/*
 	 * fill the voids left in the config file
 	 */
-	if (!conf->checkint) {
-		conf->checkint = DEFAULT_CHECKINT;
-		conf->max_checkint = MAX_CHECKINT(conf->checkint);
-	}
 
 	if (conf->max_fds) {
 		struct rlimit fd_limit;
