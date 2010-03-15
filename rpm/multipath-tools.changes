@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Mar 15 13:54:56 CET 2010 - hare@suse.de
+
+- Setup 'checkint' when loading config file (bnc#586847)
+
+-------------------------------------------------------------------
 Wed Mar 10 11:20:56 CET 2010 - hare@suse.de
 
 - Fix typo in persistent rules for by-label/by-uuid
