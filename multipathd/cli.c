@@ -439,6 +439,7 @@ cli_init (void) {
 	add_handler(RESUME+MAP, NULL);
 	add_handler(RESIZE+MAP, NULL);
 	add_handler(RELOAD+MAP, NULL);
+	add_handler(RESET+MAP, NULL);
 	add_handler(REINSTATE+PATH, NULL);
 	add_handler(FAIL+PATH, NULL);
 	add_handler(RESET+LOG, NULL);

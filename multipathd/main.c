@@ -764,6 +764,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(RESUME+MAP, cli_resume);
 	set_handler_callback(RESIZE+MAP, cli_resize);
 	set_handler_callback(RELOAD+MAP, cli_reload);
+	set_handler_callback(RESET+MAP, cli_reassign);
 	set_handler_callback(REINSTATE+PATH, cli_reinstate);
 	set_handler_callback(FAIL+PATH, cli_fail);
 	set_handler_callback(RESET+LOG, cli_reset_log);
