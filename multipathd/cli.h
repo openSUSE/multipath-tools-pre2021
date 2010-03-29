@@ -10,12 +10,14 @@ enum {
 	__RESIZE,
 	__RELOAD,
 	__RESET,
+	__WAIT,
 	__DISABLEQ,
 	__RESTOREQ,
 	__PATHS,
 	__MAPS,
 	__PATH,
 	__MAP,
+	__EVENT,
 	__GROUP,
 	__RECONFIGURE,
 	__STATUS,
@@ -41,6 +43,7 @@ enum {
 #define FAIL		(1 << __FAIL)
 #define RELOAD		(1 << __RELOAD)
 #define RESET		(1 << __RESET)
+#define WAIT		(1 << __WAIT)
 #define RESIZE		(1 << __RESIZE)
 #define DISABLEQ	(1 << __DISABLEQ)
 #define RESTOREQ	(1 << __RESTOREQ)
@@ -48,6 +51,7 @@ enum {
 #define MAPS		(1 << __MAPS)
 #define PATH		(1 << __PATH)
 #define MAP		(1 << __MAP)
+#define EVENT		(1 << __EVENT)
 #define GROUP		(1 << __GROUP)
 #define RECONFIGURE	(1 << __RECONFIGURE)
 #define STATUS		(1 << __STATUS)

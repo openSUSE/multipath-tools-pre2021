@@ -18,6 +18,7 @@
 
 #include "main.h"
 #include "cli.h"
+#include "uevent.h"
 
 #define REALLOC_REPLY(r, a, m)					\
 	do {							\
@@ -874,4 +875,47 @@ cli_shutdown (void * v, char ** reply, int * len, void * data)
 	condlog(3, "shutdown (operator)");
 
 	return exit_daemon(0);
+}
+
+int
+wait_event(char ** r, int * len, long event)
+{
+	char *c;
+	char *reply = NULL;
+	unsigned int maxlen = 16;
+	long max;
+	int rc;
+
+	reply = MALLOC(maxlen);
+	c = reply;
+	max = sysfs_get_seqnum();
+	if (max < event)
+		c += snprintf(reply, maxlen, "unknown\n");
+	rc = uevent_wait_for_seqnum(event, 60);
+	if (rc == 0)
+		c += snprintf(reply, maxlen, "ok\n");
+	else if (rc == ETIMEDOUT)
+		c += snprintf(reply, maxlen, "timeout\n");
+	else
+		c += snprintf(reply, maxlen, "failed\n");
+
+       *len = (int)(c - reply + 1);
+       *r = reply;
+       return 0;
+}
+
+int
+cli_wait_event(void * v, char ** reply, int * len, void * data)
+{
+	char * param = get_keyparam(v, EVENT);
+	long event;
+	char *eptr;
+
+	condlog(3, "wait event (operator)");
+
+	event = strtoul(param, &eptr, 10);
+	if (param == eptr)
+		return ERANGE;
+
+	return wait_event(reply, len, event);
 }
