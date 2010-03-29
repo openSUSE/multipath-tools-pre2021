@@ -751,6 +751,17 @@ cli_reinstate(void * v, char ** reply, int * len, void * data)
 }
 
 int
+cli_reassign (void * v, char ** reply, int * len, void * data)
+{
+	char * param = get_keyparam(v, MAP);
+
+	condlog(3, "%s: reset devices (operator)", param);
+
+	dm_reassign(param);
+	return 0;
+}
+
+int
 cli_fail(void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;

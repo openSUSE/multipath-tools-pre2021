@@ -444,6 +444,7 @@ cli_init (void) {
 	add_handler(RESUME+MAP, NULL);
 	add_handler(RESIZE+MAP, NULL);
 	add_handler(RELOAD+MAP, NULL);
+	add_handler(RESET+MAP, NULL);
 	add_handler(DISABLEQ+MAP, NULL);
 	add_handler(RESTOREQ+MAP, NULL);
 	add_handler(DISABLEQ+MAPS, NULL);

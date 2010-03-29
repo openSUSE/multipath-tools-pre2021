@@ -1221,3 +1221,172 @@ out:
 	dm_task_destroy(dmt);
 	return r;
 }
+
+void dm_reassign_deps(char *table, char *dep, char *newdep)
+{
+	char *p, *n;
+	char newtable[PARAMS_SIZE];
+
+	strcpy(newtable, table);
+	p = strstr(newtable, dep);
+	n = table + (p - newtable);
+	strcpy(n, newdep);
+	n += strlen(newdep);
+	p += strlen(dep);
+	strcat(n, p);
+}
+
+int dm_reassign_table(const char *name, char *old, char *new)
+{
+	int r, modified = 0;
+	uint64_t start, length;
+	struct dm_task *dmt, *reload_dmt;
+	char *target, *params;
+	char buff[PARAMS_SIZE];
+	void *next = NULL;
+
+	if (!(dmt = dm_task_create(DM_DEVICE_TABLE)))
+		return 0;
+
+	if (!dm_task_set_name(dmt, name))
+		goto out;
+
+	dm_task_no_open_count(dmt);
+
+	if (!dm_task_run(dmt))
+		goto out;
+	if (!(reload_dmt = dm_task_create(DM_DEVICE_RELOAD)))
+		goto out;
+	if (!dm_task_set_name(reload_dmt, name))
+		goto out_reload;
+
+	do {
+		next = dm_get_next_target(dmt, next, &start, &length,
+					  &target, &params);
+		strcpy(buff, params);
+		if (strstr(params, old)) {
+			condlog(3, "%s: replace target %s %s",
+				name, target, buff);
+			dm_reassign_deps(buff, old, new);
+			condlog(3, "%s: with target %s %s",
+				name, target, buff);
+			modified++;
+		}
+		dm_task_add_target(reload_dmt, start, length, target, buff);
+	} while (next);
+
+	if (modified) {
+		dm_task_no_open_count(reload_dmt);
+
+		if (!dm_task_run(reload_dmt)) {
+			condlog(3, "%s: failed to reassign targets", name);
+			goto out_reload;
+		}
+		dm_simplecmd_noflush(DM_DEVICE_RESUME, name);
+	}
+	r = 1;
+
+out_reload:
+	dm_task_destroy(reload_dmt);
+out:
+	dm_task_destroy(dmt);
+	return r;
+}
+
+
+/*
+ * Reassign existing device-mapper table(s) to not use
+ * the block devices but point to the multipathed
+ * device instead
+ */
+int dm_reassign(const char *mapname)
+{
+	struct dm_deps *deps;
+	struct dm_task *dmt;
+	struct dm_info info;
+	struct dm_names *names;
+	char **dm_deps = NULL;
+	unsigned next = 0;
+	char buff[PARAMS_SIZE];
+	char dev_t[32];
+	unsigned long long size;
+	int r = 0, i;
+
+	if (!(dmt = dm_task_create(DM_DEVICE_DEPS)))
+		return 0;
+
+	if (!dm_task_set_name(dmt, mapname))
+		goto out;
+
+	dm_task_no_open_count(dmt);
+
+	if (!dm_task_run(dmt))
+		goto out;
+
+	if (!dm_task_get_info(dmt, &info))
+		goto out;
+
+	if (!(deps = dm_task_get_deps(dmt)))
+		goto out;
+
+	if (!info.exists)
+		goto out;
+
+	dm_deps = MALLOC((deps->count + 1) * sizeof(char *));
+	for (i = 0; i < deps->count; i++) {
+		dm_deps[i] = MALLOC(4);
+		sprintf(dm_deps[i], "%d:%d",
+			major(deps->device[i]),
+			minor(deps->device[i]));
+		condlog(3, "%s: found dep %s", mapname, dm_deps[i]);
+	}
+	dm_deps[i] = NULL;
+
+	dm_task_destroy (dmt);
+
+	if (dm_dev_t(mapname, &dev_t[0], 32))
+		goto out;
+
+	/* Fetch all maps */
+	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
+		return 1;
+
+	dm_task_no_open_count(dmt);
+
+	if (!dm_task_run(dmt))
+		goto out;
+
+	if (!(names = dm_task_get_names(dmt)))
+		goto out;
+
+	if (!names->dev) {
+		r = 0; /* this is perfectly valid */
+		goto out;
+	}
+
+	do {
+		/* Skip this map and any partitions on it */
+		if (!strncmp(names->name, mapname, strlen(mapname)))
+			goto next_name;
+		/* Skip those we can't get the map from */
+		if (dm_get_map(names->name, &size, &buff[0]))
+			goto next_name;
+		i = 0;
+		while (dm_deps && dm_deps[i]) {
+			dm_reassign_table(names->name, dm_deps[i], dev_t);
+			i++;
+		}
+	next_name:
+		next = names->next;
+		names = (void *) names + next;
+	} while (next);
+
+	for (i = 0; dm_deps && dm_deps[i] != NULL; i++)
+		FREE(dm_deps[i]);
+	FREE(dm_deps);
+
+	r = 0;
+out:
+	dm_task_destroy (dmt);
+	return r;
+}

@@ -262,7 +262,8 @@ ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 		 * if we create a multipath mapped device as a result
 		 * of uev_add_path
 		 */
-		condlog(0, "%s: devmap already registered", dev);
+		condlog(3, "%s: Reassign existing device-mapper devices", dev);
+		dm_reassign(alias);
 		FREE(alias);
 		return 0;
 	}
@@ -814,6 +815,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(RESUME+MAP, cli_resume);
 	set_handler_callback(RESIZE+MAP, cli_resize);
 	set_handler_callback(RELOAD+MAP, cli_reload);
+	set_handler_callback(RESET+MAP, cli_reassign);
 	set_handler_callback(REINSTATE+PATH, cli_reinstate);
 	set_handler_callback(FAIL+PATH, cli_fail);
 	set_handler_callback(DISABLEQ+MAP, cli_disable_queueing);
