@@ -16,6 +16,7 @@ struct uevent {
 	char *devpath;
 	char *action;
 	char *kernel;
+	long seqnum;
 	char *envp[HOTPLUG_NUM_ENVP];
 };
 
@@ -24,5 +25,7 @@ int uevent_listen(int (*store_uev)(struct uevent *, void * trigger_data),
 int uevent_get_major(struct uevent *uev);
 int uevent_get_minor(struct uevent *uev);
 int uevent_get_disk_ro(struct uevent *uev);
+long sysfs_get_seqnum(void);
+int uevent_wait_for_seqnum(long seqnum, unsigned int timeout);
 
 #endif /* _UEVENT_H */

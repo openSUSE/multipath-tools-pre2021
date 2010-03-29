@@ -639,8 +639,7 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 		*reply = STRDUP("fail\n");
 		*len = strlen(*reply) + 1;
 		r = 1;
-	}
-	else if (!r && *len == 0) {
+	} else if (!r && *len == 0) {
 		*reply = STRDUP("ok\n");
 		*len = strlen(*reply) + 1;
 		r = 0;
@@ -768,6 +767,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(REINSTATE+PATH, cli_reinstate);
 	set_handler_callback(FAIL+PATH, cli_fail);
 	set_handler_callback(RESET+LOG, cli_reset_log);
+	set_handler_callback(WAIT+EVENT, cli_wait_event);
 	set_handler_callback(SHUTDOWN, cli_shutdown);
 
 	uxsock_listen(&uxsock_trigger, ap);

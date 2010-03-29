@@ -158,12 +158,14 @@ load_keys (void)
 	r += add_key(keys, "resize", RESIZE, 0);
 	r += add_key(keys, "reload", RELOAD, 0);
 	r += add_key(keys, "reset", RESET, 0);
+	r += add_key(keys, "wait", WAIT, 0);
 	r += add_key(keys, "paths", PATHS, 0);
 	r += add_key(keys, "maps", MAPS, 0);
 	r += add_key(keys, "multipaths", MAPS, 0);
 	r += add_key(keys, "path", PATH, 1);
 	r += add_key(keys, "map", MAP, 1);
 	r += add_key(keys, "multipath", MAP, 1);
+	r += add_key(keys, "event", EVENT, 1);
 	r += add_key(keys, "group", GROUP, 1);
 	r += add_key(keys, "reconfigure", RECONFIGURE, 0);
 	r += add_key(keys, "status", STATUS, 0);
@@ -440,6 +442,7 @@ cli_init (void) {
 	add_handler(REINSTATE+PATH, NULL);
 	add_handler(FAIL+PATH, NULL);
 	add_handler(RESET+LOG, NULL);
+	add_handler(WAIT+EVENT, NULL);
 	add_handler(SHUTDOWN, NULL);
 
 	return 0;
