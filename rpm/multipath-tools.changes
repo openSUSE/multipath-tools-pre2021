@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar 29 16:35:15 CEST 2010 - hare@suse.de
+
+- Display average priority as group priority (bnc#588591)
+- Implement 'wait event' cli command (bnc#586834)
+- Reset existing maps (bnc#577894)
+
+-------------------------------------------------------------------
 Mon Mar 15 13:54:56 CET 2010 - hare@suse.de
 
 - Setup 'checkint' when loading config file (bnc#586847)
