@@ -256,7 +256,8 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 		 * if we create a multipath mapped device as a result
 		 * of uev_add_path
 		 */
-		condlog(0, "%s: devmap already registered", dev);
+		condlog(3, "%s: Reassign existing device-mapper devices", dev);
+		dm_reassign(alias);
 		FREE(alias);
 		return 0;
 	}
@@ -733,12 +734,20 @@ out:
 static void *
 ueventloop (void * ap)
 {
-	if (uevent_listen(&uev_trigger, ap))
+	if (uevent_listen())
 		fprintf(stderr, "error starting uevent listener");
 
 	return NULL;
 }
 
+static void *
+uevqloop (void * ap)
+{
+	if (uevent_dispatch(&uev_trigger, ap))
+		fprintf(stderr, "error starting uevent dispatcher");
+
+	return NULL;
+}
 static void *
 uxlsnrloop (void * ap)
 {
@@ -1352,7 +1361,7 @@ setup_thread_attr(pthread_attr_t *attr, size_t stacksize, int detached)
 static int
 child (void * param)
 {
-	pthread_t check_thr, uevent_thr, uxlsnr_thr;
+	pthread_t check_thr, uevent_thr, uxlsnr_thr, uevq_thr;
 	pthread_attr_t log_attr, def_attr;
 	struct vectors * vecs;
 	int rc;
@@ -1422,6 +1431,13 @@ child (void * param)
 	}
 	conf->daemon = 1;
 	/*
+	 * Start uevent listener early to catch events
+	 */
+	if ((rc = pthread_create(&uevent_thr, &def_attr, ueventloop, vecs))) {
+		condlog(0, "failed to create uevent thread: %d", rc);
+		exit(1);
+	}
+	/*
 	 * fetch and configure both paths and multipaths
 	 */
 	if (configure(vecs, 1)) {
@@ -1436,12 +1452,12 @@ child (void * param)
 		condlog(0,"failed to create checker loop thread: %d", rc);
 		exit(1);
 	}
-	if ((rc = pthread_create(&uevent_thr, &def_attr, ueventloop, vecs))) {
-		condlog(0, "failed to create uevent thread: %d", rc);
-		exit(1);
-	}
 	if ((rc = pthread_create(&uxlsnr_thr, &def_attr, uxlsnrloop, vecs))) {
 		condlog(0, "failed to create cli listener: %d", rc);
+		exit(1);
+	}
+	if ((rc = pthread_create(&uevq_thr, &def_attr, uevqloop, vecs))) {
+		condlog(0, "failed to create uevent dispatcher: %d", rc);
 		exit(1);
 	}
 	pthread_attr_destroy(&def_attr);
@@ -1465,6 +1481,7 @@ child (void * param)
 	pthread_cancel(check_thr);
 	pthread_cancel(uevent_thr);
 	pthread_cancel(uxlsnr_thr);
+	pthread_cancel(uevq_thr);
 
 	sysfs_cleanup();
 

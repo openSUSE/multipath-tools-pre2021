@@ -20,8 +20,10 @@ struct uevent {
 	char *envp[HOTPLUG_NUM_ENVP];
 };
 
-int uevent_listen(int (*store_uev)(struct uevent *, void * trigger_data),
-		  void * trigger_data);
+
+int uevent_listen(void);
+int uevent_dispatch(int (*store_uev)(struct uevent *, void * trigger_data),
+		    void * trigger_data);
 int uevent_get_major(struct uevent *uev);
 int uevent_get_minor(struct uevent *uev);
 int uevent_get_disk_ro(struct uevent *uev);

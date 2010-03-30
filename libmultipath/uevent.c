@@ -129,9 +129,11 @@ static void uevq_stop(void *arg)
 /*
  * Service the uevent queue.
  */
-static void *
-uevq_thread(void * et)
+int uevent_dispatch(int (*uev_trigger)(struct uevent *, void * trigger_data),
+		    void * trigger_data)
 {
+	my_uev_trigger = uev_trigger;
+	my_trigger_data = trigger_data;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -153,11 +155,10 @@ uevq_thread(void * et)
 		service_uevq(&uevq_tmp);
 	}
 	condlog(3, "Terminating uev service queue");
-	return NULL;
+	return 1;
 }
 
-int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
-		  void * trigger_data)
+int uevent_listen(void)
 {
 	int sock;
 	struct sockaddr_nl snl;
@@ -168,11 +169,6 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	int rcvsz = 0;
 	int rcvszsz = sizeof(rcvsz);
 	unsigned int *prcvszsz = (unsigned int *)&rcvszsz;
-	pthread_attr_t attr;
-	size_t stacksize;
-
-	my_uev_trigger = uev_trigger;
-	my_trigger_data = trigger_data;
 
 	/*
 	 * Queue uevents for service by dedicated thread so that the uevent
@@ -190,31 +186,6 @@ int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
 
 	uev_last_seqnum = sysfs_get_seqnum();
 	condlog(3, "Last uevent sequence number: %ld", uev_last_seqnum);
-
-	if (pthread_attr_init(&attr)) {
-		condlog(0, "can't initiatlize uevq attribute");
-		goto out;
-	}
-	if (pthread_attr_getstacksize(&attr, &stacksize) != 0)
-		stacksize = PTHREAD_STACK_MIN;
-
-	/* Check if stacksize is large enough */
-	if (stacksize < (64 * 1024))
-		stacksize = 64 * 1024;
-
-	/* Set stacksize and reinitialize attr if failed */
-	if (stacksize > PTHREAD_STACK_MIN &&
-	    pthread_attr_setstacksize(&attr, stacksize) != 0 &&
-	    pthread_attr_init(&attr)) {
-		condlog(0, "can't set uevq stacksize");
-		goto out;
-	}
-	if (pthread_create(&uevq_thr, &attr, uevq_thread, NULL) != 0) {
-		condlog(0, "can't start uevq thread");
-		goto out;
-	}
-
-	pthread_attr_destroy(&attr);
 
 	pthread_cleanup_push(uevq_stop, NULL);
 
@@ -382,7 +353,6 @@ exit:
 	pthread_cancel(uevq_thr);
 	pthread_mutex_unlock(uevq_lockp);
 
-out:
 	pthread_mutex_destroy(uevq_lockp);
 	pthread_cond_destroy(uev_condp);
 
