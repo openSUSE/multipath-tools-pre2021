@@ -386,7 +386,7 @@ out:
 
 extern struct multipath *
 add_map_without_path (struct vectors * vecs,
-		      int minor, char * alias)
+		      char * alias)
 {
 	struct multipath * mpp = alloc_multipath();
 

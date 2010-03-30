@@ -270,7 +270,7 @@ ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 	/*
 	 * now we can register the map
 	 */
-	if (map_present && (mpp = add_map_without_path(vecs, minor, alias))) {
+	if (map_present && (mpp = add_map_without_path(vecs, alias))) {
 		sync_map_state(mpp);
 		condlog(2, "%s: devmap %s added", alias, dev);
 		return 0;
