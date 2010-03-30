@@ -221,30 +221,24 @@ flush_map(struct multipath * mpp, struct vectors * vecs)
 static int
 uev_add_map (struct uevent * uev, struct vectors * vecs)
 {
-	int major, minor;
+	char *alias;
 
-	condlog(2, "%s: add map (uevent)", uev->kernel);
-	major = uevent_get_major(uev);
-	minor = uevent_get_minor(uev);
-	return ev_add_map(uev->kernel, major, minor, vecs);
+	condlog(2, "%s: add map (uevent %ld)", uev->kernel, uev->seqnum);
+	alias = uevent_get_dm_name(uev);
+	if (!alias) {
+		condlog(3, "%s: No DM_NAME in uevent, ignoring", uev->kernel);
+		return 0;
+	}
+	return ev_add_map(uev->kernel, alias, vecs);
 }
 
 int
-ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
+ev_add_map (char * dev, char * alias, struct vectors * vecs)
 {
-	char * alias;
 	char * refwwid;
 	struct multipath * mpp;
 	int map_present;
 	int r = 1;
-
-	alias = dm_mapname(major, minor);
-
-	if (!alias) {
-		condlog(2, "%s: mapname not found for %d:%d",
-			dev, major, minor);
-		return 1;
-	}
 
 	map_present = dm_map_present(alias);
 
@@ -272,7 +266,7 @@ ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 	 */
 	if (map_present && (mpp = add_map_without_path(vecs, alias))) {
 		sync_map_state(mpp);
-		condlog(2, "%s: devmap %s added", alias, dev);
+		condlog(2, "%s: devmap %s registered", alias, dev);
 		return 0;
 	}
 	refwwid = get_refwwid(dev, DEV_DEVMAP, vecs->pathvec);
@@ -295,16 +289,26 @@ ev_add_map (char * dev, int major, int minor, struct vectors * vecs)
 static int
 uev_remove_map (struct uevent * uev, struct vectors * vecs)
 {
-	condlog(2, "%s: remove map (uevent)", uev->kernel);
-	return ev_remove_map(uev->kernel, vecs);
+	char *alias;
+	int rc;
+
+	condlog(2, "%s: remove map (uevent %ld)", uev->kernel, uev->seqnum);
+	alias = uevent_get_dm_name(uev);
+	if (!alias) {
+		condlog(3, "%s: No DM_NAME in uevent, ignoring", uev->kernel);
+		return 0;
+	}
+	rc = ev_remove_map(uev->kernel, alias, vecs);
+	FREE(alias);
+	return rc;
 }
 
 int
-ev_remove_map (char * devname, struct vectors * vecs)
+ev_remove_map (char * devname, char * alias, struct vectors * vecs)
 {
 	struct multipath * mpp;
 
-	mpp = find_mp_by_str(vecs->mpvec, devname);
+	mpp = find_mp_by_alias(vecs->mpvec, alias);
 
 	if (!mpp) {
 		condlog(2, "%s: devmap not registered, can't remove",
