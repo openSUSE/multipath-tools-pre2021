@@ -505,6 +505,23 @@ uevent_get_disk_ro(struct uevent *uev)
 	return ro;
 }
 
+extern char *
+uevent_get_dm_name(struct uevent *uev)
+{
+	char *p = NULL;
+	int i;
+
+	for (i = 0; uev->envp[i] != NULL; i++) {
+		if (!strncmp(uev->envp[i], "DM_NAME", 6) &&
+		    strlen(uev->envp[i]) > 7) {
+			p = MALLOC(strlen(uev->envp[i] + 8) + 1);
+			strcpy(p, uev->envp[i] + 8);
+			break;
+		}
+	}
+	return p;
+}
+
 #define USECTONSEC  1000 /* microseconds to nanoseconds */
 
 extern int

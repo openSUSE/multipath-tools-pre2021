@@ -28,6 +28,7 @@ int uevent_listen(int (*store_uev)(struct uevent *, void * trigger_data),
 int uevent_get_major(struct uevent *uev);
 int uevent_get_minor(struct uevent *uev);
 int uevent_get_disk_ro(struct uevent *uev);
+char *uevent_get_dm_name(struct uevent *uev);
 long sysfs_get_seqnum(void);
 int uevent_wait_for_seqnum(long seqnum, unsigned int timeout);
 
