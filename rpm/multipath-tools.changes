@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 31 15:53:50 CEST 2010 - hare@suse.de
+
+- Fixup hardware table for EMC Invista (bnc#590454)
+- Fix compile time warning in dasd.c
+
+-------------------------------------------------------------------
 Fri Mar  5 09:34:37 CET 2010 - hare@suse.de
 
 - Fixup 'async_timeout' initialization (bnc#580413)
