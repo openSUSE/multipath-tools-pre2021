@@ -230,7 +230,7 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 		 * Old style LNX1 or unlabeled disk
 		 */
 		if (strncmp(type, "LNX1", 4) == 0) {
-			if (vlabel.ldl_version == 0xf2) {
+			if ((unsigned char)vlabel.ldl_version == 0xf2) {
 				fmt_size = sectors512(vlabel.formatted_blocks,
 						      blocksize);
 			} else if (!strcmp(info.type, "ECKD")) {
