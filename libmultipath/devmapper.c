@@ -1307,9 +1307,7 @@ int dm_reassign(const char *mapname)
 	struct dm_names *names;
 	char **dm_deps = NULL;
 	unsigned next = 0;
-	char buff[PARAMS_SIZE];
 	char dev_t[32];
-	unsigned long long size;
 	int r = 0, i;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_DEPS)))
@@ -1368,8 +1366,8 @@ int dm_reassign(const char *mapname)
 		/* Skip this map and any partitions on it */
 		if (!strncmp(names->name, mapname, strlen(mapname)))
 			goto next_name;
-		/* Skip those we can't get the map from */
-		if (dm_get_map(names->name, &size, &buff[0]))
+		/* Skip multipath maps */
+		if (dm_type(names->name, TGT_MPATH) <= 0)
 			goto next_name;
 		i = 0;
 		while (dm_deps && dm_deps[i]) {
