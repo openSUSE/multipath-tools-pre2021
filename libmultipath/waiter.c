@@ -29,14 +29,23 @@ struct event_thread *alloc_waiter (void)
 
 	wp = (struct event_thread *)MALLOC(sizeof(struct event_thread));
 	memset(wp, 0, sizeof(struct event_thread));
+	pthread_mutex_init(&wp->lock, NULL);
 
 	return wp;
 }
 
-void free_waiter (void *data)
+void signal_waiter (void *data)
 {
 	struct event_thread *wp = (struct event_thread *)data;
 
+	pthread_mutex_lock(&wp->lock);
+	memset(wp, 0, sizeof(struct event_thread));
+	pthread_mutex_unlock(&wp->lock);
+}
+
+void free_waiter (struct event_thread *wp)
+{
+	pthread_mutex_destroy(&wp->lock);
 	FREE(wp);
 }
 
@@ -83,12 +92,14 @@ int waiteventloop (struct event_thread *waiter)
 	int event_nr;
 	int r;
 
+	pthread_mutex_lock(&waiter->lock);
 	if (!waiter->event_nr)
 		waiter->event_nr = dm_geteventnr(waiter->mapname);
 
 	if (!(dmt = dm_task_create(DM_DEVICE_WAITEVENT))) {
 		condlog(0, "%s: devmap event #%i dm_task_create error",
 				waiter->mapname, waiter->event_nr);
+		pthread_mutex_unlock(&waiter->lock);
 		return 1;
 	}
 
@@ -96,6 +107,7 @@ int waiteventloop (struct event_thread *waiter)
 		condlog(0, "%s: devmap event #%i dm_task_set_name error",
 				waiter->mapname, waiter->event_nr);
 		dm_task_destroy(dmt);
+		pthread_mutex_unlock(&waiter->lock);
 		return 1;
 	}
 
@@ -104,8 +116,10 @@ int waiteventloop (struct event_thread *waiter)
 		condlog(0, "%s: devmap event #%i dm_task_set_event_nr error",
 				waiter->mapname, waiter->event_nr);
 		dm_task_destroy(dmt);
+		pthread_mutex_unlock(&waiter->lock);
 		return 1;
 	}
+	pthread_mutex_unlock(&waiter->lock);
 
 	dm_task_no_open_count(dmt);
 
@@ -123,6 +137,12 @@ int waiteventloop (struct event_thread *waiter)
 	if (!r)	/* wait interrupted by signal */
 		return -1;
 
+	pthread_mutex_lock(&waiter->lock);
+	if (!strlen(waiter->mapname)) {
+		/* waiter should exit */
+		pthread_mutex_unlock(&waiter->lock);
+		return -1;
+	}
 	waiter->event_nr++;
 
 	/*
@@ -151,16 +171,20 @@ int waiteventloop (struct event_thread *waiter)
 		if (r) {
 			condlog(2, "%s: event checker exit",
 				waiter->mapname);
+			pthread_mutex_unlock(&waiter->lock);
 			return -1; /* stop the thread */
 		}
 
 		event_nr = dm_geteventnr(waiter->mapname);
 
-		if (waiter->event_nr == event_nr)
+		if (waiter->event_nr == event_nr) {
+			pthread_mutex_unlock(&waiter->lock);
 			return 1; /* upon problem reschedule 1s later */
+		}
 
 		waiter->event_nr = event_nr;
 	}
+	pthread_mutex_unlock(&waiter->lock);
 	return -1; /* never reach there */
 }
 
@@ -172,7 +196,7 @@ void *waitevent (void *et)
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	waiter = (struct event_thread *)et;
-	pthread_cleanup_push(free_waiter, et);
+	pthread_cleanup_push(signal_waiter, et);
 
 	block_signal(SIGUSR1, NULL);
 	block_signal(SIGHUP, NULL);
@@ -186,6 +210,7 @@ void *waitevent (void *et)
 	}
 
 	pthread_cleanup_pop(1);
+	free_waiter(waiter);
 	return NULL;
 }
 
@@ -201,10 +226,12 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	if (!wp)
 		goto out;
 
+	pthread_mutex_lock(&wp->lock);
 	mpp->waiter = (void *)wp;
 	strncpy(wp->mapname, mpp->alias, WWID_SIZE);
 	wp->vecs = vecs;
 	wp->mpp = mpp;
+	pthread_mutex_unlock(&wp->lock);
 
 	if (pthread_create(&wp->thread, &waiter_attr, waitevent, wp)) {
 		condlog(0, "%s: cannot create event checker", wp->mapname);
