@@ -1227,7 +1227,7 @@ int dm_reassign_table(const char *name, char *old, char *new)
 		next = dm_get_next_target(dmt, next, &start, &length,
 					  &target, &params);
 		strcpy(buff, params);
-		if (strstr(params, old)) {
+		if (strcmp(target, TGT_MPATH) && strstr(params, old)) {
 			condlog(3, "%s: replace target %s %s",
 				name, target, buff);
 			dm_reassign_deps(buff, old, new);
@@ -1330,9 +1330,6 @@ int dm_reassign(const char *mapname)
 	do {
 		/* Skip this map and any partitions on it */
 		if (!strncmp(names->name, mapname, strlen(mapname)))
-			goto next_name;
-		/* Skip those we can't get the map from */
-		if (dm_get_map(names->name, &size, &buff[0]))
 			goto next_name;
 		i = 0;
 		while (dm_deps && dm_deps[i]) {
