@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Fri Apr  9 15:30:55 CEST 2010 - hare@suse.de
+
+- Remove 'minor' argument from add_map_without_path
+- Check for correct device-mapper device in uevent handler
+- Start uevent service handler from main thread
+- Do not reassign multipath maps (bnc#594341)
+- Protect waiter structure by mutex (bnc#581200)
+- Log directly to syslog on shutdown (bnc#581200)
+- Clear up uevent queue on shutdown
+- Add more IBM/FAStT arrays (bnc#578738)
+
+-------------------------------------------------------------------
 Mon Mar 29 16:35:15 CEST 2010 - hare@suse.de
 
 - Display average priority as group priority (bnc#588591)
