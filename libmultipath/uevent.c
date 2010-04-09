@@ -50,7 +50,6 @@
 
 typedef int (uev_trigger)(struct uevent *, void * trigger_data);
 
-pthread_t uevq_thr;
 LIST_HEAD(uevq);
 pthread_mutex_t uevq_lock, *uevq_lockp = &uevq_lock;
 pthread_cond_t  uev_cond,  *uev_condp  = &uev_cond;
@@ -423,10 +422,6 @@ exit:
 	close(sock);
 
 	pthread_cleanup_pop(1);
-
-	pthread_mutex_lock(uevq_lockp);
-	pthread_cancel(uevq_thr);
-	pthread_mutex_unlock(uevq_lockp);
 
 	pthread_mutex_destroy(uevq_lockp);
 	pthread_cond_destroy(uev_condp);
