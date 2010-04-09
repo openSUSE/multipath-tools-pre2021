@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <pthread.h>
 #include <signal.h>
+#include <syslog.h>
 #include <sys/mman.h>
 
 #include <memory.h>
@@ -26,6 +27,11 @@ sigusr1 (int sig)
 void log_safe (int prio, const char * fmt, va_list ap)
 {
 	sigset_t old;
+
+	if (!logq_lock) {
+		syslog(prio, fmt, ap);
+		return;
+	}
 
 	block_signal(SIGUSR1, &old);
 	block_signal(SIGHUP, NULL);
