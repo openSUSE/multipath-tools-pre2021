@@ -147,6 +147,10 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 				dm_lib_release();
 				condlog(2, "%s devmap removed", ompp->alias);
 			}
+		} else {
+			condlog(3, "%s: Reassign existing device-mapper"
+				" devices", ompp->alias);
+			dm_reassign(ompp->alias);
 		}
 	}
 	return 0;
