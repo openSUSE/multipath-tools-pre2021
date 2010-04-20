@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Tue Apr 20 13:41:07 CEST 2010 - hare@suse.de
+
+- Provide correct persistent symlinks for user_friendly_names
+  (bnc#596301)
+- Fixup hardware table for LSI arrays (bnc#597713)
+- Reassign maps during startup (bnc#586834)
+- Update manpage
+
+-------------------------------------------------------------------
+Tue Apr 20 12:51:53 CEST 2010 - mmarek@suse.cz
+
+- Use mkdir -p in mkinitrd setup script (bnc#597786).
+
+-------------------------------------------------------------------
 Fri Apr  9 15:30:55 CEST 2010 - hare@suse.de
 
 - Remove 'minor' argument from add_map_without_path

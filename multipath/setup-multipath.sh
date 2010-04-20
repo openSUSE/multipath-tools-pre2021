@@ -38,7 +38,7 @@ if use_script multipath; then
 	cp /etc/udev/rules.d/72-multipath-compat.rules $tmp_mnt/etc/udev/rules.d
     fi
     if [ -d /@LIB@/multipath ]; then
-	mkdir $tmp_mnt/@LIB@/multipath
+	mkdir -p $tmp_mnt/@LIB@/multipath
     fi
 fi
 
