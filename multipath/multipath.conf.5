@@ -123,53 +123,39 @@ identifier. Should be specified with an absolute path. Default value
 is
 .I /lib/udev/scsi_id --whitelisted --device=/dev/%n
 .TP
-.B prio_callout
-The default program and args to callout to obtain a path priority
-value. The specified program will be executed and should return a
-numeric value specifying the relative priority of this path. Higher
-number have a higher priority. A '%n' in the command line will be expanded
-to the device name, a '%b' will be expanded to the device number in
-.I major:minor
-format.
+.B prio
+The name of the path priority routine. The specified routine
+should return a numeric value specifying the relative priority
+of this path. Higher number have a higher priority.
 .I "none"
-is a valid value. Currently the following path priority programs are
-implemented:
+is a valid value. Currently the following path priority routines
+are implemented:
 .RS
 .TP 12
-.B mpath_prio_emc /dev/%n
-Generate the path priority for EMC arrays
+.B const
+Return a constant priority of \fI1\fR.
 .TP
-.B mpath_prio_alua /dev/%n
+.B emc
+Generate the path priority for EMC arrays.
+.TP
+.B alua
 Generate the path priority based on the SCSI-3 ALUA settings.
 .TP
-.B mpath_prio_netapp /dev/%n
+.B ontap
 Generate the path priority for NetApp arrays.
 .TP
-.B mpath_prio_rdac /dev/%n
+.B rdac
 Generate the path priority for LSI/Engenio RDAC controller.
 .TP
-.B mpath_prio_hp_sw /dev/%n
+.B hp_sw
 Generate the path priority for Compaq/HP controller in
 active/standby mode.
 .TP
-.B mpath_prio_hds_modular %b
+.B hds
 Generate the path priority for Hitachi HDS Modular storage arrays.
 .TP
-Default value is \fBnone\fR.
-.RE
-.TP
-.B prio
-The default program and args to path priority routine. The specified 
-routine should return a numeric value specifying the relative priority 
-of this path. Higher number have a higher priority. 
-.RS
-.TP 12
-.B alua
-Generate the path priority based on ALUA status of the path.
-.TP 12
-.B aas
-Generate the path priority based on ALUA status of the path, taking
-into account the 'PREF' setting.
+.B random
+Generate a random priority between 1 and 10.
 .TP 12
 .B weightedpath <hbtl|devname> <regex1> <prio1> <regex2> <prio2> ...
 .I hbtl 
@@ -178,6 +164,8 @@ regex can be of SCSI H:B:T:L format  Ex: 1:0:.:. , *:0:0:.
 regex can be of device name format  Ex: sda , sd.e
 Generate the path priority based on the regular expression and the 
 priority provided as argument.
+.TP
+Default value is \fBnone\fR.
 .RE
 .TP
 .B features
@@ -283,10 +271,14 @@ The full pathname of the binding file to be used when the user_friendly_names op
 .I /var/lib/multipath/bindings
 .TP
 .B dev_loss_tmo
-The default dev_loss_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all devices on that port will be removed from sysfs after this timeout. Default is 10.
+The default dev_loss_tmo setting for an FC remote port in seconds.
+If an rport has vanished from the fabric all devices on that port
+will be removed from sysfs after this timeout. Default is 10.
 .TP
 .B fast_io_fail_tmo
-The default fast_io_fail_tmo setting for an FC remote port in seconds. If an rport has vanished from the fabric all I/O to the devices on that port will be terminated after this timeout. Should be smaller than
+The default fast_io_fail_tmo setting for an FC remote port in seconds.
+If an rport has vanished from the fabric all I/O to the devices on that
+port will be terminated after this timeout. Should be smaller than
 .B dev_loss_tmo
 setting. Default is 5.
 .TP
@@ -414,6 +406,16 @@ The following hardware handler are implemented:
 .TP 12
 .B 1 emc
 Hardware handler for EMC storage arrays.
+.TP
+.B 1 rdac
+Hardware handler for LSI/Engenio RDAC storage controller.
+.TP
+.B 1 hp_sw
+Hardware handler for Compaq/HP storage arrays in active/standby
+mode.
+.TP
+.B 1 alua
+Hardware handler for SCSI-3 ALUA compatible arrays.
 .RE
 .LP
 The following attributes are optional; if not set the default values
@@ -461,6 +463,20 @@ processes being hung and not killable in situations where all the paths to the L
 It is advisable to use the
 .B no_path_retry
 option instead.
+.P
+The use of
+.B queue_if_no_path
+or
+.B no_path_retry
+might lead to a deadlock if the
+.B dev_loss_tmo
+setting results in a device being removed while I/O is still queued.
+The multipath daemon will update the
+.B dev_loss_tmo
+setting accordingly to avoid this deadlock. Hence if both values are
+specified the order of precedence is
+.I no_path_retry, queue_if_no_path, dev_loss_tmo
+
 .SH "SEE ALSO"
 .BR udev (8),
 .BR dmsetup (8)
