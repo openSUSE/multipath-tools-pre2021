@@ -1332,7 +1332,7 @@ int dm_reassign(const char *mapname)
 
 	dm_deps = MALLOC((deps->count + 1) * sizeof(char *));
 	for (i = 0; i < deps->count; i++) {
-		dm_deps[i] = MALLOC(4);
+		dm_deps[i] = MALLOC(32);
 		sprintf(dm_deps[i], "%d:%d",
 			major(deps->device[i]),
 			minor(deps->device[i]));
