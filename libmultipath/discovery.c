@@ -192,7 +192,7 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 		return 1;
 	}
 
-	len = sysfs_attr_get_value(attr_path, "node_name", node, NAME_SIZE);
+	len = sysfs_attr_get_value(attr_path, "node_name", node, NODE_NAME_SIZE);
 	if (!len)
 		return 1;
 
