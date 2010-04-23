@@ -97,7 +97,13 @@ find_hwe (vector hwtable, char * vendor, char * product, char * revision)
 	hwe.vendor = vendor;
 	hwe.product = product;
 	hwe.revision = revision;
-	vector_foreach_slot (hwtable, tmp, i) {
+	/*
+	 * Search backwards here.
+	 * User modified entries are attached at the end of
+	 * the list, so we have to check them first before
+	 * continuing to the generic entries
+	 */
+	vector_foreach_slot_backwards (hwtable, tmp, i) {
 		if (hwe_regmatch(tmp, &hwe))
 			continue;
 		ret = tmp;
@@ -279,20 +285,20 @@ set_param_str(char * str)
 }
 
 #define merge_str(s) \
-	if (hwe2->s) { \
-		if (hwe1->s) \
-			FREE(hwe1->s); \
-		if (!(hwe1->s = set_param_str(hwe2->s))) \
+	if (src->s) { \
+		if (dst->s) \
+			FREE(dst->s); \
+		if (!(dst->s = set_param_str(src->s))) \
 			return 1; \
 	}
 
 #define merge_num(s) \
-	if (hwe2->s) \
-		hwe1->s = hwe2->s
+	if (src->s) \
+		dst->s = src->s
 
 
 static int
-merge_hwe (struct hwentry * hwe1, struct hwentry * hwe2)
+merge_hwe (struct hwentry * dst, struct hwentry * src)
 {
 	merge_str(vendor);
 	merge_str(product);
@@ -375,21 +381,20 @@ out:
 }
 
 static int
-factorize_hwtable (vector hw)
+factorize_hwtable (vector hw, int n)
 {
 	struct hwentry *hwe1, *hwe2;
 	int i, j;
 
 	vector_foreach_slot(hw, hwe1, i) {
-		j = i+1;
+		if (i == n)
+			break;
+		j = n;
 		vector_foreach_slot_after(hw, hwe2, j) {
 			if (hwe_regmatch(hwe1, hwe2))
 				continue;
 			/* dup */
-			merge_hwe(hwe1, hwe2);
-			free_hwe(hwe2);
-			vector_del_slot(hw, j);
-			j--;
+			merge_hwe(hwe2, hwe1);
 		}
 	}
 	return 0;
@@ -497,19 +502,24 @@ load_config (char * file)
 	set_current_keywords(&conf->keywords);
 	alloc_keywords();
 	if (filepresent(file)) {
+		int builtin_hwtable_size;
+
+		builtin_hwtable_size = VECTOR_SIZE(conf->hwtable);
 		if (init_data(file, init_keywords)) {
 			condlog(0, "error parsing config file");
 			goto out;
 		}
+		if (VECTOR_SIZE(conf->hwtable) > builtin_hwtable_size) {
+			/*
+			 * remove duplica in hwtable. config file
+			 * takes precedence over build-in hwtable
+			 */
+			factorize_hwtable(conf->hwtable, builtin_hwtable_size);
+		}
+
 	} else {
 		init_keywords();
 	}
-
-	/*
-	 * remove duplica in hwtable. config file takes precedence
-	 * over build-in hwtable
-	 */
-	factorize_hwtable(conf->hwtable);
 
 	/*
 	 * fill the voids left in the config file
