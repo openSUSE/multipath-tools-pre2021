@@ -1241,7 +1241,7 @@ int dm_reassign_table(const char *name, char *old, char *new)
 	int r, modified = 0;
 	uint64_t start, length;
 	struct dm_task *dmt, *reload_dmt;
-	char *target, *params;
+	char *target, *params = NULL;
 	char buff[PARAMS_SIZE];
 	void *next = NULL;
 
@@ -1263,6 +1263,7 @@ int dm_reassign_table(const char *name, char *old, char *new)
 	do {
 		next = dm_get_next_target(dmt, next, &start, &length,
 					  &target, &params);
+		memset(buff, 0, PARAMS_SIZE);
 		strcpy(buff, params);
 		if (strcmp(target, TGT_MPATH) && strstr(params, old)) {
 			condlog(3, "%s: replace target %s %s",
