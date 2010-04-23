@@ -113,7 +113,7 @@ void log_thread_stop (void)
 	logev_lock = NULL;
 	free(logev_cond);
 	logev_cond = NULL;
-	free_logarea();
+	log_close();
 }
 
 void log_thread_reset (void)
