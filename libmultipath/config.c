@@ -285,15 +285,13 @@ set_param_str(char * str)
 }
 
 #define merge_str(s) \
-	if (src->s) { \
-		if (dst->s) \
-			FREE(dst->s); \
+	if (!dst->s && src->s) { \
 		if (!(dst->s = set_param_str(src->s))) \
 			return 1; \
 	}
 
 #define merge_num(s) \
-	if (src->s) \
+	if (!dst->s && src->s) \
 		dst->s = src->s
 
 
