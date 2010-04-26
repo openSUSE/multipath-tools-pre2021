@@ -1263,6 +1263,8 @@ int dm_reassign_table(const char *name, char *old, char *new)
 	do {
 		next = dm_get_next_target(dmt, next, &start, &length,
 					  &target, &params);
+		if (!next)
+			break;
 		memset(buff, 0, PARAMS_SIZE);
 		strcpy(buff, params);
 		if (strcmp(target, TGT_MPATH) && strstr(params, old)) {
