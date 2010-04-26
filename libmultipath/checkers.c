@@ -38,13 +38,21 @@ struct checker * alloc_checker (void)
 	struct checker *c;
 
 	c = MALLOC(sizeof(struct checker));
-	if (c)
+	if (c) {
 		INIT_LIST_HEAD(&c->node);
+		c->refcount = 1;
+	}
 	return c;
 }
 
 void free_checker (struct checker * c)
 {
+	c->refcount--;
+	if (c->refcount) {
+		condlog(3, "%s checker refcount %d",
+			c->name, c->refcount);
+		return;
+	}
 	condlog(3, "unloading %s checker", c->name);
 	list_del(&c->node);
 	if (c->handle) {
@@ -170,11 +178,14 @@ int checker_init (struct checker * c, void ** mpctxt_addr)
 	return c->init(c);
 }
 
-void checker_put (struct checker * c)
+void checker_put (struct checker * dst)
 {
-	if (c->free)
-		c->free(c);
-	memset(c, 0x0, sizeof(struct checker));
+	struct checker * src = checker_lookup(dst->name);
+
+	if (dst->free)
+		dst->free(dst);
+	memset(dst, 0x0, sizeof(struct checker));
+	free_checker(src);
 }
 
 int checker_check (struct checker * c)
@@ -228,4 +239,5 @@ void checker_get (struct checker * dst, char * name)
 	dst->init = src->init;
 	dst->free = src->free;
 	dst->handle = NULL;
+	src->refcount++;
 }
