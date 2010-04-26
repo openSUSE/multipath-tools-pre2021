@@ -63,6 +63,7 @@ static void flush_logqueue (void)
 static void * log_thread (void * et)
 {
 	struct sigaction sig;
+	int running;
 
 	sig.sa_handler = sigusr1;
 	sigemptyset(&sig.sa_mask);
@@ -70,14 +71,20 @@ static void * log_thread (void * et)
 	if (sigaction(SIGUSR1, &sig, NULL) < 0)
 		logdbg(stderr, "Cannot set signal handler");
 
+	pthread_mutex_lock(logev_lock);
+	logq_running = 1;
+	pthread_mutex_unlock(logev_lock);
+
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 	logdbg(stderr,"enter log_thread\n");
 
 	while (1) {
 		pthread_mutex_lock(logev_lock);
 		pthread_cond_wait(logev_cond, logev_lock);
+		running = logq_running;
 		pthread_mutex_unlock(logev_lock);
-
+		if (!running)
+			break;
 		flush_logqueue();
 	}
 	return NULL;
@@ -111,8 +118,12 @@ void log_thread_stop (void)
 {
 	logdbg(stderr,"enter log_thread_stop\n");
 
+	pthread_mutex_lock(logev_lock);
+	logq_running = 0;
+	pthread_cond_signal(logev_cond);
+	pthread_mutex_unlock(logev_lock);
+
 	pthread_mutex_lock(logq_lock);
-	pthread_cancel(log_thr);
 	pthread_mutex_unlock(logq_lock);
 	pthread_join(log_thr, NULL);
 
