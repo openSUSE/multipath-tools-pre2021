@@ -124,6 +124,7 @@ void log_thread_stop (void)
 	pthread_mutex_unlock(logev_lock);
 
 	pthread_mutex_lock(logq_lock);
+	pthread_cancel(log_thr);
 	pthread_mutex_unlock(logq_lock);
 	pthread_join(log_thr, NULL);
 
