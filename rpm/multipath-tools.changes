@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Apr 26 13:33:30 CEST 2010 - hare@suse.de
+
+- Errorneous message 'error starting uevent listener'
+- Graceful shutdown of logging thread (bnc#591399)
+
+-------------------------------------------------------------------
 Mon Apr 26 12:02:32 CEST 2010 - hare@suse.de
 
 - Missing '-p' option for mkdir in mkinitrd script (bnc#597786)
