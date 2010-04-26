@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Mon Apr 26 12:02:32 CEST 2010 - hare@suse.de
+
+- Missing '-p' option for mkdir in mkinitrd script (bnc#597786)
+- rdac message not printed correctly (bnc#598302)
+- Use alias when printing log messages (bnc#598302)
+- valgrind fixes (bnc#591399)
+- Use VECTOR_SIZE() defines
+- Update hwtable factorization
+- Use log_close() on shutdown
+- Use refcounting for checkers (bnc#591399)
+- More valgrind fixes
+
+-------------------------------------------------------------------
 Tue Apr 20 13:41:07 CEST 2010 - hare@suse.de
 
 - Provide correct persistent symlinks for user_friendly_names
