@@ -193,7 +193,7 @@ int uevent_dispatch(int (*uev_trigger)(struct uevent *, void * trigger_data),
 	}
 	condlog(3, "Terminating uev service queue");
 	uevq_cleanup(&uevq);
-	return 1;
+	return 0;
 }
 
 int uevent_listen(void)

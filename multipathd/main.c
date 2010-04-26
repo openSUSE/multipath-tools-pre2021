@@ -785,7 +785,7 @@ ueventloop (void * ap)
 	block_signal(SIGHUP, NULL);
 
 	if (uevent_listen())
-		fprintf(stderr, "error starting uevent listener");
+		condlog(0, "error starting uevent listener");
 
 	return NULL;
 }
@@ -797,7 +797,7 @@ uevqloop (void * ap)
 	block_signal(SIGHUP, NULL);
 
 	if (uevent_dispatch(&uev_trigger, ap))
-		fprintf(stderr, "error starting uevent dispatcher");
+		condlog(0, "error starting uevent dispatcher");
 
 	return NULL;
 }
