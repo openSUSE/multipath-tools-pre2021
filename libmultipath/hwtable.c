@@ -434,9 +434,9 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_RDAC,
 	},
 	{
-		/* IBM DS3400 */
+		/* IBM DS3200 / DS3300 / DS3400 */
 		.vendor        = "IBM",
-		.product       = "1726-4xx",
+		.product       = "1726",
 		.getuid        = DEFAULT_GETUID,
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = "1 rdac",
