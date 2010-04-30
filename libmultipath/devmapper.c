@@ -1366,6 +1366,7 @@ int dm_reassign(const char *mapname)
 	}
 
 	do {
+		names = (void *) names + next;
 		/* Skip this map and any partitions on it */
 		if (!strncmp(names->name, mapname, strlen(mapname)))
 			goto next_name;
@@ -1376,7 +1377,6 @@ int dm_reassign(const char *mapname)
 		}
 	next_name:
 		next = names->next;
-		names = (void *) names + next;
 	} while (next);
 
 	for (i = 0; dm_deps && dm_deps[i] != NULL; i++)

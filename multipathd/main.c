@@ -260,7 +260,8 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 		 * if we create a multipath mapped device as a result
 		 * of uev_add_path
 		 */
-		condlog(3, "%s: Reassign existing device-mapper devices", dev);
+		condlog(3, "%s: Reassign existing device-mapper devices",
+			alias);
 		dm_reassign(alias);
 		FREE(alias);
 		return 0;
@@ -295,7 +296,7 @@ static int
 uev_remove_map (struct uevent * uev, struct vectors * vecs)
 {
 	char *alias;
-	int rc;
+	int minor, rc;
 
 	condlog(2, "%s: remove map (uevent %ld)", uev->kernel, uev->seqnum);
 	alias = uevent_get_dm_name(uev);
@@ -303,21 +304,27 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 		condlog(3, "%s: No DM_NAME in uevent, ignoring", uev->kernel);
 		return 0;
 	}
-	rc = ev_remove_map(uev->kernel, alias, vecs);
+	minor = uevent_get_minor(uev);
+	rc = ev_remove_map(uev->kernel, alias, minor, vecs);
 	FREE(alias);
 	return rc;
 }
 
 int
-ev_remove_map (char * devname, char * alias, struct vectors * vecs)
+ev_remove_map (char * devname, char * alias, int minor, struct vectors * vecs)
 {
 	struct multipath * mpp;
 
-	mpp = find_mp_by_alias(vecs->mpvec, alias);
+	mpp = find_mp_by_minor(vecs->mpvec, minor);
 
 	if (!mpp) {
 		condlog(2, "%s: devmap not registered, can't remove",
 			devname);
+		return 0;
+	}
+	if (strcmp(mpp->alias, alias)) {
+		condlog(2, "%s: minor number mismatch (map %d, event %d)",
+			mpp->alias, mpp->dmi->minor, minor);
 		return 0;
 	}
 	return flush_map(mpp, vecs);
