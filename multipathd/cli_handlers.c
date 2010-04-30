@@ -442,7 +442,7 @@ cli_del_map (void * v, char ** reply, int * len, void * data)
 	sprintf(dev_path,"dm-%d", minor);
 	alias = dm_mapname(major, minor);
 
-	return ev_remove_map(dev_path, alias, vecs);
+	return ev_remove_map(dev_path, alias, minor, vecs);
 }
 
 int
