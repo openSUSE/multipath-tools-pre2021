@@ -39,7 +39,7 @@ void signal_waiter (void *data)
 	struct event_thread *wp = (struct event_thread *)data;
 
 	pthread_mutex_lock(&wp->lock);
-	memset(wp, 0, sizeof(struct event_thread));
+	memset(wp->mapname, 0, WWID_SIZE);
 	pthread_mutex_unlock(&wp->lock);
 }
 
