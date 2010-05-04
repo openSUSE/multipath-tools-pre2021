@@ -1204,7 +1204,7 @@ int dm_reassign_table(const char *name, char *old, char *new)
 	int r, modified = 0;
 	uint64_t start, length;
 	struct dm_task *dmt, *reload_dmt;
-	char *target, *params;
+	char *target, *params = NULL;
 	char buff[PARAMS_SIZE];
 	void *next = NULL;
 
@@ -1226,6 +1226,9 @@ int dm_reassign_table(const char *name, char *old, char *new)
 	do {
 		next = dm_get_next_target(dmt, next, &start, &length,
 					  &target, &params);
+		if (!next)
+			break;
+		memset(buff, 0, PARAMS_SIZE);
 		strcpy(buff, params);
 		if (strcmp(target, TGT_MPATH) && strstr(params, old)) {
 			condlog(3, "%s: replace target %s %s",
@@ -1270,9 +1273,7 @@ int dm_reassign(const char *mapname)
 	struct dm_names *names;
 	char **dm_deps = NULL;
 	unsigned next = 0;
-	char buff[PARAMS_SIZE];
 	char dev_t[32];
-	unsigned long long size;
 	int r = 0, i;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_DEPS)))
@@ -1297,7 +1298,7 @@ int dm_reassign(const char *mapname)
 
 	dm_deps = MALLOC((deps->count + 1) * sizeof(char *));
 	for (i = 0; i < deps->count; i++) {
-		dm_deps[i] = MALLOC(4);
+		dm_deps[i] = MALLOC(32);
 		sprintf(dm_deps[i], "%d:%d",
 			major(deps->device[i]),
 			minor(deps->device[i]));
@@ -1328,6 +1329,7 @@ int dm_reassign(const char *mapname)
 	}
 
 	do {
+		names = (void *) names + next;
 		/* Skip this map and any partitions on it */
 		if (!strncmp(names->name, mapname, strlen(mapname)))
 			goto next_name;
@@ -1338,7 +1340,6 @@ int dm_reassign(const char *mapname)
 		}
 	next_name:
 		next = names->next;
-		names = (void *) names + next;
 	} while (next);
 
 	for (i = 0; dm_deps && dm_deps[i] != NULL; i++)
