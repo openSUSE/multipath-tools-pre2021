@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Thu May  6 14:02:11 CEST 2010 - hare@suse.de
+
+- Use minor number in ev_remove_map() (bnc#599770)
+- signal_waiter() overwrites structure (bnc#591399)
+- Serialize startup on large machines (bnc#598697)
+- Update multipath(8) manpage for '-p' (bnc#602970)
+- Mark 'readsector0' checker as deprecated (bnc#589340)
+
+-------------------------------------------------------------------
 Mon Apr 26 13:33:30 CEST 2010 - hare@suse.de
 
 - Errorneous message 'error starting uevent listener'
