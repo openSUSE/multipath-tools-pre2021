@@ -190,7 +190,22 @@ static struct hwentry default_hw[] = {
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
 	},
-
+	{
+		/* HP P2000 product family */
+		.vendor        = "HP",
+		.product       = "P2000",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 18,
+		.minio         = 100,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_ALUA,
+	},
 	{
 		/* HP SVSP */
 		.vendor        = "HP",
