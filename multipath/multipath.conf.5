@@ -193,7 +193,8 @@ are
 .RS
 .TP 12
 .B readsector0
-Read the first sector of the device
+(Deprecated) Read the first sector of the device. This checker is being
+deprecated, please use \fIdirectio\fR instead
 .TP
 .B tur
 Issue a
@@ -213,7 +214,7 @@ Check the path state for LSI/Engenio RDAC storage controller.
 .B directio
 Read the first sector with direct I/O.
 .TP
-Default value is \fIreadsector0\fR.
+Default value is \fIdirectio\fR.
 .RE
 .TP
 .B failback
