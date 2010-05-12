@@ -481,6 +481,7 @@ load_config (char * file)
 	conf->flush_on_last_del = 0;
 	conf->attribute_flags = 0;
 	conf->async_timeout = ASYNC_TIMEOUT_SEC;
+	conf->reassign_maps = DEFAULT_REASSIGN_MAPS;
 
 	/*
 	 * preload default hwtable
