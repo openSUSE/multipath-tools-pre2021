@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed May 12 08:08:47 CEST 2010 - hare@suse.de
+
+- Always provide symlinks for udev (bnc#603785)
+
+-------------------------------------------------------------------
 Thu May  6 14:02:11 CEST 2010 - hare@suse.de
 
 - Use minor number in ev_remove_map() (bnc#599770)
