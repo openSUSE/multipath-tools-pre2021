@@ -8,7 +8,6 @@ KERNEL!="dm-*", GOTO="kpartx_end"
 ACTION=="remove", GOTO="kpartx_end"
 
 ENV{DM_TABLE_STATE}!="LIVE", GOTO="kpartx_end"
-ENV{DM_ACTION}=="PATH_FAILED|PATH_REINSTATED", GOTO="kpartx_end"
 ENV{DM_UUID}=="?*", IMPORT{program}=="kpartx_id %M %m $env{DM_UUID}"
 
 ENV{DM_UUID}=="mpath-*", IMPORT{program}="vol_id --export $tempnode"
@@ -43,6 +42,7 @@ ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", \
 	SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
 
 # Create dm tables for partitions
+ENV{DM_ACTION}=="PATH_FAILED|PATH_REINSTATED", GOTO="kpartx_end"
 ENV{DM_STATE}!="SUSPENDED", ENV{DM_DEPS}!="0", ENV{DM_UUID}=="mpath-*", \
         RUN+="/sbin/kpartx -u -p _part /dev/$kernel"
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="DMRAID-*|dmraid-*", \
