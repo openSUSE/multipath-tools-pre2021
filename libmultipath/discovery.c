@@ -818,11 +818,6 @@ get_state (struct path * pp)
 			return PATH_UNCHECKED;
 		}
 	}
-	state = path_offline(pp);
-	if (state != PATH_UP) {
-		condlog(3, "%s: path inaccessible", pp->dev);
-		return state;
-	}
 	state = checker_check(c);
 	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
 	if (state != PATH_UP && strlen(checker_message(c)))
@@ -834,16 +829,8 @@ get_state (struct path * pp)
 static int
 get_prio (struct path * pp)
 {
-	int path_state;
-
 	if (!pp)
 		return 0;
-
-	path_state = path_offline(pp);
-	if (path_state != PATH_UP) {
-		pp->priority = PRIO_UNDEF;
-		return 0;
-	}
 
 	if (!pp->prio) {
 		select_prio(pp);
@@ -894,6 +881,8 @@ get_uid (struct path * pp)
 extern int
 pathinfo (struct path *pp, vector hwtable, int mask)
 {
+	int path_state;
+
 	condlog(3, "%s: mask = 0x%x", pp->dev, mask);
 
 	/*
@@ -901,6 +890,8 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	 */
 	if (mask & DI_SYSFS && sysfs_pathinfo(pp))
 		return 1;
+
+	path_state = path_offline(pp);
 
 	/*
 	 * fetch info not available through sysfs
@@ -914,7 +905,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		goto blank;
 	}
 
-	if (pp->bus == SYSFS_BUS_SCSI &&
+	if (path_state == PATH_UP && pp->bus == SYSFS_BUS_SCSI &&
 	    scsi_ioctl_pathinfo(pp, mask))
 		goto blank;
 
@@ -923,23 +914,32 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		goto blank;
 
 	if (mask & DI_CHECKER) {
-		pp->state = get_state(pp);
-		if (pp->state == PATH_UNCHECKED || pp->state == PATH_WILD)
-			goto blank;
+		if (path_state == PATH_UP) {
+			pp->state = get_state(pp);
+			if (pp->state == PATH_UNCHECKED ||
+			    pp->state == PATH_WILD)
+				goto blank;
+		} else {
+			condlog(3, "%s: path inaccessible", pp->dev);
+			pp->state = path_state;
+		}
 	}
 
 	 /*
 	  * Retrieve path priority, even for PATH_DOWN paths if it has never
 	  * been successfully obtained before.
 	  */
-	if (mask & DI_PRIO &&
-	    (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF)) {
-		if (!strlen(pp->wwid))
-			get_uid(pp);
-		get_prio(pp);
+	if ((mask & DI_PRIO) && path_state == PATH_UP) {
+		if (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF) {
+			if (!strlen(pp->wwid))
+				get_uid(pp);
+			get_prio(pp);
+		} else {
+			pp->priority = PRIO_UNDEF;
+		}
 	}
 
-	if (mask & DI_WWID && !strlen(pp->wwid))
+	if (path_state == PATH_UP && (mask & DI_WWID) && !strlen(pp->wwid))
 		get_uid(pp);
 
 	return 0;
