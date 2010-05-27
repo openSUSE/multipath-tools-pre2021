@@ -4,8 +4,8 @@
 #include <sys/types.h>
 
 #define WWID_SIZE		128
-#define SERIAL_SIZE		64
-#define NODE_NAME_SIZE		19
+#define SERIAL_SIZE		65
+#define NODE_NAME_SIZE		65
 #define PATH_STR_SIZE		16
 #define PARAMS_SIZE		1024
 #define FILE_NAME_SIZE		256
@@ -107,10 +107,7 @@ struct scsi_dev {
 struct sysfs_device {
 	struct sysfs_device *parent;		/* parent device */
 	char devpath[PATH_SIZE];
-	char subsystem[NAME_SIZE];		/* $class, $bus, drivers, module */
 	char kernel[NAME_SIZE];			/* device instance name */
-	char kernel_number[NAME_SIZE];
-	char driver[NAME_SIZE];			/* device driver name */
 };
 
 struct path {

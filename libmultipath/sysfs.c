@@ -68,16 +68,11 @@ void sysfs_cleanup(void)
 	}
 }
 
-void sysfs_device_set_values(struct sysfs_device *dev, const char *devpath,
-			     const char *subsystem, const char *driver)
+void sysfs_device_set_values(struct sysfs_device *dev, const char *devpath)
 {
 	char *pos;
 
 	strlcpy(dev->devpath, devpath, sizeof(dev->devpath));
-	if (subsystem != NULL)
-		strlcpy(dev->subsystem, subsystem, sizeof(dev->subsystem));
-	if (driver != NULL)
-		strlcpy(dev->driver, driver, sizeof(dev->driver));
 
 	/* set kernel name */
 	pos = strrchr(dev->devpath, '/');
@@ -93,13 +88,6 @@ void sysfs_device_set_values(struct sysfs_device *dev, const char *devpath,
 			pos[0] = '/';
 		pos++;
 	}
-
-	/* get kernel number */
-	pos = &dev->kernel[strlen(dev->kernel)];
-	while (isdigit(pos[-1]))
-		pos--;
-	strlcpy(dev->kernel_number, pos, sizeof(dev->kernel_number));
-	dbg("kernel_number='%s'", dev->kernel_number);
 }
 
 int sysfs_resolve_link(char *devpath, size_t size)
@@ -134,6 +122,10 @@ int sysfs_resolve_link(char *devpath, size_t size)
 	return 0;
 }
 
+/*
+ * Caution: this routine is called extremely often.
+ * Should be as efficient as possible.
+ */
 struct sysfs_device *sysfs_device_get(const char *devpath)
 {
 	char path[PATH_SIZE];
@@ -141,22 +133,6 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	struct sysfs_device *dev = NULL;
 	struct sysfs_dev *sysdev_loop, *sysdev;
 	struct stat statbuf;
-	char link_path[PATH_SIZE];
-	char link_target[PATH_SIZE];
-	int len;
-	char *pos;
-
-	/* we handle only these devpathes */
-	if (devpath != NULL &&
-	    strncmp(devpath, "/devices/", 9) != 0 &&
-	    strncmp(devpath, "/subsystem/", 11) != 0 &&
-	    strncmp(devpath, "/module/", 8) != 0 &&
-	    strncmp(devpath, "/bus/", 5) != 0 &&
-	    strncmp(devpath, "/class/", 7) != 0 &&
-	    strncmp(devpath, "/block/", 7) != 0) {
-		dbg("invalid devpath '%s'", devpath);
-		return NULL;
-	}
 
 	dbg("open '%s'", devpath);
 	strlcpy(devpath_real, devpath, sizeof(devpath_real));
@@ -203,53 +179,7 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 		dev = &sysdev->dev;
 	}
 
-	sysfs_device_set_values(dev, devpath_real, NULL, NULL);
-
-	/* get subsystem name */
-	strlcpy(link_path, sysfs_path, sizeof(link_path));
-	strlcat(link_path, dev->devpath, sizeof(link_path));
-	strlcat(link_path, "/subsystem", sizeof(link_path));
-	len = readlink(link_path, link_target, sizeof(link_target));
-	if (len > 0) {
-		/* get subsystem from "subsystem" link */
-		link_target[len] = '\0';
-		dbg("subsystem link '%s' points to '%s'", link_path, link_target);
-		pos = strrchr(link_target, '/');
-		if (pos != NULL)
-			strlcpy(dev->subsystem, &pos[1], sizeof(dev->subsystem));
-	} else if (strstr(dev->devpath, "/drivers/") != NULL) {
-		strlcpy(dev->subsystem, "drivers", sizeof(dev->subsystem));
-	} else if (strncmp(dev->devpath, "/module/", 8) == 0) {
-		strlcpy(dev->subsystem, "module", sizeof(dev->subsystem));
-	} else if (strncmp(dev->devpath, "/subsystem/", 11) == 0) {
-		pos = strrchr(dev->devpath, '/');
-		if (pos == &dev->devpath[10])
-			strlcpy(dev->subsystem, "subsystem",
-				sizeof(dev->subsystem));
-	} else if (strncmp(dev->devpath, "/class/", 7) == 0) {
-		pos = strrchr(dev->devpath, '/');
-		if (pos == &dev->devpath[6])
-			strlcpy(dev->subsystem, "subsystem",
-				sizeof(dev->subsystem));
-	} else if (strncmp(dev->devpath, "/bus/", 5) == 0) {
-		pos = strrchr(dev->devpath, '/');
-		if (pos == &dev->devpath[4])
-			strlcpy(dev->subsystem, "subsystem",
-				sizeof(dev->subsystem));
-	}
-
-	/* get driver name */
-	strlcpy(link_path, sysfs_path, sizeof(link_path));
-	strlcat(link_path, dev->devpath, sizeof(link_path));
-	strlcat(link_path, "/driver", sizeof(link_path));
-	len = readlink(link_path, link_target, sizeof(link_target));
-	if (len > 0) {
-		link_target[len] = '\0';
-		dbg("driver link '%s' points to '%s'", link_path, link_target);
-		pos = strrchr(link_target, '/');
-		if (pos != NULL)
-			strlcpy(dev->driver, &pos[1], sizeof(dev->driver));
-	}
+	sysfs_device_set_values(dev, devpath_real);
 
 	return dev;
 }
@@ -306,16 +236,17 @@ device_link:
 	return dev->parent;
 }
 
-struct sysfs_device *sysfs_device_get_parent_with_subsystem(struct sysfs_device *dev, const char *subsystem)
+struct sysfs_device *sysfs_device_verify(struct sysfs_device *dev)
 {
-	struct sysfs_device *dev_parent;
+	char path[PATH_SIZE];
+	struct stat statbuf;
 
-	dev_parent = sysfs_device_get_parent(dev);
-	while (dev_parent != NULL) {
-		if (strcmp(dev_parent->subsystem, subsystem) == 0)
-			return dev_parent;
-		dev_parent = sysfs_device_get_parent(dev_parent);
-	}
+	strlcpy(path, sysfs_path, sizeof(path));
+	strlcat(path, dev->devpath, sizeof(path));
+	if (stat(dev->devpath, &statbuf) == 0 &&
+	    S_ISDIR(statbuf.st_mode))
+		return dev;
+
 	return NULL;
 }
 
@@ -446,94 +377,3 @@ out:
 	return size;
 }
 
-int sysfs_lookup_devpath_by_subsys_id(char *devpath_full, size_t len,
-				      const char *subsystem, const char *id)
-{
-	size_t sysfs_len;
-	char path_full[PATH_SIZE];
-	char *path;
-	struct stat statbuf;
-
-	sysfs_len = strlcpy(path_full, sysfs_path, sizeof(path_full));
-	path = &path_full[sysfs_len];
-
-	if (strcmp(subsystem, "subsystem") == 0) {
-		strlcpy(path, "/subsystem/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-
-		strlcpy(path, "/bus/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-		goto out;
-
-		strlcpy(path, "/class/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-	}
-
-	if (strcmp(subsystem, "module") == 0) {
-		strlcpy(path, "/module/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-		goto out;
-	}
-
-	if (strcmp(subsystem, "drivers") == 0) {
-		char subsys[NAME_SIZE];
-		char *driver;
-
-		strlcpy(subsys, id, sizeof(subsys));
-		driver = strchr(subsys, ':');
-		if (driver != NULL) {
-			driver[0] = '\0';
-			driver = &driver[1];
-			strlcpy(path, "/subsystem/", sizeof(path_full) - sysfs_len);
-			strlcat(path, subsys, sizeof(path_full) - sysfs_len);
-			strlcat(path, "/drivers/", sizeof(path_full) - sysfs_len);
-			strlcat(path, driver, sizeof(path_full) - sysfs_len);
-			if (stat(path_full, &statbuf) == 0)
-				goto found;
-
-			strlcpy(path, "/bus/", sizeof(path_full) - sysfs_len);
-			strlcat(path, subsys, sizeof(path_full) - sysfs_len);
-			strlcat(path, "/drivers/", sizeof(path_full) - sysfs_len);
-			strlcat(path, driver, sizeof(path_full) - sysfs_len);
-			if (stat(path_full, &statbuf) == 0)
-				goto found;
-		}
-		goto out;
-	}
-
-	strlcpy(path, "/subsystem/", sizeof(path_full) - sysfs_len);
-	strlcat(path, subsystem, sizeof(path_full) - sysfs_len);
-	strlcat(path, "/devices/", sizeof(path_full) - sysfs_len);
-	strlcat(path, id, sizeof(path_full) - sysfs_len);
-	if (stat(path_full, &statbuf) == 0)
-		goto found;
-
-	strlcpy(path, "/bus/", sizeof(path_full) - sysfs_len);
-	strlcat(path, subsystem, sizeof(path_full) - sysfs_len);
-	strlcat(path, "/devices/", sizeof(path_full) - sysfs_len);
-	strlcat(path, id, sizeof(path_full) - sysfs_len);
-	if (stat(path_full, &statbuf) == 0)
-		goto found;
-
-	strlcpy(path, "/class/", sizeof(path_full) - sysfs_len);
-	strlcat(path, subsystem, sizeof(path_full) - sysfs_len);
-	strlcat(path, "/", sizeof(path_full) - sysfs_len);
-	strlcat(path, id, sizeof(path_full) - sysfs_len);
-	if (stat(path_full, &statbuf) == 0)
-		goto found;
-out:
-	return 0;
-found:
-	if (S_ISLNK(statbuf.st_mode))
-		sysfs_resolve_link(path, sizeof(path_full) - sysfs_len);
-	strlcpy(devpath_full, path, len);
-	return 1;
-}
