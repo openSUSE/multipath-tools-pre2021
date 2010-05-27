@@ -58,7 +58,8 @@ basenamecpy (char * str1, char * str2)
 		p++;
 
 	strcpy(str2, p);
-	return strlen(p);
+	strchop(str2);
+	return strlen(str2);
 }
 
 int

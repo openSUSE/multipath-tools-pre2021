@@ -318,7 +318,7 @@ find_path_by_dev (vector pathvec, char * dev)
 		return NULL;
 
 	vector_foreach_slot (pathvec, pp, i)
-		if (!strcmp_chomp(pp->dev, dev))
+		if (!strcmp(pp->dev, dev))
 			return pp;
 
 	condlog(3, "%s: not found in pathvec", dev);
