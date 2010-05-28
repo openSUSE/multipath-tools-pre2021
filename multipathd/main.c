@@ -148,7 +148,7 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 				dm_lib_release();
 				condlog(2, "%s devmap removed", ompp->alias);
 			}
-		} else {
+		} else if (conf->reassign_maps) {
 			condlog(3, "%s: Reassign existing device-mapper"
 				" devices", ompp->alias);
 			dm_reassign(ompp->alias);
@@ -261,9 +261,11 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 		 * if we create a multipath mapped device as a result
 		 * of uev_add_path
 		 */
-		condlog(3, "%s: Reassign existing device-mapper devices",
-			alias);
-		dm_reassign(alias);
+		if (conf->reassign_maps) {
+			condlog(3, "%s: Reassign existing device-mapper devices",
+				alias);
+			dm_reassign(alias);
+		}
 		FREE(alias);
 		return 0;
 	}

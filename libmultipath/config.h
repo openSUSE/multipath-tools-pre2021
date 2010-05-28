@@ -87,6 +87,7 @@ struct config {
 	mode_t mode;
 	int dev_loss_tmo;
 	int fast_io_fail_tmo;
+	int reassign_maps;
 
 	char * dev;
 	char * sysfs_dir;
