@@ -311,9 +311,9 @@ devt2devname (char *devname, char *devt)
 		return 1;
 	}
 
-	sprintf(block_path,"/sys/dev/%u:%u", major, minor);
+	sprintf(block_path,"/sys/dev/block/%u:%u", major, minor);
 	if (stat(block_path, &statbuf) == 0) {
-		/* Newer kernels have /sys/dev */
+		/* Newer kernels have /sys/dev/block */
 		if (S_ISLNK(statbuf.st_mode) &&
 		    readlink(block_path, dev, FILE_NAME_SIZE) > 0) {
 			char *p = strrchr(dev, '/');
