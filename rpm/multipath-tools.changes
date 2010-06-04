@@ -1,4 +1,23 @@
 -------------------------------------------------------------------
+Fri Jun  4 12:18:02 CEST 2010 - hare@suse.de
+
+- Add HP 2000 to internal hardware table (bnc#603359)
+- Make path state messages unique
+- Add 'reassign_maps' configuration parameter
+- Profiling fixes:
+  * Update 'max_fds' handling
+  * Use strcmp() instead of strcmp_chomp()
+  * Simplify sysfs_get_device()
+  * Remove duplicate calls to path_offline()
+  * Simplify dm_get_name()
+  * Fixup devt2devname()
+  * Rework dm_reassign()
+- check argument length in execute_program(bnc#610914)
+- Do not use LOG_CONS when opening syslog (bnc#610914)
+- Remove pid file usage from init scripts (bnc#600412)
+- Fixup boot.multipath init script (bnc#600412)
+
+-------------------------------------------------------------------
 Wed May 12 08:08:47 CEST 2010 - hare@suse.de
 
 - Always provide symlinks for udev (bnc#603785)
