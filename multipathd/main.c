@@ -69,6 +69,7 @@ pthread_mutex_t exit_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int logsink;
 enum daemon_status running_state;
+pid_t daemon_pid;
 
 /*
  * global copy of vecs for use in sig handlers
@@ -1368,6 +1369,9 @@ sighup (int sig)
 {
 	condlog(2, "reconfigure (SIGHUP)");
 
+	if (running_state != DAEMON_RUNNING)
+		return;
+
 	lock(gvecs->lock);
 	reconfigure(gvecs);
 	unlock(gvecs->lock);
@@ -1543,7 +1547,7 @@ child (void * param)
 	pthread_attr_destroy(&misc_attr);
 
 	/* Startup complete, create logfile */
-	if (pidfile_create(DEFAULT_PIDFILE, getpid())) {
+	if (pidfile_create(DEFAULT_PIDFILE, daemon_pid)) {
 		if (logsink)
 			log_thread_stop();
 
@@ -1640,6 +1644,7 @@ daemonize(void)
 	else if (pid != 0)
 		_exit(0);
 
+	daemon_pid = getpid();
 	in_fd = open("/dev/null", O_RDONLY);
 	if (in_fd < 0){
 		fprintf(stderr, "cannot open /dev/null for input : %s\n",
