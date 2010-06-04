@@ -58,6 +58,12 @@ rc_reset
 
 case "$1" in
     start)
+	# Check for existing multipath mappings
+	if dmsetup table --target multipath | grep -q multipath ; then
+	    # Multipath active, start daemon
+	    exec /etc/init.d/multipathd $1
+	fi
+
 	echo -n "Creating multipath targets:"
 	# Check whether multipath daemon is already running
 	if /sbin/multipathd -k"list paths" > /dev/null 2>&1 ; then
@@ -65,12 +71,6 @@ case "$1" in
 	    rc_status -v
 	    rc_exit
 	fi
-
-	if dmsetup table --target multipath | grep -q multipath ; then
-	    # Multipath active, start daemon
-	    exec /etc/init.d/multipathd $1
-	fi
-
 	# Load prerequisite module
 	modprobe dm-multipath
 	
