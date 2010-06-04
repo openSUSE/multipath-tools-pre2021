@@ -373,8 +373,8 @@ int sysfs_attr_set_value(const char *devpath, const char *attr_name,
 		goto out;
 	}
 	size = write(fd, value, value_len);
-out:
 	close(fd);
+out:
 
 	return size;
 }
