@@ -504,14 +504,14 @@ main (int argc, char *argv[])
 
 	if (conf->remove == FLUSH_ONE) {
 		if (conf->dev_type == DEV_DEVMAP)
-			dm_flush_map(conf->dev, DEFAULT_TARGET);
+			r = dm_flush_map(conf->dev, DEFAULT_TARGET);
 		else
 			condlog(0, "must provide a map name to remove");
 
 		goto out;
 	}
 	else if (conf->remove == FLUSH_ALL) {
-		dm_flush_maps(DEFAULT_TARGET);
+		r = dm_flush_maps(DEFAULT_TARGET);
 		goto out;
 	}
 	while ((r = configure()) < 0)
