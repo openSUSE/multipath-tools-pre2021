@@ -153,10 +153,22 @@ check_state(int fd, struct directio_context *ct, int sync, int async_timeout)
 	if (r < 0 ) {
 		LOG(3, "async io getevents returned %li (errno=%s)", r,
 		    strerror(errno));
+		ct->running = 0;
 		rc = PATH_UNCHECKED;
 	} else if (r < 1L) {
 		if (ct->running > async_timeout || sync) {
+			struct iocb *ios[1] = { &ct->io };
+
 			LOG(3, "abort check on timeout");
+			r = io_cancel(ct->ioctx, ios[0], &event);
+			/*
+			 * Only reset ct->running if we really
+			 * could abort the pending I/O
+			 */
+			if (r)
+				LOG(3, "io_cancel error %i", errno);
+			else
+				ct->running = 0;
 			rc = PATH_DOWN;
 		} else {
 			LOG(3, "async io pending");
