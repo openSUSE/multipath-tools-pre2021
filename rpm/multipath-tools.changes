@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Jun 18 13:19:13 CEST 2010 - hare@suse.de
+
+- Set geometry information for multipath maps (bnc#613363)
+- Reset 'running' parameter for directio (bnc#600043)
+- Add fallback to init script for older versions (bnc#602957)
+
+-------------------------------------------------------------------
 Fri Jun  4 12:18:02 CEST 2010 - hare@suse.de
 
 - Add HP 2000 to internal hardware table (bnc#603359)
