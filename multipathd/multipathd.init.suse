@@ -17,6 +17,7 @@
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 DAEMON=/sbin/multipathd
+PIDFILE=/var/run/multipathd.pid
 MPATH_INIT_TIMEOUT=10
 ARGS=""
 
@@ -85,36 +86,58 @@ case "$1" in
 	;;
     stop)
 	echo -n "Shutting down multipathd"
+	STATUS="unknown"
+	# Try to get PID from daemon
 	status=$($DAEMON -k'show daemon' 2> /dev/null)
 	if [ -n "$status" ] ; then
 	    PID=${status##pid }
 	    STATUS=${PID##* }
 	    PID=${PID%% *}
-	    if [ "$STATUS" = "running" ] ; then
-		status=$($DAEMON -k'shutdown' 2> /dev/null)
-		if [ "$status" = "ok" ] ; then
-		    STATUS="shutdown"
-		fi
-	    fi
-	    if [ "$STATUS" != "shutdown" ] ; then
-		kill -TERM $PID
-	    fi
-	else
-	    rc_failed 7
-	    rc_status -v
-	    rc_exit
 	fi
-	timeout=$MPATH_INIT_TIMEOUT
-	while [ $timeout -gt 0 ] ; do
-	    PROCNAME="$(ps -p $PID -o comm=)"
-	    if [ "$PROCNAME" != "multipathd" ] &&
-	       [ "$PROCNAME" != "multipathd <defunct>" ] ; then
-		break
+	# Fallback to PID file for older versions
+	if [ -n "$PID" -a "$PID" = "multipath-tools" ] ; then
+	    if [ -f $PIDFILE ]; then
+		PID="$(cat $PIDFILE)"
+		STATUS="running"
+	    else
+		rc_failed 7
+		rc_status -v
+		rc_exit
 	    fi
-	    sleep 1
-	    timeout=$(( $timeout - 1 ))
-	done
-	if [ $timeout -le 0 ] ; then
+	fi
+	# Shutdown the daemon via CLI
+	if [ "$STATUS" = "running" ] ; then
+	    status=$($DAEMON -k'shutdown' 2> /dev/null)
+	    if [ "$status" = "ok" ] ; then
+		timeout=$MPATH_INIT_TIMEOUT
+		while [ $timeout -gt 0 ] ; do
+		    PROCNAME="$(ps -p $PID -o comm=)"
+		    if [ "$PROCNAME" != "multipathd" ] &&
+			[ "$PROCNAME" != "multipathd <defunct>" ] ; then
+			STATUS="shutdown"
+			break
+		    fi
+		    sleep 1
+		    timeout=$(( $timeout - 1 ))
+		done
+	    fi
+	fi
+	# Kill the daemon if the above failed
+	if [ -n "$PID" -a "$STATUS" != "shutdown" ] ; then
+	    kill -TERM $PID
+	    timeout=$MPATH_INIT_TIMEOUT
+	    while [ $timeout -gt 0 ] ; do
+		PROCNAME="$(ps -p $PID -o comm=)"
+		if [ "$PROCNAME" != "multipathd" ] &&
+		    [ "$PROCNAME" != "multipathd <defunct>" ] ; then
+		    STATUS="shutdown"
+		    break
+		fi
+		sleep 1
+		timeout=$(( $timeout - 1 ))
+	    done
+	fi
+	if [ $STATUS != "shutdown" ] ; then
 	    echo -n " (still running)"
 	    rc_failed 1
 	fi
