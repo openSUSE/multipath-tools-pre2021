@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Jun 23 15:09:46 CEST 2010 - hare@suse.de
+
+- Increase initial timeout for 'tur' checker (bnc#616694)
+
+-------------------------------------------------------------------
 Fri Jun 18 13:19:13 CEST 2010 - hare@suse.de
 
 - Set geometry information for multipath maps (bnc#613363)
