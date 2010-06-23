@@ -192,7 +192,7 @@ void tur_timeout(struct timespec *tsp)
 	gettimeofday(&now, NULL);
 	tsp->tv_sec = now.tv_sec;
 	tsp->tv_nsec = now.tv_usec * 1000;
-	tsp->tv_nsec += 5;
+	tsp->tv_nsec += 1000000; /* 1 millisecond */
 }
 
 extern int
