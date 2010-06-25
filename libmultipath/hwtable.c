@@ -234,23 +234,7 @@ static struct hwentry default_hw[] = {
 		.prio_name     = DEFAULT_PRIO,
 	},
 	{
-                /* HP San Virtualization Services Platform Active-Active configurations */
-                .vendor        = "HP",
-                .product       = "HSVX740",
-                .getuid        = DEFAULT_GETUID,
-                .features      = DEFAULT_FEATURES,
-                .hwhandler     = DEFAULT_HWHANDLER,
-                .selector      = DEFAULT_SELECTOR,
-                .pgpolicy      = GROUP_BY_PRIO,
-                .pgfailback    = FAILBACK_UNDEF,
-                .rr_weight     = RR_WEIGHT_NONE,
-                .no_path_retry = 18,
-                .minio         = 100,
-                .checker_name  = TUR,
-                .prio_name     = PRIO_ALUA,
-        },
-	{
-		/* HP San Virtualization Services Platform Active-Standby configurations */
+		/* HP San Virtualization Services Platform */
 		.vendor        = "HP",
 		.product       = "HSVX700",
 		.getuid        = DEFAULT_GETUID,
