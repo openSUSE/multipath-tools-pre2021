@@ -842,29 +842,48 @@ out:
 extern int
 dm_get_name(char *uuid, char *name)
 {
-	vector vec;
-	struct multipath *mpp;
-	int i, retval = 0;
+	struct dm_task *dmt;
+	struct dm_info info;
+	char *prefixed_uuid;
+	const char *nametmp;
+	int retval = 0;
 
-	vec = vector_alloc();
-
-	if (!vec)
+	if (!uuid || !strlen(uuid) || !name)
 		return 0;
 
-	if (dm_get_maps(vec)) {
-		vector_free(vec);
+	dmt = dm_task_create(DM_DEVICE_INFO);
+	if (!dmt)
 		return 0;
+
+	prefixed_uuid = MALLOC(UUID_PREFIX_LEN + strlen(uuid) + 1);
+	if (!prefixed_uuid) {
+		condlog(0, "cannot create prefixed uuid : %s\n",
+			strerror(errno));
+		goto freeout;
+	}
+	sprintf(prefixed_uuid, UUID_PREFIX "%s", uuid);
+	if (!dm_task_set_uuid(dmt, prefixed_uuid))
+		goto freeout;
+
+	if (!dm_task_run(dmt))
+		goto freeout;
+
+	if (!dm_task_get_info(dmt, &info) || !info.exists)
+		goto freeout;
+
+	nametmp = dm_task_get_name(dmt);
+	if (nametmp && strlen(nametmp)) {
+		strcpy(name, nametmp);
+		retval = 1;
+	} else {
+		condlog(2, "%s: no device-mapper name found", uuid);
 	}
 
-	vector_foreach_slot(vec, mpp, i) {
-		if (!strcmp(uuid, mpp->wwid)) {
-			strcpy(name, mpp->alias);
-			retval = 1;
-		}
-		free_multipath(mpp, KEEP_PATHS);
-	}
+freeout:
+	if (prefixed_uuid)
+		FREE(prefixed_uuid);
+	dm_task_destroy(dmt);
 
-	vector_free(vec);
 	return retval;
 }
 
