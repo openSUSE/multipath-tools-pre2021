@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <dirent.h>
 
 #include "checkers.h"
 #include "vector.h"
@@ -34,6 +35,7 @@
 #include "list.h"
 #include "util.h"
 #include "debug.h"
+#include "devmapper.h"
 
 char sysfs_path[PATH_SIZE];
 
@@ -440,100 +442,54 @@ int sysfs_attr_set_value(const char *devpath, const char *attr_name,
 		goto out;
 	}
 	size = write(fd, value, value_len);
-out:
 	close(fd);
+out:
 
 	return size;
 }
 
-int sysfs_lookup_devpath_by_subsys_id(char *devpath_full, size_t len,
-				      const char *subsystem, const char *id)
+int sysfs_check_holders(char * check_devt, char * new_devt)
 {
-	size_t sysfs_len;
-	char path_full[PATH_SIZE];
-	char *path;
-	struct stat statbuf;
+	unsigned int major, new_minor, table_minor;
+	char path[PATH_SIZE], check_dev[PATH_SIZE];
+	char * table_name;
+	DIR *dirfd;
+	struct dirent *holder;
 
-	sysfs_len = strlcpy(path_full, sysfs_path, sizeof(path_full));
-	path = &path_full[sysfs_len];
-
-	if (strcmp(subsystem, "subsystem") == 0) {
-		strlcpy(path, "/subsystem/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-
-		strlcpy(path, "/bus/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-		goto out;
-
-		strlcpy(path, "/class/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
+	if (sscanf(new_devt,"%d:%d", &major, &new_minor) != 2) {
+		condlog(1, "invalid device number %s", new_devt);
+		return 0;
 	}
 
-	if (strcmp(subsystem, "module") == 0) {
-		strlcpy(path, "/module/", sizeof(path_full) - sysfs_len);
-		strlcat(path, id, sizeof(path_full) - sysfs_len);
-		if (stat(path_full, &statbuf) == 0)
-			goto found;
-		goto out;
-	}
+	devt2devname(check_dev, check_devt);
 
-	if (strcmp(subsystem, "drivers") == 0) {
-		char subsys[NAME_SIZE];
-		char *driver;
+	condlog(3, "%s: checking holder", check_dev);
 
-		strlcpy(subsys, id, sizeof(subsys));
-		driver = strchr(subsys, ':');
-		if (driver != NULL) {
-			driver[0] = '\0';
-			driver = &driver[1];
-			strlcpy(path, "/subsystem/", sizeof(path_full) - sysfs_len);
-			strlcat(path, subsys, sizeof(path_full) - sysfs_len);
-			strlcat(path, "/drivers/", sizeof(path_full) - sysfs_len);
-			strlcat(path, driver, sizeof(path_full) - sysfs_len);
-			if (stat(path_full, &statbuf) == 0)
-				goto found;
+	sprintf(path, "/sys/block/%s/holders", check_dev);
+	dirfd = opendir(path);
+	while ((holder = readdir(dirfd)) != NULL) {
+		if ((strcmp(holder->d_name,".") == 0) ||
+		    (strcmp(holder->d_name,"..") == 0))
+			continue;
 
-			strlcpy(path, "/bus/", sizeof(path_full) - sysfs_len);
-			strlcat(path, subsys, sizeof(path_full) - sysfs_len);
-			strlcat(path, "/drivers/", sizeof(path_full) - sysfs_len);
-			strlcat(path, driver, sizeof(path_full) - sysfs_len);
-			if (stat(path_full, &statbuf) == 0)
-				goto found;
+		if (sscanf(holder->d_name, "dm-%d", &table_minor) != 1) {
+			condlog(3, "%s: %s is not a dm-device",
+				check_dev, holder->d_name);
+			continue;
 		}
-		goto out;
+		if (table_minor == new_minor) {
+			condlog(3, "%s: holder already correct", check_dev);
+			continue;
+		}
+		table_name = dm_mapname(major, table_minor);
+
+		condlog(3, "%s: reassign table %s old %s new %s", check_dev,
+			table_name, check_devt, new_devt);
+
+		dm_reassign_table(table_name, check_devt, new_devt);
+		FREE(table_name);
 	}
+	closedir(dirfd);
 
-	strlcpy(path, "/subsystem/", sizeof(path_full) - sysfs_len);
-	strlcat(path, subsystem, sizeof(path_full) - sysfs_len);
-	strlcat(path, "/devices/", sizeof(path_full) - sysfs_len);
-	strlcat(path, id, sizeof(path_full) - sysfs_len);
-	if (stat(path_full, &statbuf) == 0)
-		goto found;
-
-	strlcpy(path, "/bus/", sizeof(path_full) - sysfs_len);
-	strlcat(path, subsystem, sizeof(path_full) - sysfs_len);
-	strlcat(path, "/devices/", sizeof(path_full) - sysfs_len);
-	strlcat(path, id, sizeof(path_full) - sysfs_len);
-	if (stat(path_full, &statbuf) == 0)
-		goto found;
-
-	strlcpy(path, "/class/", sizeof(path_full) - sysfs_len);
-	strlcat(path, subsystem, sizeof(path_full) - sysfs_len);
-	strlcat(path, "/", sizeof(path_full) - sysfs_len);
-	strlcat(path, id, sizeof(path_full) - sysfs_len);
-	if (stat(path_full, &statbuf) == 0)
-		goto found;
-out:
 	return 0;
-found:
-	if (S_ISLNK(statbuf.st_mode))
-		sysfs_resolve_link(path, sizeof(path_full) - sysfs_len);
-	strlcpy(devpath_full, path, len);
-	return 1;
 }

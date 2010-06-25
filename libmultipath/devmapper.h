@@ -36,3 +36,4 @@ int dm_get_info (char * mapname, struct dm_info ** dmi);
 int dm_rename (char * old, char * new);
 int dm_get_name(char * uuid, char * name);
 int dm_reassign(const char * mapname);
+int dm_reassign_table(const char *name, char *old, char *new);

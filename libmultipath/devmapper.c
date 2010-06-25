@@ -20,6 +20,7 @@
 #include "memory.h"
 #include "devmapper.h"
 #include "config.h"
+#include "sysfs.h"
 
 #include "log_pthread.h"
 #include <sys/types.h>
@@ -1245,8 +1246,6 @@ int dm_reassign_table(const char *name, char *old, char *new)
 	do {
 		next = dm_get_next_target(dmt, next, &start, &length,
 					  &target, &params);
-		if (!next)
-			break;
 		memset(buff, 0, PARAMS_SIZE);
 		strcpy(buff, params);
 		if (strcmp(target, TGT_MPATH) && strstr(params, old)) {
@@ -1289,11 +1288,13 @@ int dm_reassign(const char *mapname)
 	struct dm_deps *deps;
 	struct dm_task *dmt;
 	struct dm_info info;
-	struct dm_names *names;
-	char **dm_deps = NULL;
-	unsigned next = 0;
-	char dev_t[32];
+	char dev_t[32], dm_dep[32];
 	int r = 0, i;
+
+	if (dm_dev_t(mapname, &dev_t[0], 32)) {
+		condlog(3, "%s: failed to get device number\n", mapname);
+		return 1;
+	}
 
 	if (!(dmt = dm_task_create(DM_DEVICE_DEPS)))
 		return 0;
@@ -1315,58 +1316,16 @@ int dm_reassign(const char *mapname)
 	if (!info.exists)
 		goto out;
 
-	dm_deps = MALLOC((deps->count + 1) * sizeof(char *));
 	for (i = 0; i < deps->count; i++) {
-		dm_deps[i] = MALLOC(32);
-		sprintf(dm_deps[i], "%d:%d",
+		sprintf(dm_dep, "%d:%d",
 			major(deps->device[i]),
 			minor(deps->device[i]));
-		condlog(3, "%s: found dep %s", mapname, dm_deps[i]);
+		sysfs_check_holders(dm_dep, dev_t);
 	}
-	dm_deps[i] = NULL;
 
 	dm_task_destroy (dmt);
 
-	if (dm_dev_t(mapname, &dev_t[0], 32))
-		goto out;
-
-	/* Fetch all maps */
-	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
-		return 1;
-
-	dm_task_no_open_count(dmt);
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!(names = dm_task_get_names(dmt)))
-		goto out;
-
-	if (!names->dev) {
-		r = 0; /* this is perfectly valid */
-		goto out;
-	}
-
-	do {
-		names = (void *) names + next;
-		/* Skip this map and any partitions on it */
-		if (!strncmp(names->name, mapname, strlen(mapname)))
-			goto next_name;
-		i = 0;
-		while (dm_deps && dm_deps[i]) {
-			dm_reassign_table(names->name, dm_deps[i], dev_t);
-			i++;
-		}
-	next_name:
-		next = names->next;
-	} while (next);
-
-	for (i = 0; dm_deps && dm_deps[i] != NULL; i++)
-		FREE(dm_deps[i]);
-	FREE(dm_deps);
-
-	r = 0;
+	r = 1;
 out:
-	dm_task_destroy (dmt);
 	return r;
 }
