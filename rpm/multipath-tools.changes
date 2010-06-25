@@ -5,6 +5,7 @@ Fri Jun 25 10:51:53 CEST 2010 - hare@suse.de
 - Add HP P2000 to internal hardware table (bnc#603359)
 - Set correct exit status on flush (bnc#615298)
 - Fixup memory allocation error (bnc#591399)
+- Allow emc path checker to handle ALUA, too (bnc#558401)
 
 -------------------------------------------------------------------
 Wed Mar 31 15:53:50 CEST 2010 - hare@suse.de
