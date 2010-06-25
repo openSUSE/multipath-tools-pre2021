@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Jun 25 10:51:53 CEST 2010 - hare@suse.de
+
+- Add IBM DS3x00 to internal hardware table (bnc#595739)
+- Add HP P2000 to internal hardware table (bnc#603359)
+- Set correct exit status on flush (bnc#615298)
+- Fixup memory allocation error (bnc#591399)
+
+-------------------------------------------------------------------
 Wed Mar 31 15:53:50 CEST 2010 - hare@suse.de
 
 - Fixup hardware table for EMC Invista (bnc#590454)
