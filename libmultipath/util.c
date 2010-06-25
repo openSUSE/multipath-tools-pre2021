@@ -8,6 +8,7 @@
 #include "memory.h"
 
 #define PARAMS_SIZE 255
+#define FILE_NAME_SIZE 256
 
 int
 strcmp_chomp(char *str1, char *str2)
@@ -39,7 +40,7 @@ strchop(char *str)
 }
 
 int
-basename (char * str1, char * str2)
+basenamecpy (char * str1, char * str2)
 {
 	char *p;
 
@@ -165,3 +166,77 @@ void remove_trailing_chars(char *path, char c)
 		path[--len] = '\0';
 }
 
+extern int
+devt2devname (char *devname, char *devt)
+{
+	FILE *fd;
+	unsigned int tmpmaj, tmpmin, major, minor;
+	char dev[FILE_NAME_SIZE];
+	char block_path[FILE_NAME_SIZE];
+	struct stat statbuf;
+
+	memset(block_path, 0, FILE_NAME_SIZE);
+	if (sscanf(devt, "%u:%u", &major, &minor) != 2) {
+		condlog(0, "Invalid device number %s", devt);
+		return 1;
+	}
+
+	sprintf(block_path,"/sys/dev/block/%u:%u", major, minor);
+	if (stat(block_path, &statbuf) == 0) {
+		/* Newer kernels have /sys/dev/block */
+		if (S_ISLNK(statbuf.st_mode) &&
+		    readlink(block_path, dev, FILE_NAME_SIZE) > 0) {
+			char *p = strrchr(dev, '/');
+
+			if (!p) {
+				condlog(0, "No sysfs entry for %s\n",
+					block_path);
+				return 1;
+			}
+			p++;
+			strncpy(devname, p, FILE_NAME_SIZE);
+			return 0;
+		}
+	}
+	memset(block_path, 0, FILE_NAME_SIZE);
+
+	if (!(fd = fopen("/proc/partitions", "r"))) {
+		condlog(0, "Cannot open /proc/partitions");
+		return 1;
+	}
+
+	while (!feof(fd)) {
+		int r = fscanf(fd,"%u %u %*d %s",&tmpmaj, &tmpmin, dev);
+		if (!r) {
+			r = fscanf(fd,"%*s\n");
+			continue;
+		}
+		if (r != 3)
+			continue;
+
+		if ((major == tmpmaj) && (minor == tmpmin)) {
+			if (snprintf(block_path, FILE_NAME_SIZE, "/sys/block/%s", dev) >= FILE_NAME_SIZE) {
+				condlog(0, "device name %s is too long\n", dev);
+				fclose(fd);
+				return 1;
+			}
+			break;
+		}
+	}
+	fclose(fd);
+
+	if (strncmp(block_path,"/sys/block", 10))
+		return 1;
+
+	if (stat(block_path, &statbuf) < 0) {
+		condlog(0, "No sysfs entry for %s\n", block_path);
+		return 1;
+	}
+
+	if (S_ISDIR(statbuf.st_mode) == 0) {
+		condlog(0, "sysfs entry %s is not a directory\n", block_path);
+		return 1;
+	}
+	basenamecpy(block_path, devname);
+	return 0;
+}

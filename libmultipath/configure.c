@@ -604,8 +604,8 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		return NULL;
 
 	if (dev_type == DEV_DEVNODE) {
-		if (basename(dev, buff) == 0) {
-			condlog(1, "basename failed for '%s' (%s)",
+		if (basenamecpy(dev, buff) == 0) {
+			condlog(1, "basenamecpy failed for '%s' (%s)",
 				dev, buff);
 			return NULL;
 		}
