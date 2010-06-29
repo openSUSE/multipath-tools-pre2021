@@ -81,9 +81,6 @@ int emc_clariion_init (struct checker * c)
 		CLR_INACTIVE_SNAP(c);
 	}
 
-	/* Assume non-alua mode to start with. */
-	alua_mode = 0;
-
 	return 0;
 }
 
