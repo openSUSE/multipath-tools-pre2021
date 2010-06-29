@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jun 29 15:49:28 CEST 2010 - hare@suse.de
+
+- Fixup build failure for emc_clariion checker.
+
+-------------------------------------------------------------------
 Fri Jun 25 10:51:53 CEST 2010 - hare@suse.de
 
 - Add IBM DS3x00 to internal hardware table (bnc#595739)
