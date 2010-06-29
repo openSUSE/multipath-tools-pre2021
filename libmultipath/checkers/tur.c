@@ -226,10 +226,12 @@ libcheck_check (struct checker * c)
 		    ct->state == PATH_UNCHECKED) {
 			if (ct->running > c->async_timeout) {
 				condlog(3, "abort tur checker on timeout");
+				pthread_cancel(ct->thread);
 				ct->running = 0;
 				ct->thread = 0;
 				MSG(c, MSG_TUR_TIMEOUT);
 				tur_status = PATH_DOWN;
+				ct->state = PATH_UNCHECKED;
 			} else {
 				condlog(3, "tur checker still not finished");
 				ct->running++;
