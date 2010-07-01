@@ -95,7 +95,7 @@ case "$1" in
 	    PID=${PID%% *}
 	fi
 	# Fallback to PID file for older versions
-	if [ -n "$PID" -a "$PID" = "multipath-tools" ] ; then
+	if [ -z "$PID" ] || [ "$PID" == "multipath-tools" ] ; then
 	    if [ -f $PIDFILE ]; then
 		PID="$(cat $PIDFILE)"
 		STATUS="running"
