@@ -34,6 +34,7 @@
 struct tur_checker_context {
 	int state;
 	int running;
+	time_t timeout;
 	pthread_t thread;
 	pthread_mutex_t lock;
 	pthread_cond_t active;
@@ -157,7 +158,7 @@ void *tur_thread(void *ctx)
 {
 	struct checker *c = ctx;
 	struct tur_checker_context *ct = c->context;
-	int state, signal_thread = 1;
+	int state;
 
 	condlog(3, "tur checker starting up");
 
@@ -170,17 +171,13 @@ void *tur_thread(void *ctx)
 
 	/* TUR checker done */
 	pthread_mutex_lock(&ct->lock);
-	/* Paranoia check: Another thread might have been started */
-	if (ct->thread == pthread_self())
-		ct->state = state;
-	else
-		signal_thread = 0;
+	ct->state = state;
 	pthread_mutex_unlock(&ct->lock);
-	if (signal_thread)
-		pthread_cond_signal(&ct->active);
+	pthread_cond_signal(&ct->active);
 
 	condlog(3, "tur checker finished, state %s",
 		checker_state_name(state));
+	ct->thread = 0;
 	return ((void *)0);
 }
 
@@ -193,6 +190,24 @@ void tur_timeout(struct timespec *tsp)
 	tsp->tv_sec = now.tv_sec;
 	tsp->tv_nsec = now.tv_usec * 1000;
 	tsp->tv_nsec += 1000000; /* 1 millisecond */
+}
+
+void tur_set_async_timeout(struct checker *c)
+{
+	struct tur_checker_context *ct = c->context;
+	struct timeval now;
+
+	gettimeofday(&now, NULL);
+	ct->timeout = now.tv_sec + c->async_timeout;
+}
+
+int tur_check_async_timeout(struct checker *c)
+{
+	struct tur_checker_context *ct = c->context;
+	struct timeval now;
+
+	gettimeofday(&now, NULL);
+	return (now.tv_sec > ct->timeout);
 }
 
 extern int
@@ -221,55 +236,55 @@ libcheck_check (struct checker * c)
 	}
 
 	if (ct->running) {
-		/* TUR checker running */
-		if (ct->state == PATH_PENDING ||
-		    ct->state == PATH_UNCHECKED) {
-			if (ct->running > c->async_timeout) {
-				condlog(3, "abort tur checker on timeout");
+		/* Check if TUR checker is still running */
+		if (ct->thread) {
+			if (tur_check_async_timeout(c)) {
+				condlog(3, "tur checker timeout");
 				pthread_cancel(ct->thread);
 				ct->running = 0;
-				ct->thread = 0;
 				MSG(c, MSG_TUR_TIMEOUT);
 				tur_status = PATH_DOWN;
 				ct->state = PATH_UNCHECKED;
 			} else {
-				condlog(3, "tur checker still not finished");
+				condlog(3, "tur checker not finished");
 				ct->running++;
-				MSG(c, MSG_TUR_RUNNING);
 				tur_status = PATH_PENDING;
 			}
 		} else {
 			/* TUR checker done */
 			ct->running = 0;
 			tur_status = ct->state;
-			ct->state = PATH_UNCHECKED;
 		}
 		pthread_mutex_unlock(&ct->lock);
 	} else {
+		if (ct->thread) {
+			/* pthread cancel failed. continue in sync mode */
+			condlog(3, "tur thread not responding, "
+				"using sync mode");
+			return tur_check(c);
+		}
 		/* Start new TUR checker */
-		tur_timeout(&tsp);
+		ct->state = PATH_UNCHECKED;
+		tur_set_async_timeout(c);
 		setup_thread_attr(&attr, 32 * 1024, 1);
 		r = pthread_create(&ct->thread, &attr, tur_thread, c);
 		if (r) {
 			pthread_mutex_unlock(&ct->lock);
-			condlog(2, "tur thread creation failure %d", r);
-			MSG(c, MSG_TUR_FAILED);
-			return PATH_WILD;
+			ct->thread = 0;
+			condlog(3, "failed to start tur thread, using"
+				" sync mode");
+			return tur_check(c);
 		}
 		pthread_attr_destroy(&attr);
+		tur_timeout(&tsp);
 		r = pthread_cond_timedwait(&ct->active, &ct->lock, &tsp);
-		ct->running = 1;
 		tur_status = ct->state;
 		pthread_mutex_unlock(&ct->lock);
-		if (r == ETIMEDOUT) {
+		if (ct->thread &&
+		    (tur_status == PATH_PENDING || tur_status == PATH_UNCHECKED)) {
 			condlog(3, "tur checker still running");
+			ct->running = 1;
 			tur_status = PATH_PENDING;
-		} else if (r != 0) {
-			condlog(2, "tur checker failed waiting with %d", r);
-			MSG(c, MSG_TUR_FAILED);
-			tur_status = PATH_WILD;
-		} else {
-			ct->running = 0;
 		}
 	}
 
