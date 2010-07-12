@@ -1149,8 +1149,10 @@ check_path (struct vectors * vecs, struct path * pp)
 	/*
 	 * path prio refreshing
 	 */
-	condlog(4, "path prio refresh");
-	pathinfo(pp, conf->hwtable, DI_PRIO);
+	if (pp->state == PATH_UP || pp->state == PATH_GHOST) {
+		condlog(4, "path prio refresh");
+		pathinfo(pp, conf->hwtable, DI_PRIO);
+	}
 
 	/*
 	 * pathgroup failback policy
