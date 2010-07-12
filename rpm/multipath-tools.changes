@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Mon Jul 12 15:55:02 CEST 2010 - hare@suse.de
+
+- Reset checker message before calling checker_check (bnc#613330)
+- Call pthread_cancel() to terminate tur checker (bnc#613330)
+- multipathd init script returns 'failed' on stop (bnc#619147)
+- Do not refresh priority for failed paths (bnc#613330)
+- Update tur checker handling (bnc#620869)
+- Improve logging for tur checker
+
+-------------------------------------------------------------------
 Wed Jun 23 15:09:46 CEST 2010 - hare@suse.de
 
 - Increase initial timeout for 'tur' checker (bnc#616694)
