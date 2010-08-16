@@ -365,6 +365,8 @@ load_config (char * file)
 	conf->dev_type = DEV_NONE;
 	conf->minio = 1000;
 	conf->max_fds = 0;
+	conf->bindings_file = DEFAULT_BINDINGS_FILE;
+	conf->bindings_read_only = 0;
 	conf->async_timeout = ASYNC_TIMEOUT_SEC;
 
 	/*

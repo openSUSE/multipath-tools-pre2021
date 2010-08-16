@@ -68,6 +68,7 @@ struct config {
 	int rr_weight;
 	int no_path_retry;
 	int user_friendly_names;
+	int bindings_read_only;
 	int pg_timeout;
 	int max_fds;
 	int async_timeout;

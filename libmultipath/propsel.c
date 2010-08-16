@@ -165,7 +165,7 @@ select_alias (struct multipath * mp)
 		mp->alias = NULL;
 		if (conf->user_friendly_names)
 			mp->alias = get_user_friendly_alias(mp->wwid,
-					conf->bindings_file);
+					conf->bindings_file, conf->bindings_read_only);
 		if (mp->alias == NULL){
 			char *alias;
 			if ((alias = MALLOC(WWID_SIZE)) != NULL){

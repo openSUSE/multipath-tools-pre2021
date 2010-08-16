@@ -411,7 +411,7 @@ main (int argc, char *argv[])
 		condlog(0, "multipath tools need sysfs mounted");
 		exit(1);
 	}
-	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:t")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dhl::FfM:v:p:b:Bt")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -424,6 +424,9 @@ main (int argc, char *argv[])
 			break;
 		case 'b':
 			conf->bindings_file = strdup(optarg);
+			break;
+		case 'B':
+			conf->bindings_read_only = 1;
 			break;
 		case 'd':
 			conf->dry_run = 1;
