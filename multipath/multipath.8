@@ -6,7 +6,7 @@ multipath \- Device mapper target autoconfig
 .RB [\| \-v\ \c
 .IR verbosity \|]
 .RB [\| \-d \|]
-.RB [\| \-h | \-l | \-ll | \-f | \-t | \-F \|]
+.RB [\| \-h | \-l | \-ll | \-f | \-t | \-F \| \-B \|]
 .RB [\| \-p\ \c
 .BR failover | multibus | group_by_serial | group_by_prio | group_by_node_name \|]
 .RB [\| device \|]
@@ -49,6 +49,9 @@ flush all unused multipath device maps
 .TP
 .B \-t
 print internal hardware table to stdout
+.TP
+.B \-B
+treat the bindings file as read only
 .TP
 .BI \-p " policy"
 force new maps to use the specified policy:

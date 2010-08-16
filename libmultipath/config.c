@@ -490,6 +490,8 @@ load_config (char * file)
 	conf->max_fds = 0;
 	conf->dev_loss_tmo = DEFAULT_DEV_LOSS_TMO;
 	conf->fast_io_fail_tmo = DEFAULT_FAST_IO_FAIL;
+	conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
+	conf->bindings_read_only = 0;
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
 	conf->flush_on_last_del = 0;
 	conf->attribute_flags = 0;
