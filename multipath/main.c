@@ -392,14 +392,6 @@ main (int argc, char *argv[])
 	if (load_config(DEFAULT_CONFIGFILE))
 		exit(1);
 
-	if (init_checkers()) {
-		condlog(0, "failed to initialize checkers");
-		exit(1);
-	}
-	if (init_prio()) {
-		condlog(0, "failed to initialize prioritizers");
-		exit(1);
-	}
 	if (sysfs_init(conf->sysfs_dir, FILE_NAME_SIZE)) {
 		condlog(0, "multipath tools need sysfs mounted");
 		exit(1);
@@ -493,6 +485,14 @@ main (int argc, char *argv[])
 				conf->max_fds, strerror(errno));
 	}
 
+	if (init_checkers()) {
+		condlog(0, "failed to initialize checkers");
+		exit(1);
+	}
+	if (init_prio()) {
+		condlog(0, "failed to initialize prioritizers");
+		exit(1);
+	}
 	dm_init();
 
 	if (conf->remove == FLUSH_ONE) {
