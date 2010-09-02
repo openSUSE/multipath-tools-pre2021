@@ -338,6 +338,8 @@ static int
 uev_add_path (struct uevent *uev, struct vectors * vecs)
 {
 	struct sysfs_device * dev;
+	int rc;
+	size_t size;
 
 	dev = sysfs_device_get(uev->devpath);
 	if (!dev) {
@@ -345,7 +347,14 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 		return 1;
 	}
 	condlog(2, "%s: add path (uevent)", dev->kernel);
-	return (ev_add_path(dev->kernel, vecs) != 1)? 0 : 1;
+	rc = ev_add_path(dev->kernel, vecs);
+	size = sysfs_attr_set_value(uev->devpath, "uevent", "change", 6);
+	if (size < 6)
+		condlog(2, "%s: failed to trigger change event", dev->kernel);
+	else
+		condlog(3, "%s: triggered change event", dev->kernel);
+
+	return (rc != 1) ? 0 : 1;
 }
 
 /*
