@@ -35,7 +35,7 @@ if [ "$mpath_status" != "off" ] ; then
   root_major=$(sed -n 's/\(.*\) device-mapper/\1/p' /proc/devices)
   # Rescan for multipath
   echo -n "Setup multipath devices: "
-  /sbin/multipath -v0
+  /sbin/multipath -v0 -B
   wait_for_events
   echo 'ok.'
 fi
