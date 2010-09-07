@@ -53,10 +53,10 @@ int prio_path_weight(struct path *pp)
 	regex_t pathe;
 
 	/* Return default priority if there is no argument */
-	if (!pp->prio_arg)
+	if (!pp->prio_args)
 		return priority;
 
-	arg = temp = STRDUP(pp->prio_arg);
+	arg = temp = STRDUP(pp->prio_args);
 
 	regex = get_next_string(&temp, split_char);
 

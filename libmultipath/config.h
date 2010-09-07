@@ -23,7 +23,7 @@ struct hwentry {
 	char * selector;
 	char * checker_name;
 	char * prio_name;
-	char * prio_arg;
+	char * prio_args;
 
 	int pgpolicy;
 	int pgfailback;
@@ -45,7 +45,7 @@ struct mpentry {
 	char * features;
 
 	char * prio_name;
-	char * prio_arg;
+	char * prio_args;
 	int pgpolicy;
 	int pgfailback;
 	int rr_weight;
@@ -99,7 +99,7 @@ struct config {
 	char * hwhandler;
 	char * bindings_file;
 	char * prio_name;
-	char * prio_arg;
+	char * prio_args;
 	char * checker_name;
 
 	vector keywords;

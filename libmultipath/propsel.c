@@ -340,7 +340,7 @@ select_prio (struct path * pp)
 	if ((mpe = find_mpe(pp->wwid))) {
 		if (mpe->prio_name) {
 			pp->prio = prio_lookup(mpe->prio_name);
-			pp->prio_arg = mpe->prio_arg;
+			pp->prio_args = mpe->prio_args;
 			condlog(3, "%s: prio = %s (LUN setting)",
 				pp->dev, pp->prio->name);
 			return 0;
@@ -349,14 +349,14 @@ select_prio (struct path * pp)
 
 	if (pp->hwe && pp->hwe->prio_name) {
 		pp->prio = prio_lookup(pp->hwe->prio_name);
-		pp->prio_arg = pp->hwe->prio_arg;
+		pp->prio_args = pp->hwe->prio_args;
 		condlog(3, "%s: prio = %s (controller setting)",
 			pp->dev, pp->hwe->prio_name);
 		return 0;
 	}
 	if (conf->prio_name) {
 		pp->prio = prio_lookup(conf->prio_name);
-		pp->prio_arg = conf->prio_arg;
+		pp->prio_args = conf->prio_args;
 		condlog(3, "%s: prio = %s (config file default)",
 			pp->dev, conf->prio_name);
 		return 0;

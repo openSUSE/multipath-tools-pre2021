@@ -149,9 +149,9 @@ def_prio_handler(vector strvec)
 		if (prio_lookup(result)) {
 			conf->prio_name = STRDUP(result);
 			if (temp)
-				conf->prio_arg = STRDUP(temp);
+				conf->prio_args = STRDUP(temp);
 			else
-				conf->prio_arg = NULL;
+				conf->prio_args = NULL;
 			break;
 		}
 	}
@@ -855,9 +855,9 @@ hw_prio_handler(vector strvec)
 			if (prio_lookup(result)) {
 				hwe->prio_name = STRDUP(result);
 				if (temp)
-					hwe->prio_arg = STRDUP(temp);
+					hwe->prio_args = STRDUP(temp);
 				else
-					hwe->prio_arg = NULL;
+					hwe->prio_args = NULL;
 				break;
 			}
 		}
@@ -1424,9 +1424,9 @@ mp_prio_handler (vector strvec)
 		if (prio_lookup(result)) {
 			mpe->prio_name = STRDUP(result);
 			if (temp)
-				mpe->prio_arg = STRDUP(temp);
+				mpe->prio_args = STRDUP(temp);
 			else
-				mpe->prio_arg = NULL;
+				mpe->prio_args = NULL;
 			break;
 		}
 	}
