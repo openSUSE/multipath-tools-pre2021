@@ -16,8 +16,7 @@
 #include "debug.h"
 #include "uxsock.h"
 #include "alias.h"
-#include "vector.h"
-#include "config.h"
+
 
 /*
  * significant parts of this file were taken from iscsi-bindings.c of the
@@ -99,10 +98,7 @@ lock_bindings_file(int fd)
 	sigaddset(&set, SIGALRM);
 
 	sigaction(SIGALRM, &act, &oldact);
-	if (conf->daemon)
-		pthread_sigmask(SIG_UNBLOCK, &set, &oldset);
-	else
-		sigprocmask(SIG_UNBLOCK, &set, &oldset);
+	sigprocmask(SIG_UNBLOCK, &set, &oldset);
 
 	alarm(BINDINGS_FILE_TIMEOUT);
 	err = fcntl(fd, F_SETLKW, &lock);
@@ -116,10 +112,7 @@ lock_bindings_file(int fd)
 			condlog(0, "Bindings file is locked. Giving up.");
 	}
 
-	if (conf->daemon)
-		pthread_sigmask(SIG_SETMASK, &oldset, NULL);
-	else
-		sigprocmask(SIG_SETMASK, &oldset, NULL);
+	sigprocmask(SIG_SETMASK, &oldset, NULL);
 	sigaction(SIGALRM, &oldact, NULL);
 	return err;
 
@@ -359,7 +352,7 @@ allocate_binding(int fd, char *wwid, int id)
 }
 
 char *
-get_user_friendly_alias(char *wwid)
+get_user_friendly_alias(char *wwid, char *file)
 {
 	char *alias;
 	int fd, scan_fd, id;
@@ -371,7 +364,7 @@ get_user_friendly_alias(char *wwid)
 		return NULL;
 	}
 
-	fd = open_bindings_file(conf->bindings_file, &can_write);
+	fd = open_bindings_file(file, &can_write);
 	if (fd < 0)
 		return NULL;
 
@@ -410,7 +403,7 @@ get_user_friendly_alias(char *wwid)
 }
 
 char *
-get_user_friendly_wwid(char *alias)
+get_user_friendly_wwid(char *alias, char *file)
 {
 	char *wwid;
 	int fd, scan_fd, id, unused;
@@ -421,7 +414,7 @@ get_user_friendly_wwid(char *alias)
 		return NULL;
 	}
 
-	fd = open_bindings_file(conf->bindings_file, &unused);
+	fd = open_bindings_file(file, &unused);
 	if (fd < 0)
 		return NULL;
 
