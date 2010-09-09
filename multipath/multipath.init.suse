@@ -79,6 +79,10 @@ case "$1" in
 	    ulimit -n $MAX_OPEN_FDS
 	fi
 
+	# Wait for SCSI scan to finish
+	modprobe scsi_wait_scan
+	/sbin/udevadm settle --timeout $MPATH_DEVICE_TIMEOUT
+
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
 
