@@ -30,6 +30,7 @@ static const char * aas_string[] = {
 	[AAS_NON_OPTIMIZED]	= "active/non-optimized",
 	[AAS_STANDBY]		= "standby",
 	[AAS_UNAVAILABLE]	= "unavailable",
+	[AAS_LBA_DEPENDENT]	= "lba dependent",
 	[AAS_RESERVED]		= "invalid/reserved",
 	[AAS_OFFLINE]		= "offline",
 	[AAS_TRANSITIONING]	= "transitioning between states",
@@ -42,7 +43,7 @@ static const char *aas_print_string(int rc)
 	if (rc & 0x70)
 		return aas_string[AAS_RESERVED];
 	rc &= 0x0f;
-	if (rc > 3 && rc < 0xe)
+	if (rc > AAS_RESERVED && rc < AAS_OFFLINE)
 		return aas_string[AAS_RESERVED];
 	else
 		return aas_string[rc];
@@ -93,6 +94,9 @@ int getprio (struct path * pp)
 				break;
 			case AAS_NON_OPTIMIZED:
 				rc = 10;
+				break;
+			case AAS_LBA_DEPENDENT:
+				rc = 5;
 				break;
 			case AAS_STANDBY:
 				rc = 1;
