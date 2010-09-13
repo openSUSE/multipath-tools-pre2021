@@ -269,6 +269,7 @@ libcheck_check (struct checker * c)
 	} else {
 		if (ct->thread) {
 			/* pthread cancel failed. continue in sync mode */
+			pthread_mutex_unlock(&ct->lock);
 			condlog(3, "%d:%d: tur thread not responding, "
 				"using sync mode", TUR_DEVT(ct));
 			return tur_check(c);
