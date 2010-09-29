@@ -46,6 +46,7 @@
 #include <switchgroup.h>
 #include <print.h>
 #include <configure.h>
+#include <pgpolicies.h>
 #include <prio.h>
 #include <uevent.h>
 
@@ -1014,10 +1015,34 @@ retry_count_tick(vector mpvec)
 	}
 }
 
+int update_path_groups(struct multipath *mpp, struct vectors *vecs)
+{
+	int i;
+	struct path * pp;
+	char params[PARAMS_SIZE] = {0};
+
+	update_mpp_paths(mpp, vecs->pathvec);
+	vector_foreach_slot (mpp->paths, pp, i)
+		pathinfo(pp, conf->hwtable, DI_PRIO);
+	setup_map(mpp, params, PARAMS_SIZE);
+	mpp->action = ACT_RELOAD;
+	if (domap(mpp, params) <= 0) {
+		condlog(0, "%s: failed to update map : %s", mpp->alias,
+				strerror(errno));
+		return 1;
+	}
+	dm_lib_release();
+	setup_multipath(vecs, mpp);
+	sync_map_state(mpp);
+
+	return 0;
+}
+
 void
 check_path (struct vectors * vecs, struct path * pp)
 {
 	int newstate;
+	int oldpriority;
 
 	if (!pp->mpp)
 		return;
@@ -1158,6 +1183,7 @@ check_path (struct vectors * vecs, struct path * pp)
 	/*
 	 * path prio refreshing
 	 */
+	oldpriority = pp->priority;
 	if (pp->state == PATH_UP || pp->state == PATH_GHOST) {
 		condlog(4, "path prio refresh");
 		pathinfo(pp, conf->hwtable, DI_PRIO);
@@ -1166,7 +1192,10 @@ check_path (struct vectors * vecs, struct path * pp)
 	/*
 	 * pathgroup failback policy
 	 */
-	if (need_switch_pathgroup(pp->mpp, 0)) {
+	if (pp->priority != oldpriority &&
+	    pp->mpp->pgpolicyfn == (pgpolicyfn *)group_by_prio)
+		update_path_groups(pp->mpp, vecs);
+	else if (need_switch_pathgroup(pp->mpp, 0)) {
 		if (pp->mpp->pgfailback > 0 &&
 		    pp->mpp->failback_tick <= 0)
 			pp->mpp->failback_tick =
