@@ -399,7 +399,8 @@ int sysfs_check_holders(char * check_devt, char * new_devt)
 	sprintf(path, "/sys/block/%s/holders", check_dev);
 	dirfd = opendir(path);
 	if (dirfd == NULL) {
-		condlog(1, "failed to open directory %s (%d)", path, errno);
+		condlog(3, "%s: failed to open directory %s (%d)",
+			check_dev, path, errno);
 		return 0;
 	}
 	while ((holder = readdir(dirfd)) != NULL) {
