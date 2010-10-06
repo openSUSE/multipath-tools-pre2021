@@ -628,6 +628,29 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 	},
 	/*
+	 * IBM Power Virtual SCSI Devices
+	 *
+	 * Maintainer : Brian King, IBM
+	 * Mail : brking@linux.vnet.ibm.com
+	 */
+	{
+		/* IBM 3303      NVDISK */
+		.vendor        = "IBM",
+		.product       = "3303      NVDISK",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = FAILOVER,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = (300 / DEFAULT_CHECKINT),
+		.minio         = DEFAULT_MINIO,
+		.checker_name  = TUR,
+		.prio_name     = DEFAULT_PRIO,
+	},
+
+	/*
 	 * Generic LSI/Engenio controller
 	 *
 	 * Maintainer: Hannes Reinecke
