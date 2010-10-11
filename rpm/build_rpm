@@ -4,7 +4,7 @@
 #
 
 RPM="multipath-tools"
-BRANCH="sles10-sp3"
+BRANCH="sles10-sp4"
 BASEVER="0.4.7"
 DESTDIR="/tmp/$RPM"
 uncommitted_changes=0
