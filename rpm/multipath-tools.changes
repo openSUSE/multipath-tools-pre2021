@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Oct 11 17:32:28 CEST 2010 - hare@suse.de
+
+- Update hwtable defaults for EMC SYMMETRIX (bnc#579100)
+- Move default bindings to /etc (FATE#310081)
+- Add IBM VIOS to internal hardware table (bnc#641073)
+- Make tur checker configurable (bnc#619125)
+
+ -------------------------------------------------------------------
 Tue Jun 29 15:49:28 CEST 2010 - hare@suse.de
 
 - Fixup build failure for emc_clariion checker.
