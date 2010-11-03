@@ -157,6 +157,15 @@ tur_check (struct checker * c)
 	return PATH_UP;
 }
 
+#define tur_thread_cleanup_push(ct) pthread_cleanup_push(cleanup_func, ct)
+#define tur_thread_cleanup_pop(ct) pthread_cleanup_pop(1)
+
+void cleanup_func(void *data)
+{
+	struct tur_checker_context *ct = data;
+	ct->thread = 0;
+}
+
 void *tur_thread(void *ctx)
 {
 	struct checker *c = ctx;
@@ -164,6 +173,9 @@ void *tur_thread(void *ctx)
 	int state;
 
 	condlog(3, "%d:%d: tur checker starting up", TUR_DEVT(ct));
+
+	/* This thread can be canceled, so setup clean up */
+	tur_thread_cleanup_push(ct)
 
 	/* TUR checker start up */
 	pthread_mutex_lock(&ct->lock);
@@ -180,7 +192,7 @@ void *tur_thread(void *ctx)
 
 	condlog(3, "%d:%d: tur checker finished, state %s",
 		TUR_DEVT(ct), checker_state_name(state));
-	ct->thread = 0;
+	tur_thread_cleanup_pop(ct);
 	return ((void *)0);
 }
 
