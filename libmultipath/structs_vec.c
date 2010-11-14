@@ -46,7 +46,7 @@ update_mpp_paths(struct multipath * mpp, vector pathvec)
 }
 
 extern int
-adopt_paths (vector pathvec, struct multipath * mpp)
+adopt_paths (vector pathvec, struct multipath * mpp, int get_info)
 {
 	int i;
 	struct path * pp;
@@ -69,7 +69,9 @@ adopt_paths (vector pathvec, struct multipath * mpp)
 			if (!find_path_by_dev(mpp->paths, pp->dev) &&
 			    store_path(mpp->paths, pp))
 					return 1;
-			pathinfo(pp, conf->hwtable, DI_PRIO | DI_CHECKER);
+			if (get_info)
+				pathinfo(pp, conf->hwtable,
+					 DI_PRIO | DI_CHECKER);
 		}
 	}
 	return 0;
@@ -371,7 +373,6 @@ retry:
 		goto out;
 	}
 
-	//adopt_paths(vecs->pathvec, mpp);
 	if (!mpp->hwe)
 		mpp->hwe = extract_hwe_from_path(mpp);
 	if (!mpp->hwe) {
@@ -406,7 +407,7 @@ add_map_without_path (struct vectors * vecs,
 		return NULL; /* mpp freed in setup_multipath */
 	}
 
-	if (adopt_paths(vecs->pathvec, mpp))
+	if (adopt_paths(vecs->pathvec, mpp, 1))
 		goto out;
 
 	if (!vector_alloc_slot(vecs->mpvec))
@@ -439,7 +440,7 @@ add_map_with_path (struct vectors * vecs,
 	select_alias(mpp);
 	mpp->size = pp->size;
 
-	if (adopt_paths(vecs->pathvec, mpp))
+	if (adopt_paths(vecs->pathvec, mpp, 1))
 		goto out;
 
 	if (add_vec) {
@@ -549,6 +550,7 @@ int update_multipath (struct vectors *vecs, char *mapname)
 	if (setup_multipath(vecs, mpp))
 		return 1; /* mpp freed in setup_multipath */
 
+	adopt_paths(vecs->pathvec, mpp, 0);
 	/*
 	 * compare checkers states with DM states
 	 */

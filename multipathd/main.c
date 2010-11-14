@@ -406,7 +406,7 @@ ev_add_path (char * devname, struct vectors * vecs)
 	 */
 	if (memcmp(empty_buff, pp->wwid, WWID_SIZE) == 0) {
 		condlog(0, "%s: failed to get path uid", devname);
-		return 1; /* leave path added to pathvec */
+		goto fail; /* leave path added to pathvec */
 	}
 	if (filter_path(conf, pp) > 0){
 		int i = find_slot(vecs->pathvec, (void *)pp);
@@ -436,8 +436,8 @@ rescan:
 
 		condlog(4,"%s: adopting all paths for path %s",
 			mpp->alias, pp->dev);
-		if (adopt_paths(vecs->pathvec, mpp))
-			return 1; /* leave path added to pathvec */
+		if (adopt_paths(vecs->pathvec, mpp, 1))
+			goto fail; /* leave path added to pathvec */
 
 		verify_paths(mpp, vecs, NULL);
 		mpp->flush_on_last_del = FLUSH_UNDEF;
@@ -464,7 +464,7 @@ rescan:
 			start_waiter = 1;
 		}
 		else
-			return 1; /* leave path added to pathvec */
+			goto fail; /* leave path added to pathvec */
 	}
 
 	/*
@@ -473,7 +473,7 @@ rescan:
 	if (setup_map(mpp, params, PARAMS_SIZE)) {
 		condlog(0, "%s: failed to setup map for addition of new "
 			"path %s", mpp->alias, devname);
-		goto out;
+		goto fail_map;
 	}
 	/*
 	 * reload the map for the multipath mapped device
@@ -491,7 +491,7 @@ rescan:
 			goto rescan;
 		}
 		else
-			goto out;
+			goto fail_map;
 	}
 	dm_lib_release();
 
@@ -499,20 +499,22 @@ rescan:
 	 * update our state from kernel regardless of create or reload
 	 */
 	if (setup_multipath(vecs, mpp))
-		goto out;
+		goto fail_map;
 
 	sync_map_state(mpp);
 
 	if ((mpp->action == ACT_CREATE ||
 	     (mpp->action == ACT_NOTHING && start_waiter && !mpp->waiter)) &&
 	    start_waiter_thread(mpp, vecs))
-			goto out;
+			goto fail_map;
 
 	condlog(2, "%s path added to devmap %s", devname, mpp->alias);
 	return 0;
 
-out:
+fail_map:
 	remove_map(mpp, vecs, 1);
+fail:
+	orphan_path(pp);
 	return 1;
 }
 
@@ -1309,7 +1311,7 @@ configure (struct vectors * vecs, int start_waiters)
 	/*
 	 * create new set of maps & push changed ones into dm
 	 */
-	if (coalesce_paths(vecs, mpvec, NULL, 0))
+	if (coalesce_paths(vecs, mpvec, NULL, 1))
 		return 1;
 
 	/*
