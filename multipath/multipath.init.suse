@@ -24,7 +24,7 @@ PROGRAM=/sbin/multipath
 MAX_OPEN_FDS=4096
 
 # Number of seconds to wait for disks and partitions
-MPATH_DEVICE_TIMEOUT=10
+MPATH_DEVICE_TIMEOUT=30
 
 test -x $PROGRAM || exit 5
 
@@ -81,39 +81,46 @@ case "$1" in
 
 	# Start the program directly as checkproc doesn't work here
 	$PROGRAM -v 0
-
+	echo -n " (waiting for udev)"
 	# Wait for all multipathed devices to appear
 	maplist=$(/sbin/dmsetup ls --target multipath | sed '/No devices/d' | sed -n 's/\(^[^ ()]*\)[\t ]*.*/\1/p')
-	for map in $maplist; do
+	wait=$MPATH_DEVICE_TIMEOUT
+	while [ $wait -gt 0 ] ; do
+	    num=0
+	    for map in $maplist; do
+		[ -e /dev/disk/by-id/dm-name-$map ] && continue
+		num=$((num + 1))
+	    done
+	    [ $num -eq 0 ] && break
+	    wait=$((wait - 1))
+	    sleep 1;
+	done
+	if [ $wait -le 0 ] ; then
+	    echo -n " timeout: $num devices left"
+	    rc_failed 1
+	else
+	    # Reset to wait for partitions
 	    wait=$MPATH_DEVICE_TIMEOUT
-	    while [ $wait -gt 0 ] ; do
-		[ -e /dev/disk/by-id/dm-name-$map ] && break
-		wait=$((wait - 1))
-		sleep 1;
-	    done
-	    if [ $wait -le 0 ] ; then
-		echo -n "timeout waiting for devices"
-		rc_failed 1
-		break;
-	    fi
-	done
+	fi
         # Wait for all partitions on multipathed devices
-	for map in $maplist ; do
-	    [ -e /dev/disk/by-id/dm-name-$map ] || continue
-            for part in $(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | sed 's/\([^ ]*\) :.*/\1/p'); do
-		wait=$MPATH_DEVICE_TIMEOUT
-		while [ $wait -gt 0 ] ; do
-		    [ -e /dev/disk/by-id/dm-name-$part ] && break
-		    wait=$((wait - 1))
-		    sleep 1;
+	while [ $wait -gt 0 ] ; do
+	    num=0
+	    for map in $maplist ; do
+		[ -e /dev/disk/by-id/dm-name-$map ] || continue
+		partlist=$(/sbin/kpartx -l -p _part /dev/disk/by-id/dm-name-$map | sed 's/\([^ ]*\) :.*/\1/p')
+		for part in $partlist; do
+		    [ -e /dev/disk/by-id/dm-name-$part ] && continue
+		    num$((num + 1))
 		done
-		if [ $wait -le 0 ] ; then
-		    echo -n "timeout waiting for partitions"
-		    rc_failed 1
-		    break;
-		fi
 	    done
+	    [ $num -eq 0 ] && break
+	    wait=$((wait - 1))
+	    sleep 1;
 	done
+	if [ $wait -le 0 ] ; then
+	    echo -n "timeout: $num partitions left"
+	    rc_failed 1
+	fi
 
 	# Remember status and be verbose
 	rc_status -v
