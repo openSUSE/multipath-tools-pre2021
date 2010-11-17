@@ -53,22 +53,17 @@ void free_waiter (void *data)
 void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 {
 	struct event_thread *wp = (struct event_thread *)mpp->waiter;
+	pthread_t thread;
 
 	if (!wp) {
 		condlog(3, "%s: no waiter thread", mpp->alias);
 		return;
 	}
-	condlog(2, "%s: stop event checker thread", wp->mapname);
+	thread = wp->thread;
+	mpp->waiter = NULL;
 
-	if (wp->mpp)
-		/*
-		 * be careful, mpp may already be freed -- null if so
-		 */
-		wp->mpp->waiter = NULL;
-	else
-		condlog(3, "free_waiter, mpp freed before wp=%p,", wp);
-
-	pthread_kill((pthread_t)wp->thread, SIGUSR1);
+	condlog(2, "%s: stop event checker thread (%lu)", wp->mapname, thread);
+	pthread_kill(thread, SIGUSR1);
 }
 
 static sigset_t unblock_signals(void)
@@ -211,7 +206,6 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	mpp->waiter = (void *)wp;
 	strncpy(wp->mapname, mpp->alias, WWID_SIZE);
 	wp->vecs = vecs;
-	wp->mpp = mpp;
 
 	if (pthread_create(&wp->thread, &waiter_attr, waitevent, wp)) {
 		condlog(0, "%s: cannot create event checker", wp->mapname);

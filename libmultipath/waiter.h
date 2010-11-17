@@ -10,7 +10,6 @@ struct event_thread {
 	int event_nr;
 	char mapname[WWID_SIZE];
 	struct vectors *vecs;
-	struct multipath *mpp;
 };
 
 struct event_thread * alloc_waiter (void);
