@@ -59,14 +59,9 @@ void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 		return;
 	}
 	thread = wp->thread;
+	mpp->waiter = NULL;
+
 	condlog(2, "%s: stop event checker thread (%lu)", wp->mapname, thread);
-
-	/*
-	 * indicate in mpp that the wp is already freed storage
-	 */
-	if (wp->mpp)
-		wp->mpp->waiter = NULL;
-
 	pthread_kill(thread, SIGUSR1);
 }
 
@@ -230,7 +225,6 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	mpp->waiter = (void *)wp;
 	strncpy(wp->mapname, mpp->alias, WWID_SIZE);
 	wp->vecs = vecs;
-	wp->mpp = mpp;
 	pthread_mutex_unlock(&wp->lock);
 
 	if (pthread_create(&wp->thread, &waiter_attr, waitevent, wp)) {
