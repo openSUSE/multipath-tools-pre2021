@@ -234,10 +234,9 @@ get_cmdvec (char * cmd, vector *v)
 
 	strvec = alloc_strvec(cmd);
 	if (!strvec)
-		return 0;
+		return E_NOMEM;
 
 	cmdvec = vector_alloc();
-	*v = cmdvec;
 
 	if (!cmdvec) {
 		free_strvec(strvec);
@@ -277,13 +276,13 @@ get_cmdvec (char * cmd, vector *v)
 		r = E_NOPARM;
 		goto out;
 	}
+	*v = cmdvec;
 	free_strvec(strvec);
 	return 0;
 
 out:
 	free_strvec(strvec);
 	free_keys(cmdvec);
-	*v = NULL;
 	return r;
 }
 
@@ -374,8 +373,6 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data)
 	r = get_cmdvec(cmd, &cmdvec);
 
 	if (r) {
-		if (cmdvec)
-			free_keys(cmdvec);
 		*reply = genhelp_handler();
 		*len = strlen(*reply) + 1;
 		return 0;
