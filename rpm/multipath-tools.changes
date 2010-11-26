@@ -1,4 +1,28 @@
 -------------------------------------------------------------------
+Fri Nov 26 16:15:34 CET 2010 - hare@suse.de
+
+- multipath display messages intended for different level
+  (bnc#636519)
+- emit change event after path event processing (bnc#630434)
+- Add alias_prefix to get multipath names based on storage
+  type
+- Option '-B' to multipath to not modify bindings file
+  (bnc#636993)
+- Use option '-B' during initrd run (bnc#636993)
+- Update hwtable defaults for EMC Symmetrix (bnc#579103)
+- Fix deadlock in tur checker (bnc#613330)
+- Handle LBA_DEPENDENT state
+- Multipath fails to update maps after state transition
+  (bnc#587456)
+- Update hardware table for NetApp to use 'tur' checker
+  (bnc#600043)
+- Check for opendir() failure (bnc#642846)
+- Use pthread_cleanup_push() to terminate tur thread (bnc#649287)
+- Update wait logic in init script (bnc#637991)
+- Multipathd crashes in stop_waiter_thread (bnc#642846)
+- Multipathd crashed on empty CLI command (bnc#643108)
+
+-------------------------------------------------------------------
 Mon Jul 12 15:55:02 CEST 2010 - hare@suse.de
 
 - Reset checker message before calling checker_check (bnc#613330)
