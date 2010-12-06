@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Dec  6 08:41:25 CET 2010 - hare@suse.de
+
+- Add option '-f' to kpartx (bnc#613584)
+
+-------------------------------------------------------------------
 Fri Nov 26 16:15:34 CET 2010 - hare@suse.de
 
 - multipath display messages intended for different level
