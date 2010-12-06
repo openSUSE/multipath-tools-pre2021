@@ -82,18 +82,22 @@ initpts(void)
 	addpts("mac", read_mac_pt);
 }
 
-static char short_opts[] = "ladgvnp:t:";
+static char short_opts[] = "ladfgvnp:t:";
 
 /* Used in gpt.c */
 int force_gpt=0;
 
+int force_devmap=0;
+
 static int
 usage(void) {
-	printf("usage : kpartx [-a|-d|-l] [-v] wholedisk\n");
+	printf("usage : kpartx [-a|-d|-l] [-f] [-g] [-v] wholedisk\n");
 	printf("\t-a add partition devmappings\n");
 	printf("\t-d del partition devmappings\n");
 	printf("\t-l list partitions devmappings that would be added by -a\n");
 	printf("\t-p set device name-partition number delimiter\n");
+	printf("\t-g force GUID partition table (GPT)\n");
+	printf("\t-f force devmap create\n");
 	printf("\t-v verbose\n");
 	return 1;
 }
@@ -231,6 +235,9 @@ main(int argc, char **argv){
 	}
 
 	while ((arg = getopt(argc, argv, short_opts)) != EOF) switch(arg) {
+		case 'f':
+			force_devmap=1;
+			break;
 		case 'g':
 			force_gpt=1;
 			break;
@@ -326,7 +333,8 @@ main(int argc, char **argv){
 
 	if (!mapname)
 		mapname = device + off;
-	else if (dm_no_partitions((unsigned int)MAJOR(buf.st_rdev),
+	else if (!force_devmap &&
+		   dm_no_partitions((unsigned int)MAJOR(buf.st_rdev),
 				  (unsigned int)MINOR(buf.st_rdev))) {
 		/* Feature 'no_partitions' is set, return */
 		return 0;
