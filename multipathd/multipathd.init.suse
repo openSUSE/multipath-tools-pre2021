@@ -180,18 +180,12 @@ case "$1" in
 	# 2 - service dead, but /var/lock/ lock file exists
 	# 3 - service not running
 
-	if [ -f $PIDFILE ]; then
-		PID="$(cat $PIDFILE)"
-		PROCNAME="$(ps -p $PID -o comm=)"
-		if [ "$PROCNAME" == `basename $DAEMON` ]; then
-			(exit 0)
-		else
-			(exit 1)
-		fi
+	status=$($DAEMON -k'show daemon' 2> /dev/null)
+	if [ -n "$status" ]; then
+	        (exit 0)
 	else
 		(exit 3)
 	fi
-
 	rc_status -v
 	;;
     probe)
