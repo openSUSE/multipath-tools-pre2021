@@ -59,7 +59,13 @@ void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 		condlog(3, "%s: no waiter thread", mpp->alias);
 		return;
 	}
+	if (wp->thread == (pthread_t)0) {
+		condlog(3, "%s: event checker thread already stopped",
+			mpp->alias);
+		return;
+	}
 	thread = wp->thread;
+	wp->thread = (pthread_t)0;
 	mpp->waiter = NULL;
 
 	condlog(2, "%s: stop event checker thread (%lu)", wp->mapname, thread);
