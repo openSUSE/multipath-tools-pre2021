@@ -1015,15 +1015,44 @@ retry_count_tick(vector mpvec)
 	}
 }
 
-int update_path_groups(struct multipath *mpp, struct vectors *vecs)
+int update_prio(struct path *pp, int refresh_all)
+{
+	int oldpriority;
+	struct pathgroup * pgp;
+	int i, j, changed = 0;
+
+	if (refresh_all) {
+		vector_foreach_slot (pp->mpp->pg, pgp, i) {
+			vector_foreach_slot (pgp->paths, pp, j) {
+				oldpriority = pp->priority;
+				if (pp->state == PATH_UP ||
+				    pp->state == PATH_GHOST)
+					pathinfo(pp, conf->hwtable, DI_PRIO);
+				if (pp->priority != oldpriority)
+					changed = 1;
+			}
+		}
+		return changed;
+	}
+	oldpriority = pp->priority;
+	pathinfo(pp, conf->hwtable, DI_PRIO);
+
+	if (pp->priority == oldpriority)
+		return 0;
+	return 1;
+}
+
+int update_path_groups(struct multipath *mpp, struct vectors *vecs, int refresh)
 {
 	int i;
 	struct path * pp;
 	char params[PARAMS_SIZE] = {0};
 
 	update_mpp_paths(mpp, vecs->pathvec);
-	vector_foreach_slot (mpp->paths, pp, i)
-		pathinfo(pp, conf->hwtable, DI_PRIO);
+	if (refresh) {
+		vector_foreach_slot (mpp->paths, pp, i)
+			pathinfo(pp, conf->hwtable, DI_PRIO);
+	}
 	setup_map(mpp, params, PARAMS_SIZE);
 	mpp->action = ACT_RELOAD;
 	if (domap(mpp, params) <= 0) {
@@ -1042,7 +1071,7 @@ void
 check_path (struct vectors * vecs, struct path * pp)
 {
 	int newstate;
-	int oldpriority;
+	int new_path_up = 0;
 
 	if (!pp->mpp)
 		return;
@@ -1134,16 +1163,7 @@ check_path (struct vectors * vecs, struct path * pp)
 			reinstate_path(pp, 1);
 		else
 			reinstate_path(pp, 0);
-
-		/*
-		 * schedule [defered] failback
-		 */
-		if (pp->mpp->pgfailback > 0)
-			pp->mpp->failback_tick =
-				pp->mpp->pgfailback + 1;
-		else if (pp->mpp->pgfailback == -FAILBACK_IMMEDIATE &&
-		    need_switch_pathgroup(pp->mpp, 1))
-			switch_pathgroup(pp->mpp);
+		new_path_up = 1;
 
 		/*
 		 * if at least one path is up in a group, and
@@ -1183,21 +1203,13 @@ check_path (struct vectors * vecs, struct path * pp)
 	/*
 	 * path prio refreshing
 	 */
-	oldpriority = pp->priority;
-	if (pp->state == PATH_UP || pp->state == PATH_GHOST) {
-		condlog(4, "path prio refresh");
-		pathinfo(pp, conf->hwtable, DI_PRIO);
-	}
-
-	/*
-	 * pathgroup failback policy
-	 */
-	if (pp->priority != oldpriority &&
+	if (update_prio(pp, new_path_up) &&
 	    pp->mpp->pgpolicyfn == (pgpolicyfn *)group_by_prio)
-		update_path_groups(pp->mpp, vecs);
+		update_path_groups(pp->mpp, vecs, !new_path_up);
 	else if (need_switch_pathgroup(pp->mpp, 0)) {
 		if (pp->mpp->pgfailback > 0 &&
-		    pp->mpp->failback_tick <= 0)
+		    (new_path_up ||
+		     pp->mpp->failback_tick <= 0))
 			pp->mpp->failback_tick =
 				pp->mpp->pgfailback + 1;
 		else if (pp->mpp->pgfailback ==
