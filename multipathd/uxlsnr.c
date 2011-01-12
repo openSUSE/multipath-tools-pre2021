@@ -112,7 +112,7 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 		exit(1);
 	}
 
-	pthread_cleanup_push(uxsock_cleanup, ux_sock);
+	pthread_cleanup_push(uxsock_cleanup, NULL);
 
 	polls = (struct pollfd *)MALLOC(0);
 
@@ -140,7 +140,7 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 
 			/* something went badly wrong! */
 			condlog(0, "poll");
-			pthread_exit(1);
+			pthread_exit((void *)1);
 		}
 
 		if (poll_count == 0)
