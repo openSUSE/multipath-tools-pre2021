@@ -104,6 +104,7 @@ uevq_thread(void * et)
 		pthread_mutex_unlock(uevq_lockp);
 		service_uevq(&uevq_tmp);
 	}
+	return NULL;
 }
 
 int uevent_listen(int (*uev_trigger)(struct uevent *, void * trigger_data),
