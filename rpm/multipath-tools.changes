@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Wed Jan 12 12:38:34 CET 2011 - hare@suse.de
+
+- Fix uxlsnr race condition on shutdown (bnc#659859)
+- Improve debugging of log messages (bnc#659859)
+- Zero out 'wp->thread' after pthread_kill (bnc#642846)
+- Add option '-f' to kpartx (bnc#613584)
+- multipathd crashes on empty CLI command (bnc#643108)
+- multipathd crashes in stop_waiter_thread (bnc#642846)
+- Update maps after ALUA failover (bnc#660488)
+
+-------------------------------------------------------------------
 Mon Oct 11 17:32:28 CEST 2010 - hare@suse.de
 
 - Update hwtable defaults for EMC SYMMETRIX (bnc#579100)
