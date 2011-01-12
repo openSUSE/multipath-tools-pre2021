@@ -1612,12 +1612,6 @@ child (void * param)
 
 	sysfs_cleanup();
 
-	free_keys(keys);
-	keys = NULL;
-	free_handlers(handlers);
-	handlers = NULL;
-	free_polls();
-
 	lock(vecs->lock);
 	free_pathvec(vecs->pathvec, FREE_PATHS);
 	vecs->pathvec = NULL;
