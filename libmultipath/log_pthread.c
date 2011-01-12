@@ -47,7 +47,7 @@ void log_safe (int prio, const char * fmt, va_list ap)
 	pthread_sigmask(SIG_SETMASK, &old, NULL);
 }
 
-static void flush_logqueue (void)
+void log_thread_flush (void)
 {
 	int empty;
 
@@ -85,7 +85,7 @@ static void * log_thread (void * et)
 		pthread_mutex_unlock(logev_lock);
 		if (!running)
 			break;
-		flush_logqueue();
+		log_thread_flush();
 	}
 	return NULL;
 }
@@ -128,7 +128,7 @@ void log_thread_stop (void)
 	pthread_mutex_unlock(logq_lock);
 	pthread_join(log_thr, NULL);
 
-	flush_logqueue();
+	log_thread_flush();
 
 	pthread_mutex_destroy(logq_lock);
 	pthread_mutex_destroy(logev_lock);
