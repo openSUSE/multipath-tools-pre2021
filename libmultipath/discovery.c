@@ -482,7 +482,7 @@ scsi_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 	/*
 	 * host / bus / target / lun
 	 */
-	basenamecpy(parent->devpath, attr_path);
+	basenamecpy(parent->devpath, attr_path, FILE_NAME_SIZE);
 
 	sscanf(attr_path, "%i:%i:%i:%i",
 			&pp->sg_id.host_no,
@@ -541,7 +541,7 @@ ccw_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 	/*
 	 * host / bus / target / lun
 	 */
-	basenamecpy(parent->devpath, attr_path);
+	basenamecpy(parent->devpath, attr_path, FILE_NAME_SIZE);
 	pp->sg_id.lun = 0;
 	sscanf(attr_path, "%i.%i.%x",
 			&pp->sg_id.host_no,
@@ -565,7 +565,7 @@ cciss_sysfs_pathinfo (struct path * pp, struct sysfs_device * dev)
 	/*
 	 * host / bus / target / lun
 	 */
-	basenamecpy(dev->devpath, attr_path);
+	basenamecpy(dev->devpath, attr_path, FILE_NAME_SIZE);
 	pp->sg_id.lun = 0;
 	pp->sg_id.channel = 0;
 	sscanf(attr_path, "cciss!c%id%i",

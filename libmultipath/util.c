@@ -6,8 +6,9 @@
 
 #include "debug.h"
 #include "memory.h"
-
-#define FILE_NAME_SIZE 256
+#include "checkers.h"
+#include "vector.h"
+#include "structs.h"
 
 void
 strchop(char *str)
@@ -19,11 +20,14 @@ strchop(char *str)
 }
 
 int
-basenamecpy (char * str1, char * str2)
+basenamecpy (char * str1, char * str2, int str2len)
 {
 	char *p;
 
 	if (!str1 || !strlen(str1))
+		return 0;
+
+	if (strlen(str1) > str2len)
 		return 0;
 
 	if (!str2)
@@ -37,7 +41,8 @@ basenamecpy (char * str1, char * str2)
 	if (p != str1)
 		p++;
 
-	strcpy(str2, p);
+	strncpy(str2, p, str2len);
+	str2[str2len - 1] = '\0';
 	strchop(str2);
 	return strlen(str2);
 }
@@ -147,19 +152,22 @@ void remove_trailing_chars(char *path, char c)
 }
 
 extern int
-devt2devname (char *devname, char *devt)
+devt2devname (char *devname, int devname_len, char *devt)
 {
 	FILE *fd;
 	unsigned int tmpmaj, tmpmin, major, minor;
 	char dev[FILE_NAME_SIZE];
-	char block_path[FILE_NAME_SIZE];
+	char block_path[PATH_SIZE];
 	struct stat statbuf;
 
-	memset(block_path, 0, FILE_NAME_SIZE);
+	memset(block_path, 0, sizeof(block_path));
 	if (sscanf(devt, "%u:%u", &major, &minor) != 2) {
 		condlog(0, "Invalid device number %s", devt);
 		return 1;
 	}
+
+	if (devname_len > FILE_NAME_SIZE)
+		devname_len = FILE_NAME_SIZE;
 
 	sprintf(block_path,"/sys/dev/block/%u:%u", major, minor);
 	if (stat(block_path, &statbuf) == 0) {
@@ -174,11 +182,11 @@ devt2devname (char *devname, char *devt)
 				return 1;
 			}
 			p++;
-			strncpy(devname, p, FILE_NAME_SIZE);
+			strncpy(devname, p, devname_len);
 			return 0;
 		}
 	}
-	memset(block_path, 0, FILE_NAME_SIZE);
+	memset(block_path, 0, sizeof(block_path));
 
 	if (!(fd = fopen("/proc/partitions", "r"))) {
 		condlog(0, "Cannot open /proc/partitions");
@@ -195,7 +203,8 @@ devt2devname (char *devname, char *devt)
 			continue;
 
 		if ((major == tmpmaj) && (minor == tmpmin)) {
-			if (snprintf(block_path, FILE_NAME_SIZE, "/sys/block/%s", dev) >= FILE_NAME_SIZE) {
+			if (snprintf(block_path, sizeof(block_path),
+				     "/sys/block/%s", dev) >= sizeof(block_path)) {
 				condlog(0, "device name %s is too long\n", dev);
 				fclose(fd);
 				return 1;
@@ -205,8 +214,10 @@ devt2devname (char *devname, char *devt)
 	}
 	fclose(fd);
 
-	if (strncmp(block_path,"/sys/block", 10))
+	if (strncmp(block_path,"/sys/block", 10)) {
+		condlog(3, "device %s not found\n", dev);
 		return 1;
+	}
 
 	if (stat(block_path, &statbuf) < 0) {
 		condlog(0, "No sysfs entry for %s\n", block_path);
@@ -217,6 +228,6 @@ devt2devname (char *devname, char *devt)
 		condlog(0, "sysfs entry %s is not a directory\n", block_path);
 		return 1;
 	}
-	basenamecpy(block_path, devname);
+	basenamecpy(block_path, devname, devname_len);
 	return 0;
 }

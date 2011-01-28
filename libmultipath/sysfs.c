@@ -392,11 +392,12 @@ int sysfs_check_holders(char * check_devt, char * new_devt)
 		return 0;
 	}
 
-	devt2devname(check_dev, check_devt);
+	if (devt2devname(check_dev, PATH_SIZE, check_devt))
+		return 0;
 
 	condlog(3, "%s: checking holder", check_dev);
 
-	sprintf(path, "/sys/block/%s/holders", check_dev);
+	snprintf(path, PATH_SIZE, "/sys/block/%s/holders", check_dev);
 	dirfd = opendir(path);
 	if (dirfd == NULL) {
 		condlog(3, "%s: failed to open directory %s (%d)",

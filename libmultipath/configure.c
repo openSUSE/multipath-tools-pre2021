@@ -608,7 +608,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		return NULL;
 
 	if (dev_type == DEV_DEVNODE) {
-		if (basenamecpy(dev, buff) == 0) {
+		if (basenamecpy(dev, buff, FILE_NAME_SIZE) == 0) {
 			condlog(1, "basename failed for '%s' (%s)",
 				dev, buff);
 			return NULL;
@@ -641,7 +641,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		pp = find_path_by_devt(pathvec, dev);
 
 		if (!pp) {
-			if (devt2devname(buff, dev))
+			if (devt2devname(buff, FILE_NAME_SIZE, dev))
 				return NULL;
 
 			pp = alloc_path();
