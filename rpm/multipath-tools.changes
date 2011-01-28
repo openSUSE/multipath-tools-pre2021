@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Fri Jan 28 09:37:51 CET 2011 - hare@suse.de
+
+- libmultipath: do not fallback to search /proc/partitions
+- libmultipath: Fix possible string overflow
+- multipathd: Update priority for all paths correctly (bnc#587456)
+- multipathd: Fix uxlsnr race condition on shutdown (bnc#659859)
+- libmultipath: Improve debugging of log messages (bnc#659859)
+- multipathd: flush logqueue before shutdown (bnc#659859)
+- libmultipath: Zero 'wp->thread' after pthread_kill() (bnc#642846)
+- multipathd: Fix 'status' command for init script (bnc#600412)
+
+-------------------------------------------------------------------
 Mon Dec  6 08:41:25 CET 2010 - hare@suse.de
 
 - Add option '-f' to kpartx (bnc#613584)
