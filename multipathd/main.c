@@ -1035,7 +1035,9 @@ int update_prio(struct path *pp, int refresh_all)
 		return changed;
 	}
 	oldpriority = pp->priority;
-	pathinfo(pp, conf->hwtable, DI_PRIO);
+	if (pp->state == PATH_UP ||
+	    pp->state == PATH_GHOST)
+		pathinfo(pp, conf->hwtable, DI_PRIO);
 
 	if (pp->priority == oldpriority)
 		return 0;
