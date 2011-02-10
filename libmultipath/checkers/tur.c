@@ -68,6 +68,7 @@ void libcheck_free (struct checker * c)
 		pthread_mutex_destroy(&ct->lock);
 		pthread_cond_destroy(&ct->active);
 		free(c->context);
+		c->context = NULL;
 	}
 	return;
 }
