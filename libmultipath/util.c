@@ -218,7 +218,7 @@ devt2devname (char *devname, int devname_len, char *devt)
 	fclose(fd);
 skip_proc:
 	if (strncmp(block_path,"/sys/block", 10)) {
-		condlog(3, "device %s not found\n", dev);
+		condlog(3, "No device found for %u:%u\n", major, minor);
 		return 1;
 	}
 
