@@ -95,38 +95,46 @@ static struct checker checkers[] = {
 
 void checker_set_fd (struct checker * c, int fd)
 {
-	c->fd = fd;
+	if (c)
+		c->fd = fd;
 }
 
 void checker_set_sync (struct checker * c)
 {
-	c->sync = 1;
+	if (c)
+		c->sync = 1;
 }
 
 void checker_set_async (struct checker * c)
 {
-	c->sync = 0;
+	if (c)
+		c->sync = 0;
 }
 
 void checker_set_async_timeout (struct checker * c, int timeout)
 {
-	c->async_timeout = timeout;
+	if (c)
+		c->async_timeout = timeout;
 }
 
 void checker_enable (struct checker * c)
 {
-	c->disable = 0;
+	if (c)
+		c->disable = 0;
 }
 
 void checker_disable (struct checker * c)
 {
-	c->disable = 1;
+	if (c)
+		c->disable = 1;
 }
 
 struct checker * checker_lookup (char * name)
 {
 	struct checker * c = &checkers[0];
 
+	if (!name || !strlen(name))
+		return NULL;
 	while (c->check) {
 		if (!strncmp(name, c->name, CHECKER_NAME_LEN))
 			return c;
@@ -137,12 +145,16 @@ struct checker * checker_lookup (char * name)
 
 int checker_init (struct checker * c, void ** mpctxt_addr)
 {
+	if (!c)
+		return 1;
 	c->mpcontext = mpctxt_addr;
 	return c->init(c);
 }
 
 void checker_put (struct checker * c)
 {
+	if (!c)
+		return;
 	if (c->free)
 		c->free(c);
 	memset(c, 0x0, sizeof(struct checker));
@@ -152,6 +164,8 @@ int checker_check (struct checker * c)
 {
 	int r;
 
+	if (!c)
+		return PATH_WILD;
 	if (c->disable)
 		return PATH_UNCHECKED;
 	if (c->fd <= 0) {
@@ -165,16 +179,22 @@ int checker_check (struct checker * c)
 
 int checker_selected (struct checker * c)
 {
+	if (!c)
+		return 0;
 	return (c->check) ? 1 : 0;
 }
 
 char * checker_name (struct checker * c)
 {
+	if (!c)
+		return NULL;
 	return c->name;
 }
 
 char * checker_message (struct checker * c)
 {
+	if (!c)
+		return NULL;
 	return c->message;
 }
 
@@ -185,6 +205,8 @@ struct checker * checker_default (void)
 
 void checker_get (struct checker * dst, struct checker * src)
 {
+	if (!dst || !src)
+		return;
 	dst->fd = src->fd;
 	dst->sync = src->sync;
 	strncpy(dst->name, src->name, CHECKER_NAME_LEN);
