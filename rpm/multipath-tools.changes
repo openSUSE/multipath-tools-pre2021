@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Mon Feb 14 09:23:34 CET 2011 - hare@suse.de
+
+- libmultipath: resolve hash collisions in pgcmp() (bnc#662010)
+- tur: Zero out context (bnc#665289)
+- multipathd: Don't update priorities for failed paths (bnc#665289)
+- libmultipath: Only count UP and GHOST paths (bnc#665289)
+- Fixup debug message in devt2devname
+- checkers: check for NULL argument (bnc#665289)
+
+-------------------------------------------------------------------
 Fri Jan 28 09:37:51 CET 2011 - hare@suse.de
 
 - libmultipath: do not fallback to search /proc/partitions
