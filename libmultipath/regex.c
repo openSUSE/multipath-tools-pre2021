@@ -2087,7 +2087,8 @@ int stop;
 
 	/* If the search isn't to be a backwards one, don't waste time in a
 	   search for a pattern that must be anchored.  */
-	if (bufp->used > 0 && (re_opcode_t) bufp->buffer[0] == begbuf
+	if (bufp->used > 0 && bufp->buffer &&
+	    (re_opcode_t) bufp->buffer[0] == begbuf
 	    && range > 0) {
 		if (startpos > 0)
 			return -1;
