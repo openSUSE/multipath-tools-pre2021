@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu Feb 17 09:14:56 CET 2011 - hare@suse.de
+
+- libmultipath: invalid buffer access in regex.c
+- multipath: Missing .TP in man page (bnc#671823)
+- libmultipath: potential use after free in dm_geteventnr
+  (bnc#672857)
+- multipathd: Check for valid multipath pointer in update_prio()
+  (bnc#672852)
+
+-------------------------------------------------------------------
 Mon Feb 14 09:23:34 CET 2011 - hare@suse.de
 
 - libmultipath: resolve hash collisions in pgcmp() (bnc#662010)
