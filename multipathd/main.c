@@ -857,6 +857,8 @@ int update_prio(struct path *pp, int refresh_all)
 	int i, j, changed = 0;
 
 	if (refresh_all) {
+		if (!pp->mpp)
+			return 0;
 		vector_foreach_slot (pp->mpp->pg, pgp, i) {
 			vector_foreach_slot (pgp->paths, pp, j) {
 				oldpriority = pp->priority;
