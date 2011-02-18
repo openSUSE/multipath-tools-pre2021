@@ -1187,6 +1187,7 @@ reconfigure (struct vectors * vecs)
 {
 	struct config * old = conf;
 
+	lock(vecs->lock);
 	/*
 	 * free old map and path vectors ... they use old conf state
 	 */
@@ -1199,9 +1200,10 @@ reconfigure (struct vectors * vecs)
 	vecs->pathvec = NULL;
 	conf = NULL;
 
-	if (load_config(DEFAULT_CONFIGFILE))
+	if (load_config(DEFAULT_CONFIGFILE)) {
+		unlock(vecs->lock);
 		return 1;
-
+	}
 	conf->verbosity = old->verbosity;
 
 	if (!conf->checkint) {
@@ -1210,6 +1212,7 @@ reconfigure (struct vectors * vecs)
 	}
 	configure(vecs, 1);
 	free_config(old);
+	unlock(vecs->lock);
 	return 0;
 }
 
@@ -1263,9 +1266,7 @@ sighup (int sig)
 {
 	condlog(2, "reconfigure (SIGHUP)");
 
-	lock(gvecs->lock);
 	reconfigure(gvecs);
-	unlock(gvecs->lock);
 
 #ifdef _DEBUG_
 	dbg_free_final(NULL);
