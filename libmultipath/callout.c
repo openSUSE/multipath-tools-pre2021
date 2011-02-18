@@ -84,7 +84,7 @@ int execute_program(char *path, char *value, int len)
 		null_fd = open("/dev/null", O_WRONLY);
 		if (null_fd > 0){
 			close(STDERR_FILENO);
-			dup(null_fd);
+			retval = dup(null_fd);
 			close(null_fd);
 		}
 
