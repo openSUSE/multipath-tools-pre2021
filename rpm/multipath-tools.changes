@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb 18 09:36:50 CET 2011 - hare@suse.de
+
+- libmultipath: correct path count in setup_map() (bz#677821)
+- multipath: clean up path orphaning and adoption (bnc#673174)
+- multipathd: crash in 'reconfigure' CLI command (bnc#673174)
+
+-------------------------------------------------------------------
 Thu Feb 17 09:14:56 CET 2011 - hare@suse.de
 
 - libmultipath: invalid buffer access in regex.c
