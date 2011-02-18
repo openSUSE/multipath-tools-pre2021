@@ -1,4 +1,20 @@
 -------------------------------------------------------------------
+Fri Feb 18 15:15:58 CET 2011 - hare@suse.de
+
+- multipathd: memory leak in get_cmdvec()
+- Fix possible string overflow in basenamecpy()
+- Resolve hash collisions in pgcmp (bnc#662010)
+- multipathd: don't update priorities for failed paths (bnc#665289)
+- Only count UP and GHOST paths for prio update (bnc#665289)
+- Check for NULL argument in checkers (bnc#665289)
+- Invalid buffer access in regex.c
+- Do not access dm structures after dm_task_destroy (bnc#672857)
+- Check for valid multipath pointer in update_prio (bnc#672852)
+- Correct path count in setup_map() (brc#677821)
+- Crash in reconfigure CLI command (bnc#673174)
+- Compilation fix for callout.c
+
+-------------------------------------------------------------------
 Wed Jan 12 12:38:34 CET 2011 - hare@suse.de
 
 - Fix uxlsnr race condition on shutdown (bnc#659859)
