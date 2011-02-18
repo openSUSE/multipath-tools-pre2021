@@ -77,7 +77,7 @@ setup_map (struct multipath * mpp)
 	if (mpp->pgpolicyfn && mpp->pgpolicyfn(mpp))
 		return 1;
 
-	mpp->nr_active = pathcount(mpp, PATH_UP);
+	mpp->nr_active = pathcount(mpp, PATH_UP) + pathcount(mpp, PATH_GHOST);
 
 	/*
 	 * ponders each path group and determine highest prio pg
