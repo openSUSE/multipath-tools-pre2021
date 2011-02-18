@@ -583,7 +583,7 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		pp = find_path_by_devt(pathvec, dev);
 		
 		if (!pp) {
-			if (devt2devname(buff, dev))
+			if (devt2devname(buff, FILE_NAME_SIZE, dev))
 				return NULL;
 
 			pp = alloc_path();

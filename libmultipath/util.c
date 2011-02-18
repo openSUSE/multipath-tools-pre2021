@@ -38,10 +38,21 @@ strchop(char *str)
 	str[++i] = '\0';
 }
 
-void
-basename (char * str1, char * str2)
+int
+basenamecpy (char * str1, char * str2, int str2len)
 {
-	char *p = str1 + (strlen(str1) - 1);
+	char *p;
+
+	if (!str1 || !strlen(str1))
+		return 0;
+
+	if (strlen(str1) > str2len)
+		return 0;
+
+	if (!str2)
+		return 0;
+
+	p = str1 + (strlen(str1) - 1);
 
 	while (*--p != '/' && p != str1)
 		continue;
@@ -49,7 +60,10 @@ basename (char * str1, char * str2)
 	if (p != str1)
 		p++;
 
-	strcpy(str2, p);
+	strncpy(str2, p, str2len);
+	str2[str2len - 1] = '\0';
+	strchop(str2);
+	return strlen(str2);
 }
 
 int
