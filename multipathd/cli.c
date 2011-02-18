@@ -237,8 +237,10 @@ get_cmdvec (char * cmd, vector *v)
 		kw = find_key(buff);
 		FREE(buff);
 
-		if (!kw)
-			return E_SYNTAX;
+		if (!kw) {
+			r = E_SYNTAX;
+			goto out;
+		}
 
 		cmdkw = alloc_key();
 
@@ -254,15 +256,18 @@ get_cmdvec (char * cmd, vector *v)
 		vector_set_slot(cmdvec, cmdkw);
 		cmdkw->code = kw->code;
 		cmdkw->has_param = kw->has_param;
-		
+
 		if (kw->has_param) {
 			if (*p == '\0')
 				goto out;
 
 			fwd = get_word(p, &buff);
 
-			if (!buff)
-				return E_NOPARM;
+			if (!buff) {
+				r = E_NOPARM;
+				FREE(cmdkw);
+				goto out;
+			}
 
 			p += fwd;
 			cmdkw->param = buff;
