@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Feb 23 16:24:29 CET 2011 - hare@suse.de
+
+- libmultipath: removing dead maps accesses memory after free
+  (bnc#642846)
+
+-------------------------------------------------------------------
 Fri Feb 18 09:36:50 CET 2011 - hare@suse.de
 
 - libmultipath: correct path count in setup_map() (bz#677821)
