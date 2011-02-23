@@ -361,12 +361,12 @@ retry:
 			condlog(3, "%s multipath mapped device name has "
 				"changed from %s to %s", mpp->wwid,
 				mpp->alias, new_alias);
-			strcpy(mpp->alias, new_alias);
+			FREE(mpp->alias);
+			mpp->alias = new_alias;
 
 			if (mpp->waiter)
 				strncpy(((struct event_thread *)mpp->waiter)->mapname,
-					new_alias, WWID_SIZE);
-			FREE(new_alias);
+					mpp->alias, WWID_SIZE);
 			goto retry;
 		}
 		condlog(0, "%s: failed to setup multipath", mpp->alias);
