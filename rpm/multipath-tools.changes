@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Feb 25 15:08:00 CET 2011 - hare@suse.de
+
+- multipathd: lock vectors during initial configuration
+  (bnc#665289)
+- multipathd: Fix vector locking
+- Fix potential overflow in log_enqueue
+ 
+-------------------------------------------------------------------
 Wed Feb 23 16:24:29 CET 2011 - hare@suse.de
 
 - libmultipath: removing dead maps accesses memory after free
