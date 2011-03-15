@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Mar 15 13:44:36 CET 2011 - hare@suse.de
+
+- Check return value for select_alias()
+- Use enum for free_paths argument
+- Check for invalid argument in vector functions (bnc#642846)
+- Fixup pathgroup allocation in disassemble_map() (bnc#642846)
+
+-------------------------------------------------------------------
 Fri Feb 25 15:08:00 CET 2011 - hare@suse.de
 
 - multipathd: lock vectors during initial configuration
