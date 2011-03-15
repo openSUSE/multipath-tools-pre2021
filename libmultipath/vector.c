@@ -38,16 +38,23 @@ vector_alloc(void)
 void *
 vector_alloc_slot(vector v)
 {
+	void *new_slot = NULL;
+
+	if (!v)
+		return NULL;
+
 	v->allocated += VECTOR_DEFAULT_SIZE;
 	if (v->slot)
-		v->slot = REALLOC(v->slot, sizeof (void *) * v->allocated);
+		new_slot = REALLOC(v->slot, sizeof (void *) * v->allocated);
 	else
-		v->slot = (void *) MALLOC(sizeof (void *) * v->allocated);
+		new_slot = (void *) MALLOC(sizeof (void *) * v->allocated);
 
-	if (!v->slot)
+	if (!new_slot)
 		v->allocated -= VECTOR_DEFAULT_SIZE;
+	else
+		v->slot = new_slot;
 
-	return v->slot;
+	return new_slot;
 }
 
 void *
@@ -83,7 +90,7 @@ vector_del_slot(vector v, int slot)
 {
 	int i;
 
-	if (!v->allocated || slot < 0 || slot > VECTOR_SIZE(v))
+	if (!v || !v->allocated || slot < 0 || slot > VECTOR_SIZE(v))
 		return;
 
 	for (i = slot + 1; i < VECTOR_SIZE(v); i++)
@@ -91,12 +98,19 @@ vector_del_slot(vector v, int slot)
 
 	v->allocated -= VECTOR_DEFAULT_SIZE;
 
-	if (!v->allocated) {
+	if (!v->allocated < 0) {
 		FREE(v->slot);
 		v->slot = NULL;
+		v->allocated = 0;
+	} else {
+		void *new_slot;
+
+		new_slot = REALLOC(v->slot, sizeof (void *) * v->allocated);
+		if (!new_slot)
+			v->allocated += VECTOR_DEFAULT_SIZE;
+		else
+			v->slot = new_slot;
 	}
-	else
-		v->slot = REALLOC(v->slot, sizeof (void *) * v->allocated);
 }
 
 void
@@ -104,7 +118,7 @@ vector_repack(vector v)
 {
 	int i;
 
-	if (!v->allocated)
+	if (!v || !v->allocated)
 		return;
 
 	for (i = 0; i < VECTOR_SIZE(v); i++)
@@ -122,6 +136,8 @@ vector_free(vector v)
 	if (v->slot)
 		FREE(v->slot);
 
+	v->allocated = 0;
+	v->slot = NULL;
 	FREE(v);
 }
 
@@ -145,7 +161,11 @@ free_strvec(vector strvec)
 void
 vector_set_slot(vector v, void *value)
 {
-	unsigned int i = VECTOR_SIZE(v) - 1;
+	int i;
 
+	if (!v)
+		return;
+
+	i = VECTOR_SIZE(v) - 1;
 	v->slot[i] = value;
 }
