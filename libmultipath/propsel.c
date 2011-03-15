@@ -253,7 +253,7 @@ select_alias (struct multipath * mp)
 			mp->alias = strdup(mp->wwid);
 	}
 
-	return 0;
+	return mp->alias ? 0 : 1;
 }
 
 extern int
