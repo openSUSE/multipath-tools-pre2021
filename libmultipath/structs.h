@@ -113,6 +113,7 @@ struct path {
 	unsigned long long size;
 	unsigned int checkint;
 	unsigned int tick;
+	unsigned int flakycount;
 	int bus;
 	int state;
 	int dmstate;

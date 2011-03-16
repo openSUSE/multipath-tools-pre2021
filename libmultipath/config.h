@@ -62,6 +62,7 @@ struct config {
 	int minio;
 	int checkint;
 	int max_checkint;
+	int flakythresh;
 	int pgfailback;
 	int remove;
 	int rr_weight;

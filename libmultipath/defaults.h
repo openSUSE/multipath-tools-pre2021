@@ -14,6 +14,7 @@
 
 #define DEFAULT_CHECKINT	5
 #define MAX_CHECKINT(a)		(a << 2)
+#define DEFAULT_FLAKYTHRESH	0
 
 #define DEFAULT_TARGET		"multipath"
 #define DEFAULT_PIDFILE		"/var/run/multipathd.pid"

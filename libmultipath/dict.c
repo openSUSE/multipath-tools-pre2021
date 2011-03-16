@@ -180,6 +180,22 @@ def_minio_handler(vector strvec)
 }
 
 static int
+def_flakythresh_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+
+	if (!buff)
+		return 1;
+
+	conf->flakythresh = atoi(buff);
+	FREE(buff);
+
+	return 0;
+}
+
+static int
 max_fds_handler(vector strvec)
 {
 	char * buff;
@@ -1637,6 +1653,15 @@ snprint_def_rr_min_io (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_flakythresh (char * buff, int len, void * data)
+{
+	if (conf->flakythresh == DEFAULT_FLAKYTHRESH)
+		return 0;
+
+	return snprintf(buff, len, "%u", conf->flakythresh);
+}
+
+static int
 snprint_max_fds (char * buff, int len, void * data)
 {
 	if (!conf->max_fds)
@@ -1767,6 +1792,7 @@ init_keywords(void)
 	install_keyword("path_checker", &def_path_checker_handler, &snprint_def_path_checker);
 	install_keyword("failback", &default_failback_handler, &snprint_def_failback);
 	install_keyword("rr_min_io", &def_minio_handler, &snprint_def_rr_min_io);
+	install_keyword("flaky_path_threshold", &def_flakythresh_handler, &snprint_def_flakythresh);
 	install_keyword("max_fds", &max_fds_handler, &snprint_max_fds);
 	install_keyword("async_timeout", &def_async_timeout_handler, &snprint_def_async_timeout);
 	install_keyword("rr_weight", &def_weight_handler, &snprint_def_rr_weight);

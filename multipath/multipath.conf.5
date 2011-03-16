@@ -79,6 +79,17 @@ no interval increase is taking place. Default is
 maximal interval between two path checks in seconds; default is
 .I 4 * polling_interval
 .TP
+.B flaky_path_threshold
+threshold for flaky path tracking. If the number of I/O errors
+between two path checks exceeds this threshold the path is marked
+as \fBshaky\fR. A \fBshaky\R path will be reset if the path checker
+detects it as \fBfaulty\fR or if the user explicitely fails this
+path. If set to
+.I 0
+flaky path tracking is disabled.
+Default is
+.I 0
+.TP
 .B udev_dir
 directory where udev creates its device nodes; default is
 .I /dev

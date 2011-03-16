@@ -904,6 +904,34 @@ check_path (struct vectors * vecs, struct path * pp)
 			pp->dev);
 		pp->dmstate = PSTATE_UNDEF;
 	}
+	/*
+	 * Flaky path tracking
+	 */
+	if (conf->flakythresh) {
+		if (pp->flakycount) {
+			if (newstate == PATH_DOWN) {
+				/* Reset flaky path tracking */
+				pp->flakycount = 0;
+			} else if (pp->failcount - pp->flakycount >
+				   conf->flakythresh) {
+				/*
+				 * Could add check for no paths
+				 * and alter policy
+				 */
+				newstate = PATH_SHAKY;
+				condlog(1, "%s: detected flaky path", pp->dev);
+			}
+		} else if (newstate != pp->state && newstate == PATH_UP) {
+			/*
+			 * Transistion to UP.
+			 * Start new tracking if one is not in progress.
+			 */
+			pp->flakycount = pp->failcount;
+			condlog(1, "%s: Using flaky path threshold %d",
+				pp->dev, conf->flakythresh);
+		}
+	}
+
 	if (newstate != pp->state) {
 		int oldstate = pp->state;
 		pp->state = newstate;
