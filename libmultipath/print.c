@@ -386,6 +386,18 @@ snprint_path_size (char * buff, size_t len, struct path * pp)
 	return snprint_size(buff, len, pp->size);
 }
 
+static int
+snprint_path_failcount (char * buff, size_t len, struct path * pp)
+{
+	return snprint_int(buff, len, pp->failcount);
+}
+
+static int
+snprint_path_flakycount (char * buff, size_t len, struct path * pp)
+{
+	return snprint_int(buff, len, pp->flakycount);
+}
+
 struct multipath_data mpd[] = {
 	{'n', "name",          0, snprint_name},
 	{'w', "uuid",          0, snprint_multipath_uuid},
@@ -418,6 +430,8 @@ struct path_data pd[] = {
 	{'C', "next_check",    0, snprint_next_check},
 	{'p', "pri",           0, snprint_pri},
 	{'S', "size",          0, snprint_path_size},
+	{'f', "fail",          0, snprint_path_failcount},
+	{'F', "flaky",          0, snprint_path_flakycount},
 	{0, NULL, 0 , NULL}
 };
 
