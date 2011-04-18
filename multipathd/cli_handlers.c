@@ -431,6 +431,8 @@ cli_reinstate(void * v, char ** reply, int * len, void * data)
 	condlog(2, "%s: reinstate path %s (operator)",
 		pp->mpp->alias, pp->dev_t);
 
+	pp->flakycount = 0;
+
 	checker_enable(&pp->checker);
 	return dm_reinstate_path(pp->mpp->alias, pp->dev_t);
 }
