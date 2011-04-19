@@ -964,7 +964,7 @@ check_path (struct vectors * vecs, struct path * pp)
 	 */
 	if (conf->flakythresh) {
 		if (pp->flakycount) {
-			if (newstate == PATH_DOWN) {
+			if (newstate == PATH_DOWN || !pp->mpp->nr_active) {
 				/* Reset flaky path tracking */
 				pp->flakycount = 0;
 			} else if (pp->failcount - pp->flakycount >
