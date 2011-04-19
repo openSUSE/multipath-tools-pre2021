@@ -54,7 +54,7 @@ vector_alloc_slot(vector v)
 	else
 		v->slot = new_slot;
 
-	return new_slot;
+	return v->slot;
 }
 
 void *
@@ -98,7 +98,7 @@ vector_del_slot(vector v, int slot)
 
 	v->allocated -= VECTOR_DEFAULT_SIZE;
 
-	if (!v->allocated < 0) {
+	if (!v->allocated) {
 		FREE(v->slot);
 		v->slot = NULL;
 		v->allocated = 0;
