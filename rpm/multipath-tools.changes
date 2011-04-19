@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr 19 15:28:03 CEST 2011 - hare@suse.de
+
+- Fix typos in vector paranoia patch (bnc#688430)
+- Retry host transient errors for rdac checker
+
+-------------------------------------------------------------------
 Tue Mar 15 13:44:36 CET 2011 - hare@suse.de
 
 - Check return value for select_alias()
