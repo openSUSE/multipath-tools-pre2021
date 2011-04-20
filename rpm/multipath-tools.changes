@@ -2,7 +2,7 @@
 Tue Apr 19 15:28:03 CEST 2011 - hare@suse.de
 
 - Fix typos in vector paranoia patch (bnc#688430)
-- Retry host transient errors for rdac checker
+- Retry host transient errors for rdac checker (bnc#681316)
 
 -------------------------------------------------------------------
 Tue Mar 15 13:44:36 CET 2011 - hare@suse.de
