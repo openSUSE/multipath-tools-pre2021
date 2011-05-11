@@ -1732,12 +1732,13 @@ daemonize(void)
 	if (chdir("/") < 0)
 		fprintf(stderr, "cannot chdir to '/', continuing\n");
 
-	dev_null_fd = open("/dev/null", O_RDONLY);
+	dev_null_fd = open("/dev/null", O_RDWR);
 	if (dev_null_fd < 0){
-		fprintf(stderr, "cannot open /dev/null for console redirection:"
-			": %s\n", strerror(errno));
+		fprintf(stderr, "cannot open /dev/null for input & output : %s\n",
+			strerror(errno));
 		_exit(0);
 	}
+
 	close(STDIN_FILENO);
 	if (dup(dev_null_fd) < 0) {
 		fprintf(stderr, "cannot duplicate /dev/null for input"
