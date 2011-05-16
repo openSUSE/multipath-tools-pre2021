@@ -169,8 +169,10 @@ uevq_cleanup(struct list_head *tmpq)
 int uevent_dispatch(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		    void * trigger_data)
 {
+	pthread_mutex_lock(uevq_lockp);
 	my_uev_trigger = uev_trigger;
 	my_trigger_data = trigger_data;
+	pthread_mutex_unlock(uevq_lockp);
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
