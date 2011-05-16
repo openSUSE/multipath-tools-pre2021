@@ -223,7 +223,9 @@ int uevent_listen(void)
 	pthread_mutex_init(seqnum_lockp, NULL);
 	pthread_cond_init(seqnum_condp, NULL);
 
+	pthread_mutex_lock(seqnum_lockp);
 	uev_last_seqnum = sysfs_get_seqnum();
+	pthread_mutex_unlock(seqnum_lockp);
 	condlog(3, "Last uevent sequence number: %ld", uev_last_seqnum);
 
 	pthread_cleanup_push(uevq_stop, NULL);
