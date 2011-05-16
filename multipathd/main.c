@@ -645,7 +645,7 @@ static int
 uev_update_path (struct uevent *uev, struct vectors * vecs)
 {
 	struct sysfs_device * dev;
-	int retval, ro;
+	int retval = 0, ro;
 
 	dev = sysfs_device_get(uev->devpath);
 	if (!dev) {
