@@ -1684,7 +1684,7 @@ static int
 daemonize(void)
 {
 	int pid;
-	int in_fd, out_fd;
+	int dev_null_fd;
 
 	if( (pid = fork()) < 0){
 		fprintf(stderr, "Failed first fork : %s\n", strerror(errno));
@@ -1701,42 +1701,36 @@ daemonize(void)
 		_exit(0);
 
 	daemon_pid = getpid();
-	in_fd = open("/dev/null", O_RDONLY);
-	if (in_fd < 0){
-		fprintf(stderr, "cannot open /dev/null for input : %s\n",
-			strerror(errno));
-		_exit(0);
-	}
-	out_fd = open("/dev/console", O_WRONLY);
-	if (out_fd < 0){
-		fprintf(stderr, "cannot open /dev/console for output : %s\n",
-			strerror(errno));
-		_exit(0);
-	}
 
+	if (chdir("/") < 0)
+		fprintf(stderr, "cannot chdir to '/', continuing\n");
+
+	dev_null_fd = open("/dev/null", O_RDONLY);
+	if (dev_null_fd < 0){
+		fprintf(stderr, "cannot open /dev/null for console redirection:"
+			": %s\n", strerror(errno));
+		_exit(0);
+	}
 	close(STDIN_FILENO);
-	if (dup(in_fd) < 0) {
+	if (dup(dev_null_fd) < 0) {
 		fprintf(stderr, "cannot duplicate /dev/null for input"
 			": %s\n", strerror(errno));
 		_exit(0);
 	}
 	close(STDOUT_FILENO);
-	if (dup(out_fd) < 0) {
-		fprintf(stderr, "cannot duplicate /dev/console for output"
+	if (dup(dev_null_fd) < 0) {
+		fprintf(stderr, "cannot duplicate /dev/null for output"
 			": %s\n", strerror(errno));
 		_exit(0);
 	}
 	close(STDERR_FILENO);
-	if (dup(out_fd) < 0) {
+	if (dup(dev_null_fd) < 0) {
 		fprintf(stderr, "cannot duplicate /dev/console for error"
 			": %s\n", strerror(errno));
 		_exit(0);
 	}
-	close(in_fd);
-	close(out_fd);
-	if (chdir("/") < 0)
-		fprintf(stderr, "cannot chdir to '/', continuing\n");
 
+	close(dev_null_fd);
 	return 0;
 }
 
