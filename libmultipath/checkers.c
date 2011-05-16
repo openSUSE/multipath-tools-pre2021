@@ -193,7 +193,7 @@ int checker_init (struct checker * c, void ** mpctxt_addr)
 		return;
 	c->mpcontext = mpctxt_addr;
 	c->async_timeout = ASYNC_TIMEOUT_SEC;
-	return c->init(c);
+	return c->init ? c->init(c) : 0;
 }
 
 void checker_put (struct checker * dst)
@@ -213,7 +213,7 @@ int checker_check (struct checker * c)
 {
 	int r;
 
-	if (!c)
+	if (!c && !c->check)
 		return PATH_WILD;
 
 	c->message[0] = '\0';
@@ -232,7 +232,7 @@ int checker_check (struct checker * c)
 
 int checker_selected (struct checker * c)
 {
-	if (!c)
+	if (!c && !c->check)
 		return 0;
 	return (c->check) ? 1 : 0;
 }
