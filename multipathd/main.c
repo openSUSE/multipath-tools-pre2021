@@ -1563,13 +1563,13 @@ child (void * param)
 
 	}
 
+	vecs = gvecs = init_vecs();
+	if (!vecs)
+		exit(1);
+
 	signal_init();
 	setscheduler();
 	set_oom_adj(-16);
-	vecs = gvecs = init_vecs();
-
-	if (!vecs)
-		exit(1);
 
 	if (sysfs_init(conf->sysfs_dir, FILE_NAME_SIZE)) {
 		condlog(0, "can not find sysfs mount point");
