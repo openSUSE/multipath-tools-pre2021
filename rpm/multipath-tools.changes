@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Fri May 20 13:14:50 CEST 2011 - hare@suse.de
+
+- Race condition fixes (bnc#642846)
+  * Make log_pthread more robust
+  * Use refcounting for sysfs devices
+  * Make 'allocated' an integer in vector.h
+  * Use correct return value when handling uevents
+  * Race condition when calling stop_waiter_thread()
+
+-------------------------------------------------------------------
 Mon May 16 13:53:09 CEST 2011 - hare@suse.de
 
 - Test for functions in checkers.c (bnc#642846)
