@@ -759,6 +759,7 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	if (uev_discard(uev->devpath))
 		return 0;
 
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
 	lock(vecs->lock);
 
 	/*
@@ -799,7 +800,7 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	}
 
 out:
-	unlock(vecs->lock);
+	lock_cleanup_pop(vecs->lock);
 	return r;
 }
 
@@ -884,10 +885,11 @@ exit_daemon (int status)
 	if (status != 0)
 		fprintf(stderr, "bad exit status. see daemon.log\n");
 
-	pthread_mutex_lock(&exit_mutex);
-	pthread_cond_signal(&exit_cond);
-	pthread_mutex_unlock(&exit_mutex);
-
+	if (running_state != DAEMON_SHUTDOWN) {
+		pthread_mutex_lock(&exit_mutex);
+		pthread_cond_signal(&exit_cond);
+		pthread_mutex_unlock(&exit_mutex);
+	}
 	return status;
 }
 
@@ -1498,6 +1500,7 @@ child (void * param)
 	pthread_t check_thr, uevent_thr, uxlsnr_thr, uevq_thr;
 	pthread_attr_t log_attr, misc_attr;
 	struct vectors * vecs;
+	sigset_t set;
 	int rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -1619,11 +1622,17 @@ child (void * param)
 	}
 	running_state = DAEMON_RUNNING;
 	pthread_cond_wait(&exit_cond, &exit_mutex);
+	/* Need to block these to avoid deadlocking */
+	sigemptyset(&set);
+	sigaddset(&set, SIGTERM);
+	sigaddset(&set, SIGINT);
+	pthread_sigmask(SIG_BLOCK, &set, NULL);
 
 	/*
 	 * exit path
 	 */
 	running_state = DAEMON_SHUTDOWN;
+	pthread_sigmask(SIG_UNBLOCK, &set, NULL);
 	block_signal(SIGHUP, NULL);
 	lock(vecs->lock);
 	remove_maps_and_stop_waiters(vecs);
