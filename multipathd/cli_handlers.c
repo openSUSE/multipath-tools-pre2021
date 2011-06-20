@@ -435,6 +435,7 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 	int major, minor;
 	char dev_path[PATH_SIZE];
 	char *alias;
+	int rc;
 
 	condlog(2, "%s: add map (operator)", param);
 
@@ -456,7 +457,14 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 	}
 	sprintf(dev_path,"dm-%d", minor);
 	alias = dm_mapname(major, minor);
-	return ev_add_map(dev_path, alias, vecs);
+	if (!alias) {
+		condlog(2, "%s: mapname not found for %d:%d",
+			param, major, minor);
+		return 0;
+	}
+	rc = ev_add_map(dev_path, alias, vecs);
+	FREE(alias);
+	return rc;
 }
 
 int
@@ -467,6 +475,7 @@ cli_del_map (void * v, char ** reply, int * len, void * data)
 	int major, minor;
 	char dev_path[PATH_SIZE];
 	char *alias;
+	int rc;
 
 	condlog(2, "%s: remove map (operator)", param);
 	minor = dm_get_minor(param);
@@ -481,8 +490,36 @@ cli_del_map (void * v, char ** reply, int * len, void * data)
 	}
 	sprintf(dev_path,"dm-%d", minor);
 	alias = dm_mapname(major, minor);
+	if (!alias) {
+		condlog(2, "%s: mapname not found for %d:%d",
+			param, major, minor);
+		return 0;
+	}
+	rc = ev_remove_map(param, alias, minor, vecs);
+	FREE(alias);
+	return rc;
+}
 
-	return ev_remove_map(dev_path, alias, minor, vecs);
+int
+cli_reload(void *v, char **reply, int *len, void *data)
+{
+	struct vectors * vecs = (struct vectors *)data;
+	char * mapname = get_keyparam(v, MAP);
+	struct multipath *mpp;
+	int minor;
+
+	condlog(2, "%s: reload map (operator)", mapname);
+	if (sscanf(mapname, "dm-%d", &minor) == 1)
+		mpp = find_mp_by_minor(vecs->mpvec, minor);
+	else
+		mpp = find_mp_by_alias(vecs->mpvec, mapname);
+
+	if (!mpp) {
+		condlog(0, "%s: invalid map name. cannot reload", mapname);
+		return 1;
+	}
+
+	return reload_map(vecs, mpp);
 }
 
 int resize_map(struct multipath *mpp, unsigned long long size,
@@ -640,80 +677,6 @@ cli_disable_all_queueing(void *v, char **reply, int *len, void *data)
 }
 
 int
-reload_paths(struct multipath *mpp, struct vectors * vecs)
-{
-	struct pathgroup *pgp;
-	struct path *pp;
-	int i, j, err = 1;
-	char *dev;
-	vector path_names;
-
-	path_names = vector_alloc();
-	if (!path_names){
-		condlog(0, "%s: unable to allcoate space for pathnames vector",
-			mpp->alias);
-		return 1;
-	}
-	vector_foreach_slot(mpp->pg, pgp, i) {
-		vector_foreach_slot(pgp->paths, pp, j) {
-
-			dev = strdup(pp->dev);
-			if (!dev) {
-				condlog(0, "%s: unable to allocate path name",
-					mpp->alias);
-				goto out;
-			}
-			if (!vector_alloc_slot(path_names)){
-				condlog(0, "%s: unable to allocate path name slot", 
-					mpp->alias);
-				free(dev);
-				goto out;
-			}
-			vector_set_slot(path_names, dev);
-		}
-	}
-	vector_foreach_slot(path_names, dev, i) {
-		err = ev_remove_path(dev, vecs);
-		if (err) {
-			condlog(0, "%s: couldn't remove path '%s' : %s",
-				mpp->alias, dev, strerror(errno));
-			goto out;
-		}
-		err = ev_add_path(dev, vecs);
-		if (err)
-			condlog(0, "%s: couldn't add path '%s' : %s",
-				mpp->alias, dev, strerror(errno));
-	}
-out:
-	vector_foreach_slot(path_names, dev, i)
-		free(dev);
-	vector_free(path_names);
-	return err;
-}
-
-int
-cli_reload(void *v, char **reply, int *len, void *data)
-{
-	struct vectors * vecs = (struct vectors *)data;
-	char * mapname = get_keyparam(v, MAP);
-	struct multipath *mpp;
-	int minor;
-
-	condlog(2, "%s: reload map (operator)", mapname);
-	if (sscanf(mapname, "dm-%d", &minor) == 1)
-		mpp = find_mp_by_minor(vecs->mpvec, minor);
-	else
-		mpp = find_mp_by_alias(vecs->mpvec, mapname);
-
-	if (!mpp) {
-		condlog(0, "%s: invalid map name. cannot reload", mapname);
-		return 1;
-	}
-
-	return reload_map(vecs, mpp);
-}
-
-int
 cli_switch_group(void * v, char ** reply, int * len, void * data)
 {
 	char * mapname = get_keyparam(v, MAP);
@@ -843,19 +806,16 @@ show_blacklist (char ** r, int * len)
 	unsigned int maxlen = INITIAL_REPLY_LEN;
 	int again = 1;
 
+	reply = MALLOC(maxlen);
+
 	while (again) {
-		reply = MALLOC(maxlen);
 		if (!reply)
 			return 1;
 
 		c = reply;
 		c += snprint_blacklist_report(c, maxlen);
 		again = ((c - reply) == maxlen);
-		if (again) {
-			maxlen  *= 2;
-			FREE(reply);
-			continue;
-		}
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 
 	*r = reply;
@@ -880,19 +840,16 @@ show_devices (char ** r, int * len, struct vectors *vecs)
 	unsigned int maxlen = INITIAL_REPLY_LEN;
 	int again = 1;
 
+	reply = MALLOC(maxlen);
+
 	while (again) {
-		reply = MALLOC(maxlen);
 		if (!reply)
 			return 1;
 
 		c = reply;
 		c += snprint_devices(c, maxlen, vecs);
 		again = ((c - reply) == maxlen);
-		if (again) {
-			maxlen  *= 2;
-			FREE(reply);
-			continue;
-		}
+		REALLOC_REPLY(reply, again, maxlen);
 	}
 
 	*r = reply;
@@ -918,61 +875,9 @@ cli_quit (void * v, char ** reply, int * len, void * data)
 }
 
 int
-cli_reset_log (void * v, char ** reply, int * len, void * data)
-{
-	condlog(3, "reset (operator)");
-	log_thread_reset();
-	condlog(3, "reset done");
-	return 0;
-}
-
-int
 cli_shutdown (void * v, char ** reply, int * len, void * data)
 {
 	condlog(3, "shutdown (operator)");
 
 	return exit_daemon(0);
-}
-
-int
-wait_event(char ** r, int * len, long event)
-{
-	char *c;
-	char *reply = NULL;
-	unsigned int maxlen = 16;
-	long max;
-	int rc;
-
-	reply = MALLOC(maxlen);
-	c = reply;
-	max = sysfs_get_seqnum();
-	if (max < event)
-		c += snprintf(reply, maxlen, "unknown\n");
-	rc = uevent_wait_for_seqnum(event, 60);
-	if (rc == 0)
-		c += snprintf(reply, maxlen, "ok\n");
-	else if (rc == ETIMEDOUT)
-		c += snprintf(reply, maxlen, "timeout\n");
-	else
-		c += snprintf(reply, maxlen, "failed\n");
-
-       *len = (int)(c - reply + 1);
-       *r = reply;
-       return 0;
-}
-
-int
-cli_wait_event(void * v, char ** reply, int * len, void * data)
-{
-	char * param = get_keyparam(v, EVENT);
-	long event;
-	char *eptr;
-
-	condlog(3, "wait event (operator)");
-
-	event = strtoul(param, &eptr, 10);
-	if (param == eptr)
-		return ERANGE;
-
-	return wait_event(reply, len, event);
 }

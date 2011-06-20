@@ -51,6 +51,8 @@ void free_waiter (struct event_thread *wp)
 
 void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 {
+	pthread_t thread;
+
 	if (mpp->waiter == (pthread_t)0) {
 		condlog(3, "%s: event checker thread already stopped",
 			mpp->alias);
@@ -58,8 +60,9 @@ void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	}
 	condlog(2, "%s: stop event checker thread (%lu)", mpp->alias,
 		mpp->waiter);
-	pthread_kill(mpp->waiter, SIGUSR1);
+	thread = mpp->waiter;
 	mpp->waiter = (pthread_t)0;
+	pthread_kill(thread, SIGUSR1);
 }
 
 static sigset_t unblock_signals(void)

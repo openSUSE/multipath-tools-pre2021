@@ -32,6 +32,31 @@
 #define UUID_PREFIX "mpath-"
 #define UUID_PREFIX_LEN 6
 
+#ifndef LIBDM_API_COOKIE
+static inline int dm_task_set_cookie(struct dm_task *dmt, uint32_t *c, int a)
+{
+	return 1;
+}
+
+void udev_wait(unsigned int c)
+{
+}
+
+void udev_set_sync_support(int c)
+{
+}
+#else
+void udev_wait(unsigned int c)
+{
+	dm_udev_wait(c);
+}
+
+void udev_set_sync_support(int c)
+{
+	dm_udev_set_sync_support(c);
+}
+#endif
+
 static void
 dm_write_log (int level, const char *file, int line, const char *f, ...)
 {
@@ -73,20 +98,28 @@ dm_init(void) {
 	dm_log_init_verbose(conf ? conf->verbosity + 3 : 0);
 }
 
+#define VERSION_GE(v, minv) ( \
+ (v[0] > minv[0]) || \
+ ((v[0] == minv[0]) && (v[1] > minv[1])) || \
+ ((v[0] == minv[0]) && (v[1] == minv[1]) && (v[2] >= minv[2])) \
+)
+
 static int
-dm_libprereq (void)
+dm_lib_prereq (void)
 {
 	char version[64];
 	int v[3];
+#ifdef LIBDM_API_COOKIE
+	int minv[3] = {1, 2, 38};
+#else
 	int minv[3] = {1, 2, 8};
+#endif
 
 	dm_get_library_version(version, sizeof(version));
 	condlog(3, "libdevmapper version %s", version);
 	sscanf(version, "%d.%d.%d ", &v[0], &v[1], &v[2]);
 
-	if ((v[0] > minv[0]) ||
-	    ((v[0] ==  minv[0]) && (v[1] > minv[1])) ||
-	    ((v[0] == minv[0]) && (v[1] == minv[1]) && (v[2] >= minv[2])))
+	if VERSION_GE(v, minv)
 		return 0;
 	condlog(0, "libdevmapper version must be >= %d.%.2d.%.2d",
 		minv[0], minv[1], minv[2]);
@@ -94,17 +127,16 @@ dm_libprereq (void)
 }
 
 static int
-dm_drvprereq (char * str)
+dm_drv_version (unsigned int * version, char * str)
 {
 	int r = 2;
 	struct dm_task *dmt;
 	struct dm_versions *target;
 	struct dm_versions *last_target;
-	int minv[3] = {1, 0, 3};
 	unsigned int *v;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_LIST_VERSIONS)))
-		return 3;
+		return 1;
 
 	dm_task_no_open_count(dmt);
 
@@ -124,34 +156,78 @@ dm_drvprereq (char * str)
 	} while (last_target != target);
 
 	if (r == 2) {
-		condlog(0, "DM multipath kernel driver not loaded");
+		condlog(0, "DM %s kernel driver not loaded", str);
 		goto out;
 	}
 	v = target->version;
-	if ((v[0] > minv[0]) ||
-	    ((v[0] == minv[0]) && (v[1] > minv[1])) ||
-	    ((v[0] == minv[0]) && (v[1] == minv[1]) && (v[2] >= minv[2]))) {
-		r = 0;
-		goto out;
-	}
-	condlog(0, "DM multipath kernel driver must be >= %u.%.2u.%.2u",
-		minv[0], minv[1], minv[2]);
+        version[0] = v[0];
+        version[1] = v[1];
+        version[2] = v[2];
+	r = 0;
 out:
 	dm_task_destroy(dmt);
 	return r;
 }
 
-extern int
-dm_prereq (void)
+int
+dm_drv_get_rq (void)
 {
-	if (dm_libprereq())
+	unsigned int minv_dmrq[3] = {1, 1, 0};
+	unsigned int version[3] = {0, 0, 0};
+        unsigned int * v = version;
+
+	if (dm_drv_version(v, TGT_MPATH)) {
+		/* in doubt return least capable */
+		return 0;
+	}
+
+	/* test request based multipath capability */
+	if VERSION_GE(v, minv_dmrq) {
+		condlog(3, "activate request-based multipathing mode "
+			   "(driver >= v%u.%u.%u)",
+			minv_dmrq[0], minv_dmrq[1], minv_dmrq[2]);
 		return 1;
-	return dm_drvprereq(TGT_MPATH);
+	}
+	return 0;
 }
 
 static int
-dm_simplecmd (int task, const char *name, int no_flush) {
+dm_drv_prereq (void)
+{
+	unsigned int minv[3] = {1, 0, 3};
+	unsigned int version[3] = {0, 0, 0};
+        unsigned int * v = version;
+
+	if (dm_drv_version(v, TGT_MPATH)) {
+		/* in doubt return not capable */
+		return 1;
+	}
+
+	/* test request based multipath capability */
+	condlog(3, "DM multipath kernel driver v%u.%u.%u",
+		v[0], v[1], v[2]);
+
+	if VERSION_GE(v, minv)
+		return 0;
+
+	condlog(0, "DM multipath kernel driver must be >= v%u.%u.%u",
+		minv[0], minv[1], minv[2]);
+	return 1;
+}
+
+extern int
+dm_prereq (void)
+{
+	if (dm_lib_prereq())
+		return 1;
+	return dm_drv_prereq();
+}
+
+static int
+dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
 	int r = 0;
+	int udev_wait_flag = (need_sync && (task == DM_DEVICE_RESUME ||
+					    task == DM_DEVICE_REMOVE));
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create (task)))
@@ -167,6 +243,8 @@ dm_simplecmd (int task, const char *name, int no_flush) {
 		dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
 
+	if (udev_wait_flag && !dm_task_set_cookie(dmt, &conf->cookie, 0))
+		goto out;
 	r = dm_task_run (dmt);
 
 	out:
@@ -175,13 +253,13 @@ dm_simplecmd (int task, const char *name, int no_flush) {
 }
 
 extern int
-dm_simplecmd_flush (int task, const char *name) {
-	return dm_simplecmd(task, name, 0);
+dm_simplecmd_flush (int task, const char *name, int needsync) {
+	return dm_simplecmd(task, name, 0, needsync);
 }
 
 extern int
 dm_simplecmd_noflush (int task, const char *name) {
-	return dm_simplecmd(task, name, 1);
+	return dm_simplecmd(task, name, 1, 1);
 }
 
 extern int
@@ -229,6 +307,9 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 
 	dm_task_no_open_count(dmt);
 
+	if (task == DM_DEVICE_CREATE &&
+	    !dm_task_set_cookie(dmt, &conf->cookie, 0))
+		goto freeout;
 	r = dm_task_run (dmt);
 
 	freeout:
@@ -252,7 +333,7 @@ _dm_addmap_create (struct multipath *mpp, char * params, int ro) {
 	if (!r && dm_map_present(mpp->alias)) {
 		condlog(3, "%s: failed to load map (a path might be in use)",
 			mpp->alias);
-		dm_flush_map(mpp->alias);
+		dm_flush_map_nosync(mpp->alias);
 	}
 	return r;
 }
@@ -336,10 +417,11 @@ dm_get_map(char * name, unsigned long long * size, char * outparams)
 	if (size)
 		*size = length;
 
-	if (outparams) {
-		if (snprintf(outparams, PARAMS_SIZE, "%s", params) <= PARAMS_SIZE)
-			r = 0;
-	} else
+	if (!outparams) {
+		r = 0;
+		goto out;
+	}
+	if (snprintf(outparams, PARAMS_SIZE, "%s", params) <= PARAMS_SIZE)
 		r = 0;
 out:
 	dm_task_destroy(dmt);
@@ -597,7 +679,7 @@ out:
 }
 
 extern int
-dm_flush_map (const char * mapname)
+_dm_flush_map (const char * mapname, int need_sync)
 {
 	int r;
 
@@ -607,7 +689,7 @@ dm_flush_map (const char * mapname)
 	if (dm_type(mapname, TGT_MPATH) <= 0)
 		return 0; /* nothing to do */
 
-	if (dm_remove_partmaps(mapname))
+	if (dm_remove_partmaps(mapname, need_sync))
 		return 1;
 
 	if (dm_get_opencount(mapname)) {
@@ -615,7 +697,7 @@ dm_flush_map (const char * mapname)
 		return 1;
 	}
 
-	r = dm_simplecmd_flush(DM_DEVICE_REMOVE, mapname);
+	r = dm_simplecmd_flush(DM_DEVICE_REMOVE, mapname, need_sync);
 
 	if (r) {
 		condlog(4, "multipath map %s removed", mapname);
@@ -627,7 +709,7 @@ dm_flush_map (const char * mapname)
 extern int
 dm_suspend_and_flush_map (const char * mapname)
 {
-	int r, s;
+	int s;
 
 	if (!dm_map_present(mapname))
 		return 0;
@@ -637,27 +719,14 @@ dm_suspend_and_flush_map (const char * mapname)
 
 	s = dm_queue_if_no_path((char *)mapname, 0);
 	if (!s)
-		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname);
+	    s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
 
-	if (dm_remove_partmaps(mapname))
-		goto resume;
-
-	if (dm_get_opencount(mapname)) {
-		condlog(2, "%s: map in use", mapname);
-		goto resume;
+	if (dm_flush_map(mapname)) {
+		condlog(4, "multipath map %s removed", mapname);
+		return 0;
 	}
-
-	r = dm_simplecmd_flush(DM_DEVICE_REMOVE, mapname);
-	if (!r) {
-		s = 1;
-		goto resume;
-	}
-
-	condlog(4, "multipath map %s removed", mapname);
-	return 0;
-resume:
-	if (s)
-		dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname);
+	condlog(2, "failed to remove multipath map %s", mapname);
+	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname);
 	return 1;
 }
 
@@ -846,10 +915,7 @@ dm_get_maps (vector mp)
 			goto out1;
 
 		if (info > 0) {
-			if (dm_get_map(names->name, &mpp->size, mpp->params))
-				goto out1;
-
-			if (dm_get_status(names->name, mpp->status))
+			if (dm_get_map(names->name, &mpp->size, NULL))
 				goto out1;
 
 			dm_get_uuid(names->name, mpp->wwid);
@@ -999,7 +1065,7 @@ bad:
 }
 
 int
-dm_remove_partmaps (const char * mapname)
+dm_remove_partmaps (const char * mapname, int need_sync)
 {
 	struct dm_task *dmt;
 	struct dm_names *names;
@@ -1060,7 +1126,7 @@ dm_remove_partmaps (const char * mapname)
 			 * partitions depend on it.
 			 */
 			if (dm_get_opencount(names->name)) {
-				dm_remove_partmaps(names->name);
+				dm_remove_partmaps(names->name, need_sync);
 				if (dm_get_opencount(names->name)) {
 					condlog(2, "%s: map in use",
 						names->name);
@@ -1069,7 +1135,8 @@ dm_remove_partmaps (const char * mapname)
 			}
 			condlog(4, "partition map %s removed",
 				names->name);
-			dm_simplecmd_flush(DM_DEVICE_REMOVE, names->name);
+			dm_simplecmd_flush(DM_DEVICE_REMOVE, names->name,
+					   need_sync);
 		}
 
 		next = names->next;
@@ -1225,6 +1292,8 @@ dm_rename (char * old, char * new)
 
 	dm_task_no_open_count(dmt);
 
+	if (!dm_task_set_cookie(dmt, &conf->cookie, 0))
+		goto out;
 	if (!dm_task_run(dmt))
 		goto out;
 

@@ -22,6 +22,7 @@ int emc_clariion_prio(const char *dev, int fd)
 
 	memset(&sense_buffer, 0, 256);
 	memset(&io_hdr, 0, sizeof (struct sg_io_hdr));
+	memset(&sense_buffer, 0, 256);
 	io_hdr.interface_id = 'S';
 	io_hdr.cmd_len = sizeof (inqCmdBlk);
 	io_hdr.mx_sb_len = sizeof (sb);
@@ -80,7 +81,7 @@ out:
 	return(ret);
 }
 
-int getprio (struct path * pp)
+int getprio (struct path * pp, char * args)
 {
 	return emc_clariion_prio(pp->dev, pp->fd);
 }

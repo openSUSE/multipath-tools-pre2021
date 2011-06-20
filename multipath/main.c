@@ -501,7 +501,7 @@ main (int argc, char *argv[])
 
 	if (conf->remove == FLUSH_ONE) {
 		if (conf->dev_type == DEV_DEVMAP) {
-			r = dm_suspend_and_flush_map(conf->dev);
+			r = dm_flush_map(conf->dev);
 		} else
 			condlog(0, "must provide a map name to remove");
 
@@ -515,6 +515,7 @@ main (int argc, char *argv[])
 		condlog(3, "restart multipath configuration process");
 
 out:
+	udev_wait(conf->cookie);
 
 	sysfs_cleanup();
 	dm_lib_release();

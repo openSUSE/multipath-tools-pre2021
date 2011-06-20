@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
+#include <libgen.h>
 
 #include "checkers.h"
 #include "vector.h"
@@ -25,6 +26,7 @@
 #include "sysfs.h"
 #include "discovery.h"
 #include "prio.h"
+#include "defaults.h"
 
 struct path *
 store_pathinfo (vector pathvec, vector hwtable, char * devname, int flag)
@@ -154,6 +156,36 @@ declare_sysfs_get_str(state);
 declare_sysfs_get_str(dev);
 
 int
+sysfs_get_timeout(struct sysfs_device *dev, unsigned int *timeout)
+{
+	char attr_path[SYSFS_PATH_SIZE], attr[NAME_SIZE];
+	size_t len;
+	int r;
+	unsigned int t;
+
+	if (safe_sprintf(attr_path, "%s/device", dev->devpath))
+		return 1;
+
+	len = sysfs_attr_get_value(dev->devpath, "timeout", attr, NAME_SIZE);
+	if (!len) {
+		condlog(3, "%s: No timeout value in sysfs", dev->devpath);
+		return 1;
+	}
+
+	r = sscanf(attr, "%u\n", &t);
+
+	if (r != 1) {
+		condlog(3, "%s: Cannot parse timeout attribute '%s'",
+			dev->devpath, attr);
+		return 1;
+	}
+
+	*timeout = t * 1000;
+
+	return 0;
+}
+
+int
 sysfs_get_size (struct sysfs_device * dev, unsigned long long * size)
 {
 	char attr[NAME_SIZE];
@@ -199,81 +231,105 @@ sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
 	return 0;
 }
 
-int
-sysfs_set_fc_values (struct path *pp, int dev_loss_tmo, int fast_io_fail_tmo)
+static int
+find_rport_id(struct path *pp)
 {
-	char *rport;
 	char attr_path[SYSFS_PATH_SIZE];
-	char attr_value[NAME_SIZE];
-	int host, num;
-	int rport_channel = -1;
-	int rport_id = -1;
+	char *dir, *base;
+	int host, channel, rport_id = -1;
 
-	if (pp->bus != SYSFS_BUS_SCSI) {
-		condlog(4, "%s: no FC settings on non-SCSI device", pp->dev);
-		return 0;
-	}
-
-	if (dev_loss_tmo == 0 || fast_io_fail_tmo == 0) {
-		condlog(4, "%s: no FC settings", pp->dev);
-		return 0;
-	}
-
-	if (!pp->sysdev) {
-		condlog(3, "%s: no sysfs device set", pp->dev);
-		return 0;
-	}
-
-	condlog(4, "%s: checking rport for %s", pp->dev,
-		pp->sysdev ? pp->sysdev->devpath : NULL);
-
-	rport = strstr(pp->sysdev->devpath, "rport");
-	if (!rport || sscanf(rport, "rport-%d:%d-%d/%*s",
-			     &host, &rport_channel, &rport_id) != 3) {
-		condlog(3, "%s: Not a FC device", pp->dev);
+	if (safe_sprintf(attr_path,
+			 "/class/fc_transport/target%i:%i:%i",
+			 pp->sg_id.host_no, pp->sg_id.channel,
+			 pp->sg_id.scsi_id)) {
+		condlog(0, "attr_path too small for target");
 		return 1;
 	}
 
-	if (rport_channel < 0 && rport_id < 0) {
-		condlog(3, "%s: No rport found", pp->dev);
-		return 0;
+	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
+		return -1;
+
+	condlog(4, "target%d:%d:%d -> path %s", pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id, attr_path);
+	dir = attr_path;
+	do {
+		base = basename(dir);
+		dir = dirname(dir);
+
+		if (sscanf((const char *)base, "rport-%d:%d-%d", &host, &channel, &rport_id) == 3)
+			break;
+	} while (strcmp((const char *)dir, "/"));
+
+	if (rport_id < 0)
+		return -1;
+
+	condlog(4, "target%d:%d:%d -> rport_id %d", pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id, rport_id);
+	return rport_id;
+}
+
+int
+sysfs_set_scsi_tmo (struct multipath *mpp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	struct path *pp;
+	int i;
+	char value[11];
+	int rport_id;
+	int dev_loss_tmo = mpp->dev_loss;
+
+	if (mpp->no_path_retry > 0) {
+		int no_path_retry_tmo = mpp->no_path_retry * conf->checkint;
+
+		if (no_path_retry_tmo > MAX_DEV_LOSS_TMO)
+			no_path_retry_tmo = MAX_DEV_LOSS_TMO;
+		if (no_path_retry_tmo > dev_loss_tmo)
+			dev_loss_tmo = no_path_retry_tmo;
+		condlog(3, "%s: update dev_loss_tmo to %d\n",
+			mpp->alias, dev_loss_tmo);
+	} else if (mpp->no_path_retry == NO_PATH_RETRY_QUEUE) {
+		dev_loss_tmo = MAX_DEV_LOSS_TMO;
+		condlog(4, "%s: update dev_loss_tmo to %d\n",
+			mpp->alias, dev_loss_tmo);
 	}
-
-	condlog(4, "%s: using rport-%d:%d-%d for target%d:%d:%d", pp->dev,
-		host, rport_channel, rport_id,
-		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
-
-	if (safe_sprintf(attr_path,
-			"/class/fc_remote_ports/rport-%d:%d-%d",
-			host, rport_channel, rport_id)) {
-		condlog(1, "attr_path too small");
-		return 0;
+	mpp->dev_loss = dev_loss_tmo;
+	if (mpp->fast_io_fail > mpp->dev_loss) {
+		mpp->fast_io_fail = mpp->dev_loss;
+		condlog(3, "%s: update fast_io_fail to %d\n",
+			mpp->alias, mpp->fast_io_fail);
 	}
+	if (!mpp->dev_loss && !mpp->fast_io_fail)
+		return 0;
 
-	condlog(4, "%s: set dev_loss_tmo to %d, fast_io_fail to %d",
-		pp->dev, dev_loss_tmo, fast_io_fail_tmo);
+	vector_foreach_slot(mpp->paths, pp, i) {
+		rport_id = find_rport_id(pp);
+		if (rport_id < 0) {
+			condlog(0, "failed to find rport_id for target%d:%d:%d", pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
+			return 1;
+		}
 
-	if (dev_loss_tmo < 0)
-		sprintf(attr_value, "%d", 0);
-	else
-		sprintf(attr_value, "%d", dev_loss_tmo);
-	num = sysfs_attr_set_value(attr_path, "dev_loss_tmo",
-				   attr_value, strlen(attr_value));
-	if (num <= 0)
-		condlog(4, "%s: failed to set dev_loss_tmo (%d)",
-			pp->dev, num);
-
-	if (fast_io_fail_tmo < 0)
-		sprintf(attr_value, "%d", 0);
-	else
-		sprintf(attr_value, "%d", fast_io_fail_tmo);
-	num = sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
-				   attr_value, strlen(attr_value));
-	if (num <= 0)
-		condlog(4, "%s: failed to set fast_io_fail_tmo (%d)",
-			pp->dev, num);
-
-	return num == strlen(attr_value) ? 0 : 1;
+		if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
+				  "/class/fc_remote_ports/rport-%d:%d-%d",
+				  pp->sg_id.host_no, pp->sg_id.channel,
+				  rport_id)) {
+			condlog(0, "attr_path '/class/fc_remote_ports/rport-%d:%d-%d' too large", pp->sg_id.host_no, pp->sg_id.channel, rport_id);
+			return 1;
+		}
+		if (mpp->dev_loss){
+			snprintf(value, 11, "%u", mpp->dev_loss);
+			if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+						 value, 11))
+				return 1;
+		}
+		if (mpp->fast_io_fail){
+			if (mpp->fast_io_fail == -1)
+				sprintf(value, "off");
+			else
+				snprintf(value, 11, "%u", mpp->fast_io_fail);
+			if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
+						 value, 11))
+				return 1;
+		}
+	}
+	return 0;
 }
 
 static int
@@ -741,7 +797,7 @@ cciss_ioctl_pathinfo (struct path * pp, int mask)
 }
 
 int
-get_state (struct path * pp)
+get_state (struct path * pp, int daemon)
 {
 	struct checker * c = &pp->checker;
 	int state;
@@ -749,6 +805,8 @@ get_state (struct path * pp)
 	condlog(3, "%s: get_state", pp->dev);
 
 	if (!checker_selected(c)) {
+		if (daemon)
+			pathinfo(pp, conf->hwtable, DI_SYSFS);
 		select_checker(pp);
 		if (!checker_selected(c)) {
 			condlog(3, "%s: No checker selected", pp->dev);
@@ -760,6 +818,11 @@ get_state (struct path * pp)
 			return PATH_UNCHECKED;
 		}
 	}
+	checker_clear_message(c);
+	if (daemon)
+		checker_set_async(c);
+	if (!conf->checker_timeout)
+		sysfs_get_timeout(pp->sysdev, &(c->timeout));
 	state = checker_check(c);
 	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
 	if (state != PATH_UP && strlen(checker_message(c)))
@@ -860,7 +923,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 
 	if (mask & DI_CHECKER) {
 		if (path_state == PATH_UP) {
-			pp->state = get_state(pp);
+			pp->state = get_state(pp, 0);
 			if (pp->state == PATH_UNCHECKED ||
 			    pp->state == PATH_WILD)
 				goto blank;

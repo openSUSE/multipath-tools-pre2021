@@ -166,13 +166,6 @@ void checker_set_async (struct checker * c)
 	c->sync = 0;
 }
 
-void checker_set_async_timeout (struct checker * c, int timeout)
-{
-	if (!c)
-		return;
-	c->async_timeout = timeout;
-}
-
 void checker_enable (struct checker * c)
 {
 	if (!c)
@@ -190,9 +183,8 @@ void checker_disable (struct checker * c)
 int checker_init (struct checker * c, void ** mpctxt_addr)
 {
 	if (!c)
-		return;
+		return 1;
 	c->mpcontext = mpctxt_addr;
-	c->async_timeout = ASYNC_TIMEOUT_SEC;
 	return c->init ? c->init(c) : 0;
 }
 
@@ -213,7 +205,7 @@ int checker_check (struct checker * c)
 {
 	int r;
 
-	if (!c && !c->check)
+	if (!c || !c->check)
 		return PATH_WILD;
 
 	c->message[0] = '\0';
@@ -232,7 +224,7 @@ int checker_check (struct checker * c)
 
 int checker_selected (struct checker * c)
 {
-	if (!c && !c->check)
+	if (!c || !c->check)
 		return 0;
 	return (c->check) ? 1 : 0;
 }
@@ -251,7 +243,7 @@ char * checker_message (struct checker * c)
 	return c->message;
 }
 
-void checker_reset_message (struct checker * c)
+void checker_clear_message (struct checker * c)
 {
 	if (!c)
 		return;

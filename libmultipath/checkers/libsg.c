@@ -12,7 +12,7 @@
 
 int
 sg_read (int sg_fd, unsigned char * buff, int buff_len,
-	 unsigned char * sense, int sense_len)
+	 unsigned char * sense, int sense_len, unsigned int timeout)
 {
 	/* defaults */
 	int blocks;
@@ -53,12 +53,12 @@ sg_read (int sg_fd, unsigned char * buff, int buff_len,
 	io_hdr.dxferp = buff;
 	io_hdr.mx_sb_len = sense_len;
 	io_hdr.sbp = sense;
-	io_hdr.timeout = DEF_TIMEOUT;
+	io_hdr.timeout = timeout;
 	io_hdr.pack_id = (int)start_block;
 	if (diop && *diop)
 	io_hdr.flags |= SG_FLAG_DIRECT_IO;
 
-retry: 
+retry:
 	memset(sense, 0, sense_len);
 	while (((res = ioctl(sg_fd, SG_IO, &io_hdr)) < 0) && (EINTR == errno));
 

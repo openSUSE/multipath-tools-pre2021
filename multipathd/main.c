@@ -229,14 +229,24 @@ static int
 uev_add_map (struct uevent * uev, struct vectors * vecs)
 {
 	char *alias;
+	int major = -1, minor = -1, rc;
 
-	condlog(2, "%s: add map (uevent %ld)", uev->kernel, uev->seqnum);
+	condlog(2, "%s: add map (uevent)", uev->kernel);
 	alias = uevent_get_dm_name(uev);
 	if (!alias) {
-		condlog(3, "%s: No DM_NAME in uevent, ignoring", uev->kernel);
-		return 0;
+		condlog(3, "%s: No DM_NAME in uevent", uev->kernel);
+		major = uevent_get_major(uev);
+		minor = uevent_get_minor(uev);
+		alias = dm_mapname(major, minor);
+		if (!alias) {
+			condlog(2, "%s: mapname not found for %d:%d",
+				uev->kernel, major, minor);
+			return 1;
+		}
 	}
-	return ev_add_map(uev->kernel, alias, vecs);
+	rc = ev_add_map(uev->kernel, alias, vecs);
+	FREE(alias);
+	return rc;
 }
 
 int
@@ -251,7 +261,6 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 
 	if (map_present && dm_type(alias, TGT_MPATH) <= 0) {
 		condlog(4, "%s: not a multipath map", alias);
-		FREE(alias);
 		return 0;
 	}
 
@@ -268,7 +277,6 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 				alias);
 			dm_reassign(alias);
 		}
-		FREE(alias);
 		return 0;
 	}
 
@@ -293,7 +301,6 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 		condlog(0, "%s: uev_add_map %s failed", alias, dev);
 
 	FREE(refwwid);
-	FREE(alias);
 	return r;
 }
 
@@ -303,7 +310,7 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 	char *alias;
 	int minor, rc;
 
-	condlog(2, "%s: remove map (uevent %ld)", uev->kernel, uev->seqnum);
+	condlog(2, "%s: remove map (uevent)", uev->kernel);
 	alias = uevent_get_dm_name(uev);
 	if (!alias) {
 		condlog(3, "%s: No DM_NAME in uevent, ignoring", uev->kernel);
@@ -868,8 +875,6 @@ uxlsnrloop (void * ap)
 	set_handler_callback(RESTOREQ+MAP, cli_restore_queueing);
 	set_handler_callback(DISABLEQ+MAPS, cli_disable_all_queueing);
 	set_handler_callback(RESTOREQ+MAPS, cli_restore_all_queueing);
-	set_handler_callback(RESET+LOG, cli_reset_log);
-	set_handler_callback(LIST+EVENT, cli_wait_event);
 	set_handler_callback(QUIT, cli_quit);
 	set_handler_callback(SHUTDOWN, cli_shutdown);
 
@@ -1024,6 +1029,7 @@ retry_count_tick(vector mpvec)
 int update_prio(struct path *pp, int refresh_all)
 {
 	int oldpriority;
+	struct path *pp1;
 	struct pathgroup * pgp;
 	int i, j, changed = 0;
 
@@ -1031,21 +1037,17 @@ int update_prio(struct path *pp, int refresh_all)
 		if (!pp->mpp)
 			return 0;
 		vector_foreach_slot (pp->mpp->pg, pgp, i) {
-			vector_foreach_slot (pgp->paths, pp, j) {
-				oldpriority = pp->priority;
-				if (pp->state == PATH_UP ||
-				    pp->state == PATH_GHOST)
-					pathinfo(pp, conf->hwtable, DI_PRIO);
-				if (pp->priority != oldpriority)
+			vector_foreach_slot (pgp->paths, pp1, j) {
+				oldpriority = pp1->priority;
+				pathinfo(pp1, conf->hwtable, DI_PRIO);
+				if (pp1->priority != oldpriority)
 					changed = 1;
 			}
 		}
 		return changed;
 	}
 	oldpriority = pp->priority;
-	if (pp->state == PATH_UP ||
-	    pp->state == PATH_GHOST)
-		pathinfo(pp, conf->hwtable, DI_PRIO);
+	pathinfo(pp, conf->hwtable, DI_PRIO);
 
 	if (pp->priority == oldpriority)
 		return 0;
@@ -1063,11 +1065,13 @@ int update_path_groups(struct multipath *mpp, struct vectors *vecs, int refresh)
 		vector_foreach_slot (mpp->paths, pp, i)
 			pathinfo(pp, conf->hwtable, DI_PRIO);
 	}
-	setup_map(mpp, params, PARAMS_SIZE);
+	if (setup_map(mpp, params, PARAMS_SIZE))
+		return 1;
+
 	mpp->action = ACT_RELOAD;
 	if (domap(mpp, params) <= 0) {
 		condlog(0, "%s: failed to update map : %s", mpp->alias,
-				strerror(errno));
+			strerror(errno));
 		return 1;
 	}
 	dm_lib_release();
@@ -1095,24 +1099,9 @@ check_path (struct vectors * vecs, struct path * pp)
 	 */
 	pp->tick = conf->checkint;
 
-	if (!checker_selected(&pp->checker)) {
-		pathinfo(pp, conf->hwtable, DI_SYSFS);
-		select_checker(pp);
-	}
-	if (!checker_selected(&pp->checker)) {
-		condlog(0, "%s: checker is not set", pp->dev);
-		return;
-	}
-	/*
-	 * Set checker in async mode.
-	 * Honored only by checker implementing the said mode.
-	 */
-	checker_set_async(&pp->checker);
-	checker_set_async_timeout(&pp->checker, conf->async_timeout);
-
 	newstate = path_offline(pp);
 	if (newstate == PATH_UP)
-		newstate = checker_check(&pp->checker);
+		newstate = get_state(pp, 1);
 
 	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
@@ -1213,17 +1202,18 @@ check_path (struct vectors * vecs, struct path * pp)
 	/*
 	 * path prio refreshing
 	 */
+	condlog(4, "path prio refresh");
+
 	if (update_prio(pp, new_path_up) &&
-	    pp->mpp->pgpolicyfn == (pgpolicyfn *)group_by_prio)
+	    (pp->mpp->pgpolicyfn == (pgpolicyfn *)group_by_prio) &&
+	     pp->mpp->pgfailback == -FAILBACK_IMMEDIATE)
 		update_path_groups(pp->mpp, vecs, !new_path_up);
 	else if (need_switch_pathgroup(pp->mpp, 0)) {
 		if (pp->mpp->pgfailback > 0 &&
-		    (new_path_up ||
-		     pp->mpp->failback_tick <= 0))
+		    (new_path_up || pp->mpp->failback_tick <= 0))
 			pp->mpp->failback_tick =
 				pp->mpp->pgfailback + 1;
-		else if (pp->mpp->pgfailback ==
-				-FAILBACK_IMMEDIATE)
+		else if (pp->mpp->pgfailback == -FAILBACK_IMMEDIATE)
 			switch_pathgroup(pp->mpp);
 	}
 }
@@ -1373,7 +1363,7 @@ reconfigure (struct vectors * vecs)
 
 	if (!load_config(DEFAULT_CONFIGFILE)) {
 		conf->verbosity = old->verbosity;
-
+		conf->daemon = 1;
 		configure(vecs, 1);
 		free_config(old);
 		retval = 0;
@@ -1501,6 +1491,8 @@ child (void * param)
 	pthread_attr_t log_attr, misc_attr;
 	struct vectors * vecs;
 	sigset_t set;
+	struct multipath * mpp;
+	int i;
 	int rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -1576,6 +1568,7 @@ child (void * param)
 		exit(1);
 	}
 	conf->daemon = 1;
+	udev_set_sync_support(0);
 	/*
 	 * Start uevent listener early to catch events
 	 */
@@ -1620,6 +1613,12 @@ child (void * param)
 
 		exit(1);
 	}
+	pthread_mutex_lock(&exit_mutex);
+	/* Startup complete, create logfile */
+	if (pidfile_create(DEFAULT_PIDFILE, daemon_pid))
+		/* Ignore errors, we can live without */
+		condlog(1, "failed to create pidfile");
+
 	running_state = DAEMON_RUNNING;
 	pthread_cond_wait(&exit_cond, &exit_mutex);
 	/* Need to block these to avoid deadlocking */
@@ -1635,6 +1634,9 @@ child (void * param)
 	pthread_sigmask(SIG_UNBLOCK, &set, NULL);
 	block_signal(SIGHUP, NULL);
 	lock(vecs->lock);
+	if (conf->queue_without_daemon == QUE_NO_DAEMON_OFF)
+		vector_foreach_slot(vecs->mpvec, mpp, i)
+			dm_queue_if_no_path(mpp->alias, 0);
 	remove_maps_and_stop_waiters(vecs);
 	unlock(vecs->lock);
 

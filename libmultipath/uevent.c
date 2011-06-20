@@ -38,10 +38,9 @@
 #include <linux/types.h>
 #include <linux/netlink.h>
 #include <pthread.h>
+#include <limits.h>
 #include <sys/mman.h>
 #include <errno.h>
-#include <limits.h>
-#include <signal.h>
 
 #include "memory.h"
 #include "debug.h"
@@ -50,16 +49,25 @@
 
 typedef int (uev_trigger)(struct uevent *, void * trigger_data);
 
+pthread_t uevq_thr;
 LIST_HEAD(uevq);
 pthread_mutex_t uevq_lock, *uevq_lockp = &uevq_lock;
 pthread_cond_t  uev_cond,  *uev_condp  = &uev_cond;
-pthread_mutex_t seqnum_lock, *seqnum_lockp = &seqnum_lock;
-pthread_cond_t  seqnum_cond,  *seqnum_condp  = &seqnum_cond;
-static uev_trigger *my_uev_trigger;
-static void * my_trigger_data;
-static long uev_last_seqnum;
+uev_trigger *my_uev_trigger;
+void * my_trigger_data;
+int servicing_uev;
 
-static struct uevent * alloc_uevent (void)
+int is_uevent_busy(void)
+{
+	int empty;
+
+	pthread_mutex_lock(uevq_lockp);
+	empty = list_empty(&uevq);
+	pthread_mutex_unlock(uevq_lockp);
+	return (!empty || servicing_uev);
+}
+
+struct uevent * alloc_uevent (void)
 {
 	struct uevent *uev = MALLOC(sizeof(struct uevent));
 
@@ -67,32 +75,6 @@ static struct uevent * alloc_uevent (void)
 		INIT_LIST_HEAD(&uev->node);
 
 	return uev;
-}
-
-long sysfs_get_seqnum(void)
-{
-	char path[] = "/sys/kernel/uevent_seqnum";
-	char buf[128], *eptr;
-	int fd, num;
-	long seqno;
-
-	fd = open(path, O_RDONLY);
-	if (fd < 0) {
-		condlog(3, "can't initialize uevent sequence number");
-		return -1;
-	}
-	num = read(fd, buf, 128);
-	if (num < -1) {
-		condlog(3, "can't read uevent sequence number: %d", errno);
-		return -1;
-	}
-	close(fd);
-	seqno = strtoul(buf, &eptr, 10);
-	if (buf == eptr) {
-		condlog(3, "invalid uevent sequence number");
-		return -1;
-	}
-	return seqno;
 }
 
 void
@@ -133,12 +115,6 @@ service_uevq(struct list_head *tmpq)
 		if (my_uev_trigger && my_uev_trigger(uev, my_trigger_data))
 			condlog(0, "uevent trigger error");
 
-		if (uev->seqnum > -1) {
-			pthread_mutex_lock(seqnum_lockp);
-			uev_last_seqnum = uev->seqnum;
-			pthread_cond_signal(seqnum_condp);
-			pthread_mutex_unlock(seqnum_lockp);
-		}
 		FREE(uev);
 	}
 }
@@ -169,10 +145,8 @@ uevq_cleanup(struct list_head *tmpq)
 int uevent_dispatch(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		    void * trigger_data)
 {
-	pthread_mutex_lock(uevq_lockp);
 	my_uev_trigger = uev_trigger;
 	my_trigger_data = trigger_data;
-	pthread_mutex_unlock(uevq_lockp);
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -180,6 +154,7 @@ int uevent_dispatch(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		LIST_HEAD(uevq_tmp);
 
 		pthread_mutex_lock(uevq_lockp);
+		servicing_uev = 0;
 		/*
 		 * Condition signals are unreliable,
 		 * so make sure we only wait if we have to.
@@ -187,6 +162,7 @@ int uevent_dispatch(int (*uev_trigger)(struct uevent *, void * trigger_data),
 		if (list_empty(&uevq)) {
 			pthread_cond_wait(uev_condp, uevq_lockp);
 		}
+		servicing_uev = 1;
 		list_splice_init(&uevq, &uevq_tmp);
 		pthread_mutex_unlock(uevq_lockp);
 		if (!my_uev_trigger)
@@ -221,14 +197,6 @@ int uevent_listen(void)
 
 	pthread_mutex_init(uevq_lockp, NULL);
 	pthread_cond_init(uev_condp, NULL);
-
-	pthread_mutex_init(seqnum_lockp, NULL);
-	pthread_cond_init(seqnum_condp, NULL);
-
-	pthread_mutex_lock(seqnum_lockp);
-	uev_last_seqnum = sysfs_get_seqnum();
-	pthread_mutex_unlock(seqnum_lockp);
-	condlog(3, "Last uevent sequence number: %ld", uev_last_seqnum);
 
 	pthread_cleanup_push(uevq_stop, NULL);
 
@@ -415,8 +383,7 @@ int uevent_listen(void)
 		}
 		uev->envp[i] = NULL;
 
-		condlog(3, "uevent %ld '%s' from '%s'", uev->seqnum,
-			uev->action, uev->devpath);
+		condlog(3, "uevent '%s' from '%s'", uev->action, uev->devpath);
 		uev->kernel = strrchr(uev->devpath, '/');
 		if (uev->kernel)
 			uev->kernel++;
@@ -520,26 +487,4 @@ uevent_get_dm_name(struct uevent *uev)
 		}
 	}
 	return p;
-}
-
-#define USECTONSEC  1000 /* microseconds to nanoseconds */
-
-extern int
-uevent_wait_for_seqnum(long seqnum, unsigned int timeout)
-{
-	struct timeval tv;
-	struct timespec ts;
-	int rc;
-
-	gettimeofday(&tv, NULL);
-	ts.tv_sec = tv.tv_sec;
-	ts.tv_nsec = tv.tv_usec * USECTONSEC;
-	ts.tv_sec += timeout;
-	rc = 0;
-	pthread_mutex_lock(seqnum_lockp);
-	while (uev_last_seqnum < seqnum && rc == 0) {
-		rc = pthread_cond_timedwait(seqnum_condp, seqnum_lockp, &ts);
-	}
-	pthread_mutex_unlock(seqnum_lockp);
-	return rc;
 }

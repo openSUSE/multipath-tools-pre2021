@@ -7,7 +7,7 @@ include ../Makefile.inc
 #
 CFLAGS += -I$(multipathdir)
 LDFLAGS += -lpthread -ldevmapper -lreadline -lncurses -ldl \
-	   -lmultipath -L$(multipathdir)
+	   -L$(multipathdir) -lmultipath
 
 #
 # debuging stuff
@@ -28,7 +28,7 @@ OBJS = main.o pidfile.o uxlsnr.o uxclnt.o cli.o cli_handlers.o
 all : $(EXEC)
 
 $(EXEC): $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(EXEC) $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $(EXEC)
 
 install:
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)

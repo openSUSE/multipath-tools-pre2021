@@ -70,7 +70,10 @@ setup_map (struct multipath * mpp, char * params, int params_size)
 	select_mode(mpp);
 	select_uid(mpp);
 	select_gid(mpp);
+	select_fast_io_fail(mpp);
+	select_dev_loss(mpp);
 
+	sysfs_set_scsi_tmo(mpp);
 	/*
 	 * assign paths to path groups -- start with no groups and all paths
 	 * in mpp->paths
@@ -168,7 +171,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 	if (!find_mp_by_wwid(curmp, mpp->wwid)) {
 		condlog(2, "%s: remove (wwid changed)", cmpp->alias);
 		dm_flush_map(mpp->alias);
-		strncat(cmpp->wwid, mpp->wwid, WWID_SIZE-strlen(cmpp->wwid)-1);
+		strncpy(cmpp->wwid, mpp->wwid, WWID_SIZE);
 		drop_multipath(curmp, cmpp->wwid, KEEP_PATHS);
 		mpp->action = ACT_CREATE;
 		condlog(3, "%s: set ACT_CREATE (map wwid change)",
@@ -385,7 +388,7 @@ domap (struct multipath * mpp, char * params)
 		if (!r)
 			r = dm_addmap_reload_ro(mpp, params);
 		if (r)
-			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias);
+			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias, 1);
 		break;
 
 	case ACT_RENAME:
@@ -607,7 +610,8 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 			remove_map(mpp, vecs, 0);
 
 			if (dm_flush_map(alias))
-				condlog(2, "%s: remove failed (dead)", alias);
+				condlog(2, "%s: remove failed (dead)",
+					alias);
 			else
 				condlog(2, "%s: remove (dead)", alias);
 		}
@@ -633,7 +637,6 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 		}
 
 		pp = find_path_by_dev(pathvec, buff);
-
 		if (!pp) {
 			pp = alloc_path();
 
@@ -657,7 +660,6 @@ get_refwwid (char * dev, enum devtypes dev_type, vector pathvec)
 	if (dev_type == DEV_DEVT) {
 		strchop(dev);
 		pp = find_path_by_devt(pathvec, dev);
-
 		if (!pp) {
 			if (devt2devname(buff, FILE_NAME_SIZE, dev))
 				return NULL;

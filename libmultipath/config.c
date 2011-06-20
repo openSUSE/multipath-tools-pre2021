@@ -19,6 +19,7 @@
 #include "blacklist.h"
 #include "defaults.h"
 #include "prio.h"
+#include "devmapper.h"
 
 static int
 hwe_strmatch (struct hwentry *hwe1, struct hwentry *hwe2)
@@ -318,6 +319,7 @@ merge_hwe (struct hwentry * dst, struct hwentry * src)
 	merge_num(rr_weight);
 	merge_num(no_path_retry);
 	merge_num(minio);
+	merge_num(minio_rq);
 
 	return 0;
 }
@@ -371,6 +373,7 @@ store_hwe (vector hwtable, struct hwentry * dhwe)
 	hwe->rr_weight = dhwe->rr_weight;
 	hwe->no_path_retry = dhwe->no_path_retry;
 	hwe->minio = dhwe->minio;
+	hwe->minio_rq = dhwe->minio_rq;
 
 	if (dhwe->bl_product && !(hwe->bl_product = set_param_str(dhwe->bl_product)))
 		goto out;
@@ -482,20 +485,19 @@ load_config (char * file)
 	if (!conf->verbosity)
 		conf->verbosity = DEFAULT_VERBOSITY;
 
+	conf->dmrq = dm_drv_get_rq();
 	conf->checkint = DEFAULT_CHECKINT;
 	conf->max_checkint = MAX_CHECKINT(conf->checkint);
-
 	conf->dev_type = DEV_NONE;
-	conf->minio = 1000;
+	conf->minio = DEFAULT_MINIO;
+	conf->minio_rq = DEFAULT_MINIO_RQ;
 	conf->max_fds = 0;
-	conf->dev_loss_tmo = DEFAULT_DEV_LOSS_TMO;
-	conf->fast_io_fail_tmo = DEFAULT_FAST_IO_FAIL;
 	conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
 	conf->bindings_read_only = 0;
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
+	conf->features = set_default(DEFAULT_FEATURES);
 	conf->flush_on_last_del = 0;
 	conf->attribute_flags = 0;
-	conf->async_timeout = ASYNC_TIMEOUT_SEC;
 	conf->reassign_maps = DEFAULT_REASSIGN_MAPS;
 
 	/*
@@ -588,14 +590,11 @@ load_config (char * file)
 	if (conf->udev_dir == NULL)
 		conf->udev_dir = set_default(DEFAULT_UDEVDIR);
 
-	if (conf->getuid == NULL)
-		conf->getuid = set_default(DEFAULT_GETUID);
-
 	if (conf->bindings_file == NULL)
 		conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
 
 	if (!conf->udev_dir || !conf->multipath_dir ||
-	    !conf->getuid    || !conf->bindings_file)
+	    !conf->bindings_file)
 		goto out;
 
 	if (!conf->prio_name) {

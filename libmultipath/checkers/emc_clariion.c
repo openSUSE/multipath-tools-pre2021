@@ -113,7 +113,7 @@ int libcheck_check (struct checker * c)
 	io_hdr.dxferp = sense_buffer;
 	io_hdr.cmdp = inqCmdBlk;
 	io_hdr.sbp = sb;
-	io_hdr.timeout = DEF_TIMEOUT;
+	io_hdr.timeout = c->timeout;
 	io_hdr.pack_id = 0;
 	if (ioctl(c->fd, SG_IO, &io_hdr) < 0) {
 		MSG(c, "emc_clariion_checker: sending query command failed");
@@ -183,7 +183,7 @@ int libcheck_check (struct checker * c)
 
 		memset(buf, 0, 4096);
 		ret = sg_read(c->fd, &buf[0], 4096,
-			      sbb = &sb[0], SENSE_BUFF_LEN);
+			      sbb = &sb[0], SENSE_BUFF_LEN, c->timeout);
 		if (ret == PATH_DOWN) {
 			hexadecimal_to_ascii(ct->wwn, wwnstr);
 

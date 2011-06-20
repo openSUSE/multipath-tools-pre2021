@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2005 Network Appliance, Inc., All Rights Reserved
  * Author:  David Wysochanski available at davidw@netapp.com
  *
@@ -7,7 +7,7 @@
  * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License v2 for more details.
  */
@@ -240,7 +240,7 @@ static int ontap_prio(const char *dev, int fd)
 	}
 }
 
-int getprio (struct path * pp)
+int getprio (struct path * pp, char * args)
 {
 	return ontap_prio(pp->dev, pp->fd);
 }

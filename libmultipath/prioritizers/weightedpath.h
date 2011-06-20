@@ -6,6 +6,6 @@
 #define DEV_NAME "devname"
 #define DEFAULT_PRIORITY 0
 
-int prio_path_weight(struct path *pp);
+int prio_path_weight(struct path *pp, char *prio_args);
 
 #endif

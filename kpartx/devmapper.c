@@ -14,6 +14,13 @@
 #define MAX_PREFIX_LEN 8
 #define PARAMS_SIZE 1024
 
+#ifndef LIBDM_API_COOKIE
+static inline int dm_task_set_cookie(struct dm_task *dmt, uint32_t *c, int a)
+{
+	return 1;
+}
+#endif
+
 extern int
 dm_prereq (char * str, int x, int y, int z)
 {
@@ -53,8 +60,10 @@ dm_prereq (char * str, int x, int y, int z)
 }
 
 extern int
-dm_simplecmd (int task, const char *name, int no_flush) {
+dm_simplecmd (int task, const char *name, int no_flush, uint32_t *cookie) {
 	int r = 0;
+	int udev_wait_flag = (task == DM_DEVICE_RESUME ||
+			      task == DM_DEVICE_REMOVE);
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create(task)))
@@ -69,6 +78,8 @@ dm_simplecmd (int task, const char *name, int no_flush) {
 	if (no_flush)
 		dm_task_no_flush(dmt);
 
+	if (udev_wait_flag && !dm_task_set_cookie(dmt, cookie, 0))
+		goto out;
 	r = dm_task_run(dmt);
 
 	out:
@@ -78,8 +89,8 @@ dm_simplecmd (int task, const char *name, int no_flush) {
 
 extern int
 dm_addmap (int task, const char *name, const char *target,
-	   const char *params, uint64_t size, const char *uuid, int part,
-	   mode_t mode, uid_t uid, gid_t gid) {
+	   const char *params, uint64_t size, int ro, const char *uuid, int part,
+	   mode_t mode, uid_t uid, gid_t gid, uint32_t *cookie) {
 	int r = 0;
 	struct dm_task *dmt;
 	char *prefixed_uuid = NULL;
@@ -92,6 +103,9 @@ dm_addmap (int task, const char *name, const char *target,
 
 	if (!dm_task_add_target (dmt, 0, size, target, params))
 		goto addout;
+
+	if (ro && !dm_task_set_ro (dmt))
+			goto addout;
 
 	if (task == DM_DEVICE_CREATE && uuid) {
 		prefixed_uuid = malloc(MAX_PREFIX_LEN + strlen(uuid) + 1);
@@ -114,6 +128,8 @@ dm_addmap (int task, const char *name, const char *target,
 
 	dm_task_no_open_count(dmt);
 
+	if (task == DM_DEVICE_CREATE && !dm_task_set_cookie(dmt, cookie, 0))
+		goto addout;
 	r = dm_task_run (dmt);
 
 	addout:
@@ -322,4 +338,3 @@ dm_no_partitions(int major, int minor)
 	}
 	return 0;
 }
-

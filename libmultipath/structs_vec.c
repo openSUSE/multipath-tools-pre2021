@@ -373,8 +373,7 @@ out:
 }
 
 extern struct multipath *
-add_map_without_path (struct vectors * vecs,
-		      char * alias)
+add_map_without_path (struct vectors * vecs, char * alias)
 {
 	struct multipath * mpp = alloc_multipath();
 
@@ -451,6 +450,8 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 
 	select_features(mpp);
 	select_no_path_retry(mpp);
+	select_dev_loss(mpp);
+	sysfs_set_scsi_tmo(mpp);
 
 	vector_foreach_slot (mpp->paths, pp, i) {
 		/*
@@ -479,34 +480,6 @@ verify_paths(struct multipath * mpp, struct vectors * vecs, vector rpvec)
 					vector_del_slot(vecs->pathvec, j);
 				free_path(pp);
 			}
-		} else {
-			int dev_loss_tmo = conf->dev_loss_tmo;
-			int fast_io_fail_tmo = conf->fast_io_fail_tmo;
-
-			if (pp->hwe && pp->hwe->dev_loss_tmo > 0)
-				dev_loss_tmo = pp->hwe->dev_loss_tmo;
-			if (pp->hwe && pp->hwe->fast_io_fail_tmo > 0)
-				fast_io_fail_tmo = pp->hwe->fast_io_fail_tmo;
-
-			if (mpp->no_path_retry > 0) {
-				int no_path_retry_tmo = mpp->no_path_retry * conf->checkint;
-
-				if (no_path_retry_tmo > MAX_DEV_LOSS_TMO)
-					no_path_retry_tmo = MAX_DEV_LOSS_TMO;
-				if (no_path_retry_tmo > dev_loss_tmo)
-					dev_loss_tmo = no_path_retry_tmo;
-					condlog(4, "%s: update dev_loss_tmo"
-						" to %d\n", mpp->alias,
-						dev_loss_tmo);
-			} else if (mpp->no_path_retry == NO_PATH_RETRY_QUEUE) {
-				dev_loss_tmo = MAX_DEV_LOSS_TMO;
-				condlog(4, "%s: update dev_loss_tmo"
-					" to %d\n", mpp->alias, dev_loss_tmo);
-			}
-			sysfs_set_fc_values(pp, dev_loss_tmo,
-					    fast_io_fail_tmo);
-			condlog(4, "%s: verified path %s dev_t %s",
-				mpp->alias, pp->dev, pp->dev_t);
 		}
 	}
 	return count;

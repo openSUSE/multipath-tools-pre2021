@@ -35,8 +35,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * Apple controller family
@@ -56,14 +58,16 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DEFAULT_CHECKER,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * StorageWorks controller family
 	 *
 	 * Maintainer : Christophe Varoqui
-	 * Mail : christophe.varoqui@free.fr
+	 * Mail : christophe.varoqui@opensvc.com
 	 */
 	{
 		.vendor        = "3PARdata",
@@ -77,8 +81,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DEFAULT_CHECKER,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "DEC",
@@ -92,8 +98,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = HP_SW,
 		.prio_name     = PRIO_HP_SW,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "HP",
@@ -107,8 +115,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 12,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* MSA 1000/MSA1500 EVA 3000/5000 with old firmware */
@@ -125,6 +135,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = HP_SW,
 		.prio_name     = PRIO_HP_SW,
+		.prio_args     = NULL,
 	},
 	{
 		/* MSA 1000/1500 with new firmware */
@@ -141,6 +152,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	{
 		/* EVA 3000/5000 with new firmware, EVA 4000/6000/8000 */
@@ -157,6 +169,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	{
 		/* HP MSA2000 product family with old firmware */
@@ -173,6 +186,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* HP MSA2000 product family with new firmware */
@@ -189,6 +203,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	{
 		/* HP P2000 product family */
@@ -221,6 +236,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 
 	{
@@ -236,14 +252,16 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 12,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = CCISS_TUR,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * DDN controller family
 	 *
 	 * Maintainer : Christophe Varoqui
-	 * Mail : christophe.varoqui@free.fr
+	 * Mail : christophe.varoqui@opensvc.com
 	 */
 	{
 		.vendor        = "DDN",
@@ -257,8 +275,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * EMC / Clariion controller family
@@ -278,8 +298,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 6,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "DGC",
@@ -294,8 +316,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = (300 / DEFAULT_CHECKINT),
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = EMC_CLARIION,
 		.prio_name     = PRIO_EMC,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "EMC",
@@ -305,19 +329,20 @@ static struct hwentry default_hw[] = {
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.selector      = DEFAULT_SELECTOR,
-		.pgpolicy      = FAILOVER,
+		.pgpolicy      = MULTIBUS,
 		.pgfailback    = FAILBACK_UNDEF,
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 5,
 		.minio         = DEFAULT_MINIO,
-		.checker_name  = TUR,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * Fujitsu controller family
 	 *
 	 * Maintainer : Christophe Varoqui
-	 * Mail : christophe.varoqui@free.fr
+	 * Mail : christophe.varoqui@opensvc.com
 	 */
 	{
 		.vendor        = "FSC",
@@ -331,8 +356,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * Hitachi controller family
@@ -352,8 +379,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "HITACHI",
@@ -367,8 +396,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_HDS,
+		.prio_args     = NULL,
 	},
 	/*
 	 * IBM controller family
@@ -388,8 +419,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM FAStT 1722-600 */
@@ -405,8 +438,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 300,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM DS4100 */
@@ -422,8 +457,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 300,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM DS3200 / DS3300 / DS3400 */
@@ -439,8 +476,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 300,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM DS4400 / DS4500 / FAStT700 */
@@ -456,8 +495,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "IBM",
@@ -472,8 +513,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 15,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 	    /* IBM DS4700 */
@@ -489,8 +532,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 	    /* IBM DS4800 */
@@ -506,8 +551,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 	    /* IBM DS5000 */
@@ -523,8 +570,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM Netfinity Fibre Channel RAID Controller Unit */
@@ -540,8 +589,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM DS4200 / FAStT200 */
@@ -556,8 +607,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM ESS F20 aka Shark */
@@ -572,8 +625,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM ESS F20 aka Shark */
@@ -588,8 +643,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM DS6000 */
@@ -604,8 +661,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM DS8000 */
@@ -620,8 +679,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM SAN Volume Controller */
@@ -636,8 +697,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM S/390 ECKD DASD */
@@ -653,8 +716,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM S/390 FBA DASD */
@@ -670,8 +735,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		/* IBM IPR */
@@ -686,8 +753,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	/*
 	 * IBM Power Virtual SCSI Devices
@@ -708,8 +777,46 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = (300 / DEFAULT_CHECKINT),
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
+	},
+	{
+		/* IBM 3303      NVDISK */
+		.vendor        = "IBM",
+		.product       = "3303      NVDISK",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = FAILOVER,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = (300 / DEFAULT_CHECKINT),
+		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = TUR,
+		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
+	},
+	{
+		/* AIX NVDISK */
+		.vendor        = "AIX",
+		.product       = "NVDISK",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 alua",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = (300 / DEFAULT_CHECKINT),
+		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	/*
 	 * Generic LSI/Engenio controller
@@ -730,8 +837,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 15,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* DELL MD32xx/MD32xxi */
@@ -747,8 +856,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 15,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		/* DELL MD3000/MD3000i */
@@ -764,8 +875,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 15,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	/*
 	 * NETAPP controller family
@@ -787,6 +900,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 128,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ONTAP,
+		.prio_args     = NULL,
 	},
 	/*
 	 * NEXENTA/COMSTAR controller family
@@ -808,6 +922,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	/*
 	 * IBM NSeries (NETAPP) controller family
@@ -829,6 +944,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 128,
 		.checker_name  = DIRECTIO,
 		.prio_name     = PRIO_ONTAP,
+		.prio_args     = NULL,
 	},
 	/*
 	 * Pillar Data controller family
@@ -848,14 +964,17 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
+
 	/*
 	 * SGI arrays
 	 *
 	 * Maintainer : Christophe Varoqui
-	 * Mail : christophe.varoqui@free.fr
+	 * Mail : christophe.varoqui@opensvc.com
 	 */
 	{
 		.vendor        = "SGI",
@@ -869,8 +988,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "SGI",
@@ -885,8 +1006,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "SGI",
@@ -901,14 +1024,34 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = 15,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
+	},
+	/* NEC Storage M Series */
+	{
+		.vendor        = "NEC",
+		.product       = "DISK ARRAY",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 alua",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = TUR,
+		.prio_name     = PRIO_ALUA,
+		.prio_args     = NULL,
 	},
 	/*
 	 * STK arrays
 	 *
 	 * Maintainer : Christophe Varoqui
-	 * Mail : christophe.varoqui@free.fr
+	 * Mail : christophe.varoqui@opensvc.com
 	 */
 	{
 		.vendor        = "STK",
@@ -939,14 +1082,16 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = TUR,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	/*
 	 * SUN arrays
 	 *
 	 * Maintainer : Christophe Varoqui
-	 * Mail : christophe.varoqui@free.fr
+	 * Mail : christophe.varoqui@opensvc.com
 	 */
 	{
 		.vendor        = "SUN",
@@ -960,7 +1105,25 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_UNDEF,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = DIRECTIO,
+		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
+	},
+	{
+		.vendor        = "EUROLOGC",
+		.product       = "FC2502",
+		.getuid        ="/lib/udev/scsi_id --page=0x80 --whitelisted --device=/dev/%n",
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = DEFAULT_HWHANDLER,
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = FAILBACK_UNDEF,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_UNDEF,
+		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = DEFAULT_CHECKER,
 		.prio_name     = DEFAULT_PRIO,
 	},
 	{
@@ -999,6 +1162,7 @@ static struct hwentry default_hw[] = {
 		.minio         = 100,
 		.checker_name  = TUR,
 		.prio_name     = DEFAULT_PRIO,
+		.prio_args     = NULL,
 	},
 	{
 		.vendor        = "SUN",
@@ -1013,8 +1177,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	/* SUN/LSI 2510, 2540, 2530, 2540 */
 	{
@@ -1030,8 +1196,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = RR_WEIGHT_NONE,
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
 		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
 		.checker_name  = RDAC,
 		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
 	},
 	/*
 	 * EOL
@@ -1048,8 +1216,10 @@ static struct hwentry default_hw[] = {
 		.rr_weight     = 0,
 		.no_path_retry = 0,
 		.minio         = 0,
+		.minio_rq      = 0,
 		.checker_name  = NULL,
 		.prio_name     = NULL,
+		.prio_args     = NULL,
 	},
 };
 

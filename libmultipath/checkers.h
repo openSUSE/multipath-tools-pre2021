@@ -68,20 +68,6 @@ enum path_check_state {
 
 #define DEFAULT_CHECKER DIRECTIO
 
-/*
- * Overloaded storage response time can be very long.
- * SG_IO timouts after DEF_TIMEOUT milliseconds, and checkers interprets this
- * as a path failure. multipathd then proactively evicts the path from the DM
- * multipath table in this case.
- *
- * This generaly snow balls and ends up in full eviction and IO errors for end
- * users. Bad. This may also cause SCSI bus resets, causing disruption for all
- * local and external storage hardware users.
- * 
- * Provision a long timeout. Longer than any real-world application would cope
- * with.
- */
-#define DEF_TIMEOUT		300000
 #define ASYNC_TIMEOUT_SEC	30
 
 /*
@@ -98,7 +84,7 @@ struct checker {
 	int refcount;
 	int fd;
 	int sync;
-	int async_timeout;
+	unsigned int timeout;
 	int disable;
 	char name[CHECKER_NAME_LEN];
 	char message[CHECKER_MSG_LEN];       /* comm with callers */
@@ -123,7 +109,6 @@ void checker_put (struct checker *);
 void checker_reset (struct checker *);
 void checker_set_sync (struct checker *);
 void checker_set_async (struct checker *);
-void checker_set_async_timeout (struct checker *, int);
 void checker_set_fd (struct checker *, int);
 void checker_enable (struct checker *);
 void checker_disable (struct checker *);
@@ -131,7 +116,7 @@ int checker_check (struct checker *);
 int checker_selected (struct checker *);
 char * checker_name (struct checker *);
 char * checker_message (struct checker *);
-void checker_reset_message (struct checker *);
+void checker_clear_message (struct checker *);
 void checker_get (struct checker *, char *);
 
 #endif /* _CHECKERS_H */

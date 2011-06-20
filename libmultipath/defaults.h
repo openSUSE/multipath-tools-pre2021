@@ -6,6 +6,7 @@
 #define DEFAULT_FEATURES	"0"
 #define DEFAULT_HWHANDLER	"0"
 #define DEFAULT_MINIO		1000
+#define DEFAULT_MINIO_RQ	1
 #define DEFAULT_PGPOLICY       FAILOVER
 #define DEFAULT_FAILBACK       -FAILBACK_MANUAL
 #define DEFAULT_RR_WEIGHT      RR_WEIGHT_NONE
@@ -13,8 +14,6 @@
 #define DEFAULT_PGTIMEOUT      -PGTIMEOUT_NONE
 #define DEFAULT_USER_FRIENDLY_NAMES    0
 #define DEFAULT_VERBOSITY	2
-#define DEFAULT_DEV_LOSS_TMO	10
-#define DEFAULT_FAST_IO_FAIL	5
 #define DEFAULT_REASSIGN_MAPS	1
 
 #define DEFAULT_CHECKINT	5
@@ -24,6 +23,6 @@
 #define DEFAULT_PIDFILE		"/var/run/multipathd.pid"
 #define DEFAULT_SOCKET		"/var/run/multipathd.sock"
 #define DEFAULT_CONFIGFILE	"/etc/multipath.conf"
-#define DEFAULT_BINDINGS_FILE	"/var/lib/multipath/bindings"
+#define DEFAULT_BINDINGS_FILE	"/etc/multipath/bindings"
 
 char * set_default (char * str);

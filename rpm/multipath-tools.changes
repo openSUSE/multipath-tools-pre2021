@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Mon Jun 20 13:17:48 CEST 2011 - hare@suse.de
+
+- Merge with mainline. Fixes:
+  * Change MPIO defaults to exclude friendly names (FATE#310081)
+  * possibility to set dev_loss_tmo to infinity (FATE#310183)
+  * Power Virtual SCSI Next Generation (FATE#311630)
+  * Enable RDAC IO-shipping (bnc#688934)
+  * Allow users to set the revision in multipath.conf
+  * Add -r to kpartx to mark devices read-only
+  * Support different 'minio' values for rq and bio-based
+    dm-multipath
+  * Standardize on 'path_selector'
+  * Add checker_timeout default config option
+  * Clean up path orphaning and adoption
+  * sort all pathgroups by priority
+
+-------------------------------------------------------------------
 Mon Jun 20 13:02:11 CEST 2011 - hare@suse.de
 
 - multipathd: Disassociate from /dev/console (FATE#310684)

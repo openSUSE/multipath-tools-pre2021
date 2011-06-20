@@ -53,6 +53,7 @@ assemble_map (struct multipath * mp, char * params, int len)
 	int i, j;
 	int shift, freechar;
 	int minio;
+	int nr_priority_groups, initial_pg_nr;
 	char * p, * f;
 	char no_path_retry[] = "queue_if_no_path";
 	struct pathgroup * pgp;
@@ -61,6 +62,9 @@ assemble_map (struct multipath * mp, char * params, int len)
 	minio = mp->minio;
 	p = params;
 	freechar = len;
+
+	nr_priority_groups = VECTOR_SIZE(mp->pg);
+	initial_pg_nr = (nr_priority_groups ? mp->bestpg : 0);
 
 	f = STRDUP(mp->features);
 
@@ -80,12 +84,12 @@ assemble_map (struct multipath * mp, char * params, int len)
 
 	shift = snprintf(p, freechar, "%s %s %i %i",
 			 f, mp->hwhandler,
-			 VECTOR_SIZE(mp->pg), mp->bestpg);
+			 nr_priority_groups, initial_pg_nr);
 
 	FREE(f);
 
 	if (shift >= freechar) {
-		condlog(0, "%s: params too small\n", mp->alias);
+		condlog(0, "%s: params too small", mp->alias);
 		return 1;
 	}
 	p += shift;
@@ -96,7 +100,7 @@ assemble_map (struct multipath * mp, char * params, int len)
 		shift = snprintf(p, freechar, " %s %i 1", mp->selector,
 				 VECTOR_SIZE(pgp->paths));
 		if (shift >= freechar) {
-			condlog(0, "%s: params too small\n", mp->alias);
+			condlog(0, "%s: params too small", mp->alias);
 			return 1;
 		}
 		p += shift;
@@ -109,13 +113,13 @@ assemble_map (struct multipath * mp, char * params, int len)
 			    && pp->priority > 0)
 				tmp_minio = minio * pp->priority;
 			if (!strlen(pp->dev_t) ) {
-				condlog(0, "dev_t not set for '%s'\n", pp->dev);
+				condlog(0, "dev_t not set for '%s'", pp->dev);
 				return 1;
 			}
 			shift = snprintf(p, freechar, " %s %d",
 					 pp->dev_t, tmp_minio);
 			if (shift >= freechar) {
-				condlog(0, "%s: params too small\n", mp->alias);
+				condlog(0, "%s: params too small", mp->alias);
 				return 1;
 			}
 			p += shift;
@@ -123,13 +127,12 @@ assemble_map (struct multipath * mp, char * params, int len)
 		}
 	}
 	if (freechar < 1) {
-		condlog(0, "%s: params too small\n", mp->alias);
+		condlog(0, "%s: params too small", mp->alias);
 		return 1;
 	}
 	snprintf(p, 1, "\n");
 
-	condlog(3, "%s: assembled map [%s]\n", mp->alias, params);
-
+	condlog(3, "%s: assembled map [%s]", mp->alias, params);
 	return 0;
 }
 
@@ -152,7 +155,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 
 	p = params;
 
-	condlog(3, "%s: disassemble map [%s]\n", mpp->alias, params);
+	condlog(3, "%s: disassemble map [%s]", mpp->alias, params);
 
 	/*
 	 * features
@@ -406,7 +409,7 @@ disassemble_status (char * params, struct multipath * mpp)
 
 	p = params;
 
-	condlog(3, "%s: disassemble status [%s]\n", mpp->alias, params);
+	condlog(3, "%s: disassemble status [%s]", mpp->alias, params);
 
 	/*
 	 * features

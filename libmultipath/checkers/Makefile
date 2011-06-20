@@ -1,6 +1,6 @@
 # Makefile
 #
-# Copyright (C) 2003 Christophe Varoqui, <christophe.varoqui@free.fr>
+# Copyright (C) 2003 Christophe Varoqui, <christophe.varoqui@opensvc.com>
 #
 include ../../Makefile.inc
 
@@ -18,10 +18,10 @@ CFLAGS += -I..
 all: $(LIBS)
 
 libcheckdirectio.so: libsg.o directio.o
-	$(CC) $(SHARED_FLAGS) -o $@ $^ -laio
+	$(CC) $(LDFLAGS) $(SHARED_FLAGS) -o $@ $^ -laio
 
 libcheck%.so: libsg.o %.o
-	$(CC) $(SHARED_FLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) $(SHARED_FLAGS) -o $@ $^
 
 install:
 	$(INSTALL_PROGRAM) -m 755 $(LIBS) $(DESTDIR)$(libdir)

@@ -90,7 +90,7 @@ tur_check (struct checker * c)
 	io_hdr.dxfer_direction = SG_DXFER_NONE;
 	io_hdr.cmdp = turCmdBlk;
 	io_hdr.sbp = sense_buffer;
-	io_hdr.timeout = DEF_TIMEOUT;
+	io_hdr.timeout = c->timeout;
 	io_hdr.pack_id = 0;
 	if (ioctl(c->fd, SG_IO, &io_hdr) < 0) {
 		MSG(c, MSG_TUR_DOWN);
@@ -112,7 +112,6 @@ tur_check (struct checker * c)
 		case DID_NO_CONNECT:
 		case DID_BAD_TARGET:
 		case DID_ABORT:
-		case DID_TRANSPORT_DISRUPTED:
 		case DID_TRANSPORT_FAILFAST:
 			break;
 		default:
@@ -214,7 +213,7 @@ void tur_set_async_timeout(struct checker *c)
 	struct timeval now;
 
 	gettimeofday(&now, NULL);
-	ct->timeout = now.tv_sec + c->async_timeout;
+	ct->timeout = now.tv_sec + c->timeout;
 }
 
 int tur_check_async_timeout(struct checker *c)

@@ -61,6 +61,11 @@ struct prio * prio_lookup (char * name)
 	return add_prio(name);
 }
 
+int prio_set_args (struct prio * p, char * args)
+{
+	return snprintf(p->args, PRIO_ARGS_LEN, "%s", args);
+}
+
 struct prio * add_prio (char * name)
 {
 	char libname[LIB_PRIO_NAMELEN];
@@ -87,7 +92,7 @@ struct prio * add_prio (char * name)
 				errstr);
 		goto out;
 	}
-	p->getprio = (int (*)(struct path *)) dlsym(p->handle, "getprio");
+	p->getprio = (int (*)(struct path *, char *)) dlsym(p->handle, "getprio");
 	errstr = dlerror();
 	if (errstr != NULL)
 		condlog(0, "A dynamic linking error occurred: (%s)", errstr);
@@ -102,10 +107,15 @@ out:
 
 int prio_getprio (struct prio * p, struct path * pp)
 {
-	return p->getprio(pp);
+	return p->getprio(pp, p->args);
 }
 
 char * prio_name (struct prio * p)
 {
 	return p->name;
+}
+
+char * prio_args (struct prio * p)
+{
+	return p->args;
 }

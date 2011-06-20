@@ -38,7 +38,7 @@ typedef struct _vector *vector;
 #define vector_foreach_slot(v,p,i) \
 	for (i = 0; (v) && i < VECTOR_SIZE(v) && ((p) = (v)->slot[i]); i++)
 #define vector_foreach_slot_after(v,p,i) \
-	for (; (v) && i < VECTOR_SIZE(v) && ((p) = (v)->slot[i]); i++)
+	for (; (v) && i < (v)->allocated && ((p) = (v)->slot[i]); i++)
 #define vector_foreach_slot_backwards(v,p,i) \
 	for (i = VECTOR_SIZE(v); i > 0 && ((p) = (v)->slot[i-1]); i--)
 
@@ -54,5 +54,5 @@ int find_slot(vector v, void * addr);
 extern void vector_repack(vector v);
 extern void vector_dump(vector v);
 extern void dump_strvec(vector strvec);
-
+extern int vector_move_up(vector v, int src, int dest);
 #endif

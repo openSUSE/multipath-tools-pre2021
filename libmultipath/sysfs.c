@@ -345,27 +345,28 @@ out:
 	return size;
 }
 
-int sysfs_attr_set_value(const char *devpath, const char *attr_name,
-			 char *value, int value_len)
+ssize_t sysfs_attr_set_value(const char *devpath, const char *attr_name,
+			     const char *value, int value_len)
 {
 	char path_full[PATH_SIZE];
-	const char *path;
 	struct stat statbuf;
 	int fd;
 	ssize_t size = 0;
 	size_t sysfs_len;
 
-	dbg("open '%s'/'%s'", devpath, attr_name);
-	sysfs_len = strlcpy(path_full, sysfs_path, sizeof(path_full));
-	if(sysfs_len >= sizeof(path_full))
-		sysfs_len = sizeof(path_full) - 1;
-	path = &path_full[sysfs_len];
-	strlcat(path_full, devpath, sizeof(path_full));
-	strlcat(path_full, "/", sizeof(path_full));
-	strlcat(path_full, attr_name, sizeof(path_full));
+	if (!attr_name || !value || !value_len)
+		return 0;
 
-	if (stat(path_full, &statbuf) != 0) {
-		dbg("stat '%s' failed: %s", path_full, strerror(errno));
+	dbg("open '%s'/'%s'", devpath, attr_name);
+	sysfs_len = snprintf(path_full, PATH_SIZE, "%s%s/%s", sysfs_path,
+			     devpath, attr_name);
+	if (sysfs_len >= PATH_SIZE || sysfs_len < 0) {
+		if (sysfs_len < 0)
+			dbg("cannot copy sysfs path %s%s/%s : %s", sysfs_path,
+			    devpath, attr_name, strerror(errno));
+		else
+			dbg("sysfs_path %s%s/%s too large", sysfs_path,
+			    devpath, attr_name);
 		goto out;
 	}
 

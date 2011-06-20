@@ -43,7 +43,7 @@ char *get_next_string(char **temp, char *split_char)
 }
 
 /* main priority routine */
-int prio_path_weight(struct path *pp)
+int prio_path_weight(struct path *pp, char *prio_args)
 {
 	char path[FILE_NAME_SIZE];
 	char *arg;
@@ -53,10 +53,10 @@ int prio_path_weight(struct path *pp)
 	regex_t pathe;
 
 	/* Return default priority if there is no argument */
-	if (!pp->prio_args)
+	if (!prio_args)
 		return priority;
 
-	arg = temp = STRDUP(pp->prio_args);
+	arg = temp = STRDUP(prio_args);
 
 	regex = get_next_string(&temp, split_char);
 
@@ -92,8 +92,8 @@ int prio_path_weight(struct path *pp)
 	return priority;
 }
 
-int getprio(struct path *pp)
+int getprio(struct path *pp, char *args)
 {
-	return prio_path_weight(pp);
+	return prio_path_weight(pp, args);
 }
 

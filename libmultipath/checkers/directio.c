@@ -117,7 +117,7 @@ void libcheck_free (struct checker * c)
 }
 
 static int
-check_state(int fd, struct directio_context *ct, int sync, int async_timeout)
+check_state(int fd, struct directio_context *ct, int sync, int timeout_secs)
 {
 	struct timespec	timeout = { .tv_nsec = 5 };
 	struct io_event event;
@@ -130,7 +130,7 @@ check_state(int fd, struct directio_context *ct, int sync, int async_timeout)
 	}
 	if (sync > 0) {
 		LOG(4, "called in synchronous mode");
-		timeout.tv_sec  = async_timeout;
+		timeout.tv_sec  = timeout_secs;
 		timeout.tv_nsec = 0;
 	}
 
@@ -156,7 +156,7 @@ check_state(int fd, struct directio_context *ct, int sync, int async_timeout)
 		ct->running = 0;
 		rc = PATH_UNCHECKED;
 	} else if (r < 1L) {
-		if (ct->running > async_timeout || sync) {
+		if (ct->running > timeout_secs || sync) {
 			struct iocb *ios[1] = { &ct->io };
 
 			LOG(3, "abort check on timeout");
@@ -191,7 +191,7 @@ int libcheck_check (struct checker * c)
 	if (!ct)
 		return PATH_UNCHECKED;
 
-	ret = check_state(c->fd, ct, c->sync, c->async_timeout);
+	ret = check_state(c->fd, ct, c->sync, c->timeout);
 
 	switch (ret)
 	{
