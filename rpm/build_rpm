@@ -4,10 +4,12 @@
 #
 
 RPM="multipath-tools"
-BRANCH="sles11-sp1"
-BASEVER="0.4.8"
+BRANCH="sles11-sp2"
+BASEVER="0.4.9"
 DESTDIR=
 TMPDIR=
+OBS=SUSE:SLE-11-SP2:GA
+OSC="osc -A https://api.suse.de"
 uncommitted_changes=0
 
 while [ $# -gt 0 ] ; do
@@ -97,7 +99,8 @@ fi
 
 if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
-    osc co --current-dir home:hreinecke:SLES11-SP1 multipath-tools
+    $OSC branch -m "Update with latest fixes" $OBS $RPM
+    $OSC co --current-dir home:hreinecke:branches:$OBS multipath-tools
     TMPDIR=${DESTDIR}
     DESTDIR="${DESTDIR}/multipath-tools"
     popd
@@ -132,6 +135,7 @@ if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
     osc ar
     osc ci --message="Checked in from git branch $BRANCH"
+    osc sr
     popd
 fi
 

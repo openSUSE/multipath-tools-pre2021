@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
 Mon Jun 20 13:17:48 CEST 2011 - hare@suse.de
 
+- Update to version 0.4.9
 - Merge with mainline. Fixes:
   * Change MPIO defaults to exclude friendly names (FATE#310081)
   * possibility to set dev_loss_tmo to infinity (FATE#310183)

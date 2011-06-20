@@ -26,12 +26,12 @@ Group:          System/Base
 Requires:       device-mapper kpartx
 PreReq:         %insserv_prereq %fillup_prereq coreutils grep
 AutoReqProv:    on
-Version:        0.4.8
+Version:        0.4.9
 Release:        41
 Summary:        Tools to Manage Multipathed Devices with the device-mapper
 Source:         multipath-tools-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-Patch0:         %{name}-%{version}-sles11-sp1.diff.bz2
+Patch0:         %{name}-%{version}-sles11-sp2.diff.bz2
 
 %description
 This package provides the tools to manage multipathed devices by
