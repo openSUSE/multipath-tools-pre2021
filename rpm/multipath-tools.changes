@@ -1,4 +1,27 @@
 -------------------------------------------------------------------
+Mon Jun 20 13:02:11 CEST 2011 - hare@suse.de
+
+- multipathd: Disassociate from /dev/console (FATE#310684)
+- Resource leak in read_value_block()
+- Error checking in remove_features()
+- Invalid check for mpp->wwid in dm_addmap()
+- Missing locking in uevent_listen()
+- Missing locking in uevent_dispatch()
+- Double free in assemble_map
+- Uninitalized retval in uev_update_path()
+- Signal handlers might use uninitialized gvecs (bnc#691791)
+- Zero out buffer in readling (bnc#691724)
+- Checkers: test for required functions on entry
+- Make log_pthread more robust (bnc#642846)
+- Use refcounting for sysfs devices (bnc#642846)
+- Make 'allocated' an integer in vector.h (bnc#642846)
+- Use correct return value when handling uevents
+- Race condition when calling stop_waiter_thread (bnc#642846)
+- Do not attempt to rename a devcie (bnc#695975)
+- multipathd deadlocks during restart (bnc#697112)
+- Syntax error in /etc/init.d/boot.multipath (bnc#697125)
+
+-------------------------------------------------------------------
 Tue Apr 19 15:28:03 CEST 2011 - hare@suse.de
 
 - Fix typos in vector paranoia patch (bnc#688430)
