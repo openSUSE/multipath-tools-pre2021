@@ -28,16 +28,33 @@ Mon Jun 20 13:02:11 CEST 2011 - hare@suse.de
 - Double free in assemble_map
 - Uninitalized retval in uev_update_path()
 - Signal handlers might use uninitialized gvecs (bnc#691791)
-- Zero out buffer in readling (bnc#691724)
-- Checkers: test for required functions on entry
-- Make log_pthread more robust (bnc#642846)
-- Use refcounting for sysfs devices (bnc#642846)
-- Make 'allocated' an integer in vector.h (bnc#642846)
-- Use correct return value when handling uevents
-- Race condition when calling stop_waiter_thread (bnc#642846)
-- Do not attempt to rename a devcie (bnc#695975)
+- Zero out buffer in readline (bnc#691724)
+
+-------------------------------------------------------------------
+Fri Jun  3 11:21:29 CEST 2011 - hare@suse.de
+
 - multipathd deadlocks during restart (bnc#697112)
 - Syntax error in /etc/init.d/boot.multipath (bnc#697125)
+
+-------------------------------------------------------------------
+Thu May 26 08:09:44 CEST 2011 - hare@suse.de
+
+- Do not attempt to rename a device from multipathd (bnc#695975)
+
+-------------------------------------------------------------------
+Fri May 20 13:14:50 CEST 2011 - hare@suse.de
+
+- Race condition fixes (bnc#642846)
+  * Make log_pthread more robust
+  * Use refcounting for sysfs devices
+  * Make 'allocated' an integer in vector.h
+  * Use correct return value when handling uevents
+  * Race condition when calling stop_waiter_thread()
+
+-------------------------------------------------------------------
+Mon May 16 13:53:09 CEST 2011 - hare@suse.de
+
+- Test for functions in checkers.c (bnc#642846)
 
 -------------------------------------------------------------------
 Tue Apr 19 15:28:03 CEST 2011 - hare@suse.de
