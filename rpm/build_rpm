@@ -43,6 +43,11 @@ while [ $# -gt 0 ] ; do
 	    update=;
             shift;
             ;;
+	-m|--maintenance)
+	    OBS=SUSE:SLE-11-SP2:GA
+	    OSC="osc -A https://api.suse.de"
+	    shift;
+	    ;;
         -u|--update)
             update=1;
 	    force=;
@@ -99,7 +104,9 @@ fi
 
 if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
-    $OSC branch -m "Update with latest fixes" $OBS $RPM
+    if [ -z "$update" ] ; then
+	$OSC branch -m "Update with latest fixes" $OBS $RPM
+    fi
     $OSC co --current-dir home:hreinecke:branches:$OBS multipath-tools
     TMPDIR=${DESTDIR}
     DESTDIR="${DESTDIR}/multipath-tools"
