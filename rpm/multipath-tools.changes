@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jul  1 07:56:50 CEST 2011 - hare@suse.de
+
+- Fixup buffer overflow in devt2devname()
+
+-------------------------------------------------------------------
 Mon Jun 20 13:17:48 CEST 2011 - hare@suse.de
 
 - Update to version 0.4.9
