@@ -1493,7 +1493,7 @@ child (void * param)
 	sigset_t set;
 	struct multipath * mpp;
 	int i;
-	int rc;
+	int rc, pid_rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -1606,18 +1606,10 @@ child (void * param)
 	}
 	pthread_attr_destroy(&misc_attr);
 
-	/* Startup complete, create logfile */
-	if (pidfile_create(DEFAULT_PIDFILE, daemon_pid)) {
-		if (logsink)
-			log_thread_stop();
-
-		exit(1);
-	}
 	pthread_mutex_lock(&exit_mutex);
 	/* Startup complete, create logfile */
-	if (pidfile_create(DEFAULT_PIDFILE, daemon_pid))
-		/* Ignore errors, we can live without */
-		condlog(1, "failed to create pidfile");
+	pid_rc = pidfile_create(DEFAULT_PIDFILE, daemon_pid);
+	/* Ignore errors, we can live without */
 
 	running_state = DAEMON_RUNNING;
 	pthread_cond_wait(&exit_cond, &exit_mutex);
@@ -1670,8 +1662,10 @@ child (void * param)
 	dm_lib_exit();
 
 	/* We're done here */
-	condlog(3, "unlink pidfile");
-	unlink(DEFAULT_PIDFILE);
+	if (!pid_rc) {
+		condlog(3, "unlink pidfile");
+		unlink(DEFAULT_PIDFILE);
+	}
 
 	condlog(2, "--------shut down-------");
 
