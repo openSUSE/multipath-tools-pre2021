@@ -456,6 +456,10 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 	}
 	sprintf(dev_path,"dm-%d", minor);
 	alias = dm_mapname(major, minor);
+	if (!alias) {
+		condlog(2, "%s: Not a device mapper table", param);
+		return 0;
+	}
 	return ev_add_map(dev_path, alias, vecs);
 }
 
