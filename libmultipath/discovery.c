@@ -163,6 +163,9 @@ sysfs_get_timeout(struct sysfs_device *dev, unsigned int *timeout)
 	int r;
 	unsigned int t;
 
+	if (!dev)
+		return 1;
+
 	if (safe_sprintf(attr_path, "%s/device", dev->devpath))
 		return 1;
 
@@ -821,8 +824,9 @@ get_state (struct path * pp, int daemon)
 	checker_clear_message(c);
 	if (daemon)
 		checker_set_async(c);
-	if (!conf->checker_timeout)
-		sysfs_get_timeout(pp->sysdev, &(c->timeout));
+	if (!conf->checker_timeout &&
+	    sysfs_get_timeout(pp->sysdev, &(c->timeout)))
+		c->timeout = DEF_TIMEOUT;
 	state = checker_check(c);
 	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
 	if (state != PATH_UP && strlen(checker_message(c)))
