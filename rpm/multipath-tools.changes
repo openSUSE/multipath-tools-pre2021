@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Fri Jul 29 15:13:52 CEST 2011 - hare@suse.de
+
+- Switch to abstract sockets for CLI commands (bnc#705546)
+- Ignore errors when creating pidfile (bnc#705546)
+- Update usage message for /etc/init.d/boot.multipath (bnc#708277)
+- Accept several whitespaces in bindings file (bnc#708558)
+- multipath crashes on failback (bnc#709094)
+- Backport patches from mainline:
+  * multipath: check setup_multipath return value
+  * multipath: strdup multipath alias, so that it isn't deleted
+
+-------------------------------------------------------------------
 Fri Jul  1 07:56:50 CEST 2011 - hare@suse.de
 
 - Fixup buffer overflow in devt2devname()

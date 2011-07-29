@@ -8,7 +8,8 @@ BRANCH="sles11-sp2"
 BASEVER="0.4.9"
 DESTDIR=
 TMPDIR=
-OBS=SUSE:SLE-11-SP2:GA
+OBS_PRJ=SUSE:SLE-11-SP2:GA
+OBS_BRANCH=home:hreinecke:branches
 OSC="osc -A https://api.suse.de"
 uncommitted_changes=0
 
@@ -104,10 +105,10 @@ fi
 
 if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
-    if [ -z "$update" ] ; then
-	$OSC branch -m "Update with latest fixes" $OBS $RPM
+    if ! $OSC meta pkg $OBS_BRANCH:$OBS_PRJ $RPM > /dev/null 2>&1 ; then
+	$OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM
     fi
-    $OSC co --current-dir home:hreinecke:branches:$OBS multipath-tools
+    $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ multipath-tools
     TMPDIR=${DESTDIR}
     DESTDIR="${DESTDIR}/multipath-tools"
     popd
