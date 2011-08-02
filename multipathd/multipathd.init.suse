@@ -188,12 +188,8 @@ case "$1" in
 	fi
 	rc_status -v
 	;;
-    probe)
-	## Optional: Probe for the necessity of a reload,
-	## give out the argument which is required for a reload.
-	;;
     *)
-	echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload|probe}"
+	echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload}"
 	exit 1
 	;;
 esac
