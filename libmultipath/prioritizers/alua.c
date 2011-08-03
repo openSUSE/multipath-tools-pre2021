@@ -115,13 +115,16 @@ int getprio (struct path * pp, char * args)
 				condlog(0, "%s: alua not supported", pp->dev);
 				break;
 			case ALUA_PRIO_RTPG_FAILED:
-				condlog(0, "%s: couldn't get target port group", pp->dev);
+				condlog(0, "%s: couldn't get "
+					"target port group", pp->dev);
 				break;
 			case ALUA_PRIO_GETAAS_FAILED:
-				condlog(0, "%s: couln't get asymmetric access state", pp->dev);
+				condlog(0, "%s: couln't get "
+					"asymmetric access state", pp->dev);
 				break;
 			case ALUA_PRIO_TPGS_FAILED:
-				condlog(3, "%s: couln't get supported alua states", pp->dev);
+				condlog(3, "%s: couln't get "
+					"supported alua states", pp->dev);
 				break;
 		}
 	}
