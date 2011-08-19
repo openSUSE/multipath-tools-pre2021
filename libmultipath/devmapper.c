@@ -800,7 +800,7 @@ dm_fail_path(char * mapname, char * path)
 {
 	char message[32];
 
-	if (snprintf(message, 32, "fail_path %s\n", path) > 32)
+	if (snprintf(message, 32, "fail_path %s", path) > 32)
 		return 1;
 
 	return dm_message(mapname, message);
@@ -811,7 +811,7 @@ dm_reinstate_path(char * mapname, char * path)
 {
 	char message[32];
 
-	if (snprintf(message, 32, "reinstate_path %s\n", path) > 32)
+	if (snprintf(message, 32, "reinstate_path %s", path) > 32)
 		return 1;
 
 	return dm_message(mapname, message);
@@ -823,9 +823,9 @@ dm_queue_if_no_path(char *mapname, int enable)
 	char *message;
 
 	if (enable)
-		message = "queue_if_no_path\n";
+		message = "queue_if_no_path";
 	else
-		message = "fail_if_no_path\n";
+		message = "fail_if_no_path";
 
 	return dm_message(mapname, message);
 }
@@ -845,7 +845,7 @@ dm_groupmsg (char * msg, char * mapname, int index)
 {
 	char message[32];
 
-	if (snprintf(message, 32, "%s_group %i\n", msg, index) > 32)
+	if (snprintf(message, 32, "%s_group %i", msg, index) > 32)
 		return 1;
 
 	return dm_message(mapname, message);
