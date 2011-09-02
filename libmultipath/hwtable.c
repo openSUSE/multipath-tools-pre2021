@@ -818,30 +818,6 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 		.prio_args     = NULL,
 	},
-	/*
-	 * Generic LSI/Engenio controller
-	 *
-	 * Maintainer: Hannes Reinecke
-	 * Mail: hare@suse.de
-	 */
-	{
-		.vendor        = "(LSI|ENGENIO)",
-		.product       = "INF.*",
-		.bl_product    = "Universal Xport",
-		.getuid        = DEFAULT_GETUID,
-		.features      = "2 pg_init_retries 50",
-		.hwhandler     = "1 rdac",
-		.selector      = DEFAULT_SELECTOR,
-		.pgpolicy      = GROUP_BY_PRIO,
-		.pgfailback    = -FAILBACK_IMMEDIATE,
-		.rr_weight     = RR_WEIGHT_NONE,
-		.no_path_retry = 15,
-		.minio         = DEFAULT_MINIO,
-		.minio_rq      = DEFAULT_MINIO_RQ,
-		.checker_name  = RDAC,
-		.prio_name     = PRIO_RDAC,
-		.prio_args     = NULL,
-	},
 	{
 		/* DELL MD32xx/MD32xxi */
 		.vendor        = "DELL",
@@ -1186,6 +1162,41 @@ static struct hwentry default_hw[] = {
 	{
 		.vendor        = "SUN",
 		.product       = "LCSM100_[IEFS]",
+		.getuid        = DEFAULT_GETUID,
+		.features      = DEFAULT_FEATURES,
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = NO_PATH_RETRY_QUEUE,
+		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
+	},
+	/* LSI/Engenio/NetApp E-Series RDAC storage */
+	{
+		.vendor        = "(LSI|ENGENIO)",
+		.product       = "INF-01-00",
+		.getuid        = DEFAULT_GETUID,
+		.features      = "2 pg_init_retries 50",
+		.hwhandler     = "1 rdac",
+		.selector      = DEFAULT_SELECTOR,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 15,
+		.minio         = DEFAULT_MINIO,
+		.minio_rq      = DEFAULT_MINIO_RQ,
+		.checker_name  = RDAC,
+		.prio_name     = PRIO_RDAC,
+		.prio_args     = NULL,
+	},
+	{
+		.vendor        = "STK",
+		.product       = "FLEXLINE 380",
 		.bl_product    = "Universal Xport",
 		.getuid        = DEFAULT_GETUID,
 		.features      = DEFAULT_FEATURES,
