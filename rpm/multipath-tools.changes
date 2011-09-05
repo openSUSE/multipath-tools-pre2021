@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Mon Sep  5 09:19:16 CEST 2011 - hare@suse.de
+
+- 'probe' isn't supported in init script (bnc#709577)
+- Formatting cleanup in alua prioritizer
+- Backport patches from mainline:
+  * Remove prio_callout from manpage
+  * fix linebreaks
+  * Add kpartx example to manpage
+
+-------------------------------------------------------------------
 Fri Jul 29 15:13:52 CEST 2011 - hare@suse.de
 
 - Switch to abstract sockets for CLI commands (bnc#705546)
