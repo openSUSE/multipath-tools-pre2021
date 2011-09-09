@@ -83,6 +83,7 @@ make OPTFLAGS="$RPM_OPT_FLAGS" LIB=%_lib
 %install
 make DESTDIR=$RPM_BUILD_ROOT LIB=%_lib install
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
+ln -sf ../etc/init.d/multipathd $RPM_BUILD_ROOT/sbin/rcmultipathd
 
 %clean
 [ "$RPM_BUILD_ROOT" != / ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT;
@@ -123,6 +124,7 @@ exit 0
 /%{_lib}/multipath
 /sbin/multipath
 /sbin/multipathd
+/sbin/rcmultipathd
 %attr (0700, root, root) /var/cache/multipath
 %dir /lib/mkinitrd
 %dir /lib/mkinitrd/scripts
