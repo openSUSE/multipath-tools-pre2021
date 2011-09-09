@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Fri Sep  9 14:13:35 CEST 2011 - hare@suse.de
+
+- multipath-tools doesn't provide rc symlink (bnc#692872)
+- Recheck path priorities after failed paths recover (bnc#694581)
+- multipathd crashes on map reload (bnc#715205)
+- Sighandler might use uninitialized gvecs (bnc#691791)
+- Zero out buffer for readlink in devt2devname() (bnc#691724)
+- Accept several whitespaces in bindings file (bnc#708558)
+- Update usage message for boot.multipath (bnc#708277)
+- multipathd crashes on invalid map (bnc#707326)
+- Ignore errors when creating pidfile (bnc#705546)
+- Switch to abstract sockets for CLI commands (bnc#705546)
+
+-------------------------------------------------------------------
 Fri Jun  3 11:21:29 CEST 2011 - hare@suse.de
 
 - multipathd deadlocks during restart (bnc#697112)
