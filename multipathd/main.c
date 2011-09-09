@@ -1025,6 +1025,7 @@ retry_count_tick(vector mpvec)
 int update_prio(struct path *pp, int refresh_all)
 {
 	int oldpriority;
+	struct path *pp1;
 	struct pathgroup * pgp;
 	int i, j, changed = 0;
 
@@ -1032,12 +1033,12 @@ int update_prio(struct path *pp, int refresh_all)
 		if (!pp->mpp)
 			return 0;
 		vector_foreach_slot (pp->mpp->pg, pgp, i) {
-			vector_foreach_slot (pgp->paths, pp, j) {
-				oldpriority = pp->priority;
-				if (pp->state == PATH_UP ||
-				    pp->state == PATH_GHOST)
-					pathinfo(pp, conf->hwtable, DI_PRIO);
-				if (pp->priority != oldpriority)
+			vector_foreach_slot (pgp->paths, pp1, j) {
+				oldpriority = pp1->priority;
+				if (pp1->state == PATH_UP ||
+				    pp1->state == PATH_GHOST)
+					pathinfo(pp1, conf->hwtable, DI_PRIO);
+				if (pp1->priority != oldpriority)
 					changed = 1;
 			}
 		}
@@ -1072,7 +1073,8 @@ int update_path_groups(struct multipath *mpp, struct vectors *vecs, int refresh)
 		return 1;
 	}
 	dm_lib_release();
-	setup_multipath(vecs, mpp);
+	if (setup_multipath(vecs, mpp) != 0)
+		return 1;
 	sync_map_state(mpp);
 
 	return 0;
