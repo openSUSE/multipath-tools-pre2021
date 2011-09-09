@@ -667,11 +667,12 @@ uev_update_path (struct uevent *uev, struct vectors * vecs)
 				uev->kernel);
 			return 1;
 		}
-		if (pp->mpp)
+		if (pp->mpp) {
 			retval = reload_map(vecs, pp->mpp);
 
-		condlog(2, "%s: map %s reloaded (retval %d)",
-			uev->kernel, pp->mpp->alias, retval);
+			condlog(2, "%s: map %s reloaded (retval %d)",
+				uev->kernel, pp->mpp->alias, retval);
+		}
 
 	}
 
