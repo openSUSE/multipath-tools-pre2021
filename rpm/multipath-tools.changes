@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Sep 19 13:58:11 CEST 2011 - hare@suse.de
+
+- Adding NetApp as brand name for RDAC (bnc#716970)
+- Service mode changes for RDAC storage
+- multipath-tools doesn't provide rc symlink (bnc#692872)
+- Errorneous group priority displayed (bnc#714953)
+- Multipathd crashes on map reload (bnc#715205)
+
+-------------------------------------------------------------------
 Mon Sep  5 09:19:16 CEST 2011 - hare@suse.de
 
 - 'probe' isn't supported in init script (bnc#709577)
