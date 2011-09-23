@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Fri Sep 23 16:04:48 CEST 2011 - hare@suse.de
+
+- option to multipath to not modify the bindinfs file (bnc#718071)
+- Recheck dm-multipath path priorities after failed paths recover
+  (bnc#694588)
+- Implement flaky path tracking (bnc#679309)
+- Group priority is incorrectly displayed (bnc#688705)
+- Multipathd hangs on 'reconfigure' CLI command (bnc#711368)
+
+-------------------------------------------------------------------
 Fri Feb 18 15:15:58 CET 2011 - hare@suse.de
 
 - multipathd: memory leak in get_cmdvec()
