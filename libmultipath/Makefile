@@ -6,7 +6,7 @@ BUILD = glibc
 
 include ../Makefile.inc
 
-CFLAGS += -I$(checkersdir) -I$(libpriodir)
+CFLAGS += -I$(checkersdir) -I$(libpriodir) -D_GNU_SOURCE
 
 OBJS = memory.o parser.o vector.o devmapper.o callout.o \
        hwtable.o blacklist.o util.o dmparser.o config.o \

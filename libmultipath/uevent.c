@@ -35,6 +35,7 @@
 #include <sys/un.h>
 #include <linux/types.h>
 #include <linux/netlink.h>
+#include <limits.h>
 #include <pthread.h>
 #include <sys/mman.h>
 #include <errno.h>
