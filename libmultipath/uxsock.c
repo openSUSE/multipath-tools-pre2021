@@ -6,6 +6,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <fcntl.h>
@@ -39,6 +40,7 @@ int ux_socket_connect(const char *name)
 		return -1;
 	}
 
+	len += offsetof(struct sockaddr_un, sun_path);
 	if (connect(fd, (struct sockaddr *)&addr, len) == -1) {
 		close(fd);
 		return -1;
@@ -65,6 +67,7 @@ int ux_socket_listen(const char *name)
 	len = strlen(name) + 1;
 	strncpy(&addr.sun_path[1], name, len);
 
+	len += offsetof(struct sockaddr_un, sun_path);
 	if (bind(fd, (struct sockaddr *)&addr, len) == -1) {
 		close(fd);
 		return -1;
