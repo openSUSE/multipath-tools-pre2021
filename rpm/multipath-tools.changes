@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Sep 28 13:32:07 CEST 2011 - hare@suse.de
+
+- multipathd: use correct socket length (bnc#705546)
+
+-------------------------------------------------------------------
 Fri Sep  9 14:13:35 CEST 2011 - hare@suse.de
 
 - multipath-tools doesn't provide rc symlink (bnc#692872)
