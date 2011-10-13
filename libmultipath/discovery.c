@@ -686,7 +686,7 @@ path_offline (struct path * pp)
 	pp->sysdev = sysfs_device_from_path(pp);
 	if (!pp->sysdev) {
 		condlog(1, "%s: failed to get sysfs information", pp->dev);
-		return PATH_WILD;
+		return PATH_DOWN;
 	}
 
 	parent = sysfs_device_get_parent(pp->sysdev);
