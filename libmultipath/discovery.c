@@ -717,7 +717,7 @@ path_offline (struct path * pp)
 	return PATH_DOWN;
 }
 
-extern int
+int
 sysfs_pathinfo(struct path * pp)
 {
 	struct sysfs_device *parent;
@@ -808,8 +808,10 @@ get_state (struct path * pp, int daemon)
 	condlog(3, "%s: get_state", pp->dev);
 
 	if (!checker_selected(c)) {
-		if (daemon)
-			pathinfo(pp, conf->hwtable, DI_SYSFS);
+		if (daemon && pathinfo(pp, conf->hwtable, DI_SYSFS)) {
+			condlog(3, "%s: pathinfo failed", pp->dev);
+			return PATH_DOWN;
+		}
 		select_checker(pp);
 		if (!checker_selected(c)) {
 			condlog(3, "%s: No checker selected", pp->dev);
