@@ -782,6 +782,9 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 {
 	condlog(3, "%s: mask = 0x%x", pp->dev, mask);
 
+	if ((mask & DI_CHECKER) && pp->sysdev == NULL)
+		mask |= DI_SYSFS;
+
 	/*
 	 * fetch info available in sysfs
 	 */

@@ -355,6 +355,7 @@ ev_add_path (char * devname, struct vectors * vecs)
 	struct multipath * mpp;
 	struct path * pp;
 	char empty_buff[WWID_SIZE] = {0};
+	int retries = 3;
 
 	pp = find_path_by_dev(vecs->pathvec, devname);
 
@@ -423,12 +424,14 @@ rescan:
 		/*
 		 * deal with asynchronous uevents :((
 		 */
-		if (mpp->action == ACT_RELOAD) {
+		if (mpp->action == ACT_RELOAD && retries-- > 0) {
 			condlog(0, "%s: uev_add_path sleep", mpp->alias);
 			sleep(1);
 			update_mpp_paths(mpp, vecs->pathvec);
 			goto rescan;
 		}
+		else if (mpp->action == ACT_RELOAD)
+			condlog(0, "%s: giving up reload", mpp->alias);
 		else
 			goto out;
 	}
@@ -446,8 +449,12 @@ rescan:
 	    start_waiter_thread(mpp, vecs))
 			goto out;
 
-	condlog(2, "%s path added to devmap %s", devname, mpp->alias);
-	return 0;
+	if (retries >= 0) {
+		condlog(2, "%s path added to devmap %s", devname, mpp->alias);
+		return 0;
+	}
+	else
+		return 1;
 
 out:
 	remove_map(mpp, vecs, NULL, 1);
