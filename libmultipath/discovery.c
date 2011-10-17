@@ -246,7 +246,7 @@ find_rport_id(struct path *pp)
 			 pp->sg_id.host_no, pp->sg_id.channel,
 			 pp->sg_id.scsi_id)) {
 		condlog(0, "attr_path too small for target");
-		return 1;
+		return -1;
 	}
 
 	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
@@ -270,13 +270,107 @@ find_rport_id(struct path *pp)
 }
 
 int
-sysfs_set_scsi_tmo (struct multipath *mpp)
+update_rport_timeout(struct multipath *mpp, struct path *pp, int rport_id)
 {
 	char attr_path[SYSFS_PATH_SIZE];
+	char value[11];
+
+	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
+			  "/class/fc_remote_ports/rport-%d:%d-%d",
+			  pp->sg_id.host_no, pp->sg_id.channel, rport_id)) {
+		condlog(0, "attr_path for rport-%d:%d-%d too large",
+			pp->sg_id.host_no, pp->sg_id.channel, rport_id);
+		return 1;
+	}
+	if (mpp->dev_loss){
+		snprintf(value, 11, "%u", mpp->dev_loss);
+		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+					 value, 11))
+			return 1;
+	}
+	if (mpp->fast_io_fail){
+		if (mpp->fast_io_fail == -1)
+			sprintf(value, "off");
+		else
+			snprintf(value, 11, "%u", mpp->fast_io_fail);
+		if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
+					 value, 11))
+			return 1;
+	}
+	return 0;
+}
+
+static int
+find_session_id(struct path *pp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char *dir, *base;
+	int session = -1;
+
+	if (safe_sprintf(attr_path,
+			 "/class/scsi_device/%i:%i:%i:%i",
+			 pp->sg_id.host_no, pp->sg_id.channel,
+			 pp->sg_id.scsi_id, pp->sg_id.lun)) {
+		condlog(0, "attr_path too small for scsi device");
+		return -1;
+	}
+
+	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
+		return -1;
+
+	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
+	dir = attr_path;
+	do {
+		base = basename(dir);
+		dir = dirname(dir);
+
+		if (sscanf((const char *)base, "session%d", &session) == 1)
+			break;
+	} while (strcmp((const char *)dir, "/"));
+
+	if (session < 0)
+		return -1;
+
+	condlog(4, "%d:%d:%d:%d -> session %d", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, session);
+	return session;
+}
+
+int
+update_session_timeout(struct multipath *mpp, struct path *pp, int session_id)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char value[11];
+
+	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
+			  "/class/iscsi_session/session%d", session_id)) {
+		condlog(0, "attr_path for session%d too large", session_id);
+		return 1;
+	}
+	if (mpp->dev_loss) {
+		condlog(3, "%s: ignoring dev_loss_tmo on iSCSI", pp->dev);
+	}
+	if (mpp->fast_io_fail){
+		if (mpp->fast_io_fail == -1) {
+			condlog(3, "%s: can't switch off fast_io_fail_tmo "
+				"on iSCSI", pp->dev);
+		} else {
+			snprintf(value, 11, "%u", mpp->fast_io_fail);
+			if (sysfs_attr_set_value(attr_path, "recovery_tmo",
+						 value, 11))
+				return 1;
+		}
+	}
+	return 0;
+}
+
+int
+sysfs_set_scsi_tmo (struct multipath *mpp)
+{
 	struct path *pp;
 	int i;
-	char value[11];
-	int rport_id;
+	int rport_id, session_id;
 	int dev_loss_tmo = mpp->dev_loss;
 
 	if (mpp->no_path_retry > 0) {
@@ -304,33 +398,17 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 
 	vector_foreach_slot(mpp->paths, pp, i) {
 		rport_id = find_rport_id(pp);
-		if (rport_id < 0) {
-			condlog(0, "failed to find rport_id for target%d:%d:%d", pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
-			return 1;
+		if (rport_id != -1) {
+			update_rport_timeout(mpp, pp, rport_id);
+			continue;
 		}
-
-		if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
-				  "/class/fc_remote_ports/rport-%d:%d-%d",
-				  pp->sg_id.host_no, pp->sg_id.channel,
-				  rport_id)) {
-			condlog(0, "attr_path '/class/fc_remote_ports/rport-%d:%d-%d' too large", pp->sg_id.host_no, pp->sg_id.channel, rport_id);
-			return 1;
+		session_id = find_session_id(pp);
+		if (session_id != -1) {
+			update_session_timeout(mpp, pp, session_id);
+			continue;
 		}
-		if (mpp->dev_loss){
-			snprintf(value, 11, "%u", mpp->dev_loss);
-			if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
-						 value, 11))
-				return 1;
-		}
-		if (mpp->fast_io_fail){
-			if (mpp->fast_io_fail == -1)
-				sprintf(value, "off");
-			else
-				snprintf(value, 11, "%u", mpp->fast_io_fail);
-			if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
-						 value, 11))
-				return 1;
-		}
+		condlog(0, "%s: failed to set timeouts", pp->dev);
+		return 1;
 	}
 	return 0;
 }
