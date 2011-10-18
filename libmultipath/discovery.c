@@ -213,21 +213,63 @@ sysfs_get_size (struct sysfs_device * dev, unsigned long long * size)
 }
 
 int
-sysfs_get_fc_nodename (struct sysfs_device * dev, char * node,
-		       unsigned int host, unsigned int channel,
-		       unsigned int target)
+sysfs_get_fc_nodename (struct path *pp)
 {
 	char attr_path[SYSFS_PATH_SIZE];
 	size_t len;
 
 	if (safe_sprintf(attr_path,
-			 "/class/fc_transport/target%i:%i:%i",
-			 host, channel, target)) {
+			 "/class/fc_remote_ports/rport-%d:%d-%d",
+			 pp->sg_id.host_no, pp->sg_id.channel,
+			 pp->sg_id.transport_id)) {
 		condlog(0, "attr_path too small");
 		return 1;
 	}
 
-	len = sysfs_attr_get_value(attr_path, "node_name", node, NODE_NAME_SIZE);
+	len = sysfs_attr_get_value(attr_path, "node_name",
+				   pp->tgt_node_name, NODE_NAME_SIZE);
+	if (!len)
+		return 1;
+
+	return 0;
+}
+
+int
+sysfs_get_iscsi_targetname (struct path *pp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	size_t len;
+
+	if (safe_sprintf(attr_path,
+			 "/class/iscsi_session/session%d",
+			 pp->sg_id.transport_id)) {
+		condlog(0, "attr_path too small");
+		return 1;
+	}
+
+	len = sysfs_attr_get_value(attr_path, "targetname",
+				   pp->tgt_node_name, NODE_NAME_SIZE);
+	if (!len)
+		return 1;
+
+	return 0;
+}
+
+int
+sysfs_get_sas_address (struct path *pp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	size_t len;
+
+	if (safe_sprintf(attr_path,
+			 "/class/sas_phy/phy-%d:%d",
+			 pp->sg_id.host_no, pp->sg_id.transport_id)) {
+		condlog(0, "attr_path too small");
+		return 1;
+	}
+
+	len = sysfs_attr_get_value(attr_path, "sas_address",
+				   pp->tgt_node_name, NODE_NAME_SIZE);
 	if (!len)
 		return 1;
 
@@ -252,52 +294,24 @@ find_rport_id(struct path *pp)
 	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
 		return -1;
 
-	condlog(4, "target%d:%d:%d -> path %s", pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id, attr_path);
+	condlog(4, "target%d:%d:%d -> path %s", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, attr_path);
 	dir = attr_path;
 	do {
 		base = basename(dir);
 		dir = dirname(dir);
 
-		if (sscanf((const char *)base, "rport-%d:%d-%d", &host, &channel, &rport_id) == 3)
+		if (sscanf((const char *)base, "rport-%d:%d-%d",
+			   &host, &channel, &rport_id) == 3)
 			break;
 	} while (strcmp((const char *)dir, "/"));
 
 	if (rport_id < 0)
 		return -1;
 
-	condlog(4, "target%d:%d:%d -> rport_id %d", pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id, rport_id);
+	condlog(4, "target%d:%d:%d -> rport_id %d", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, rport_id);
 	return rport_id;
-}
-
-int
-update_rport_timeout(struct multipath *mpp, struct path *pp, int rport_id)
-{
-	char attr_path[SYSFS_PATH_SIZE];
-	char value[11];
-
-	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
-			  "/class/fc_remote_ports/rport-%d:%d-%d",
-			  pp->sg_id.host_no, pp->sg_id.channel, rport_id)) {
-		condlog(0, "attr_path for rport-%d:%d-%d too large",
-			pp->sg_id.host_no, pp->sg_id.channel, rport_id);
-		return 1;
-	}
-	if (mpp->dev_loss){
-		snprintf(value, 11, "%u", mpp->dev_loss);
-		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
-					 value, 11))
-			return 1;
-	}
-	if (mpp->fast_io_fail){
-		if (mpp->fast_io_fail == -1)
-			sprintf(value, "off");
-		else
-			snprintf(value, 11, "%u", mpp->fast_io_fail);
-		if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
-					 value, 11))
-			return 1;
-	}
-	return 0;
 }
 
 static int
@@ -337,15 +351,116 @@ find_session_id(struct path *pp)
 	return session;
 }
 
+static int
+find_phy_id(struct path *pp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char *dir, *base;
+	DIR *dirfd;
+	struct dirent *dirp;
+	int host, port_id = -1, phy_id = -1;
+
+	if (safe_sprintf(attr_path,
+			 "/class/scsi_device/%i:%i:%i:%i",
+			 pp->sg_id.host_no, pp->sg_id.channel,
+			 pp->sg_id.scsi_id, pp->sg_id.lun)) {
+		condlog(0, "attr_path too small for scsi device");
+		return -1;
+	}
+
+	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
+		return -1;
+
+	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
+	dir = attr_path;
+	do {
+		base = basename(dir);
+		dir = dirname(dir);
+
+		if (sscanf((const char *)base, "port-%d:%d",
+			   &host, &port_id) == 2)
+			break;
+	} while (strcmp((const char *)dir, "/"));
+
+	if (port_id < 0)
+		return -1;
+
+	condlog(4, "%d:%d:%d:%d -> port %d:%d", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun,
+		host, port_id);
+
+	if (safe_sprintf(attr_path,
+			 "/class/sas_port/port-%i:%i/device",
+			 pp->sg_id.host_no, port_id)) {
+		condlog(0, "attr_path too small for scsi device");
+		return -1;
+	}
+
+	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
+		return -1;
+
+	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
+	dirfd = opendir(attr_path);
+	while ((dirp = readdir(dirfd))) {
+		if (sscanf(dirp->d_name, "phy-%d:%d", &host, &phy_id) == 2)
+			break;
+	}
+	closedir(dirfd);
+	if (phy_id < 0)
+		return -1;
+
+	condlog(4, "%d:%d:%d:%d -> phy %d:%d", pp->sg_id.host_no,
+		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun,
+		host, phy_id);
+	return phy_id;
+}
+
 int
-update_session_timeout(struct multipath *mpp, struct path *pp, int session_id)
+update_rport_timeout(struct multipath *mpp, struct path *pp)
 {
 	char attr_path[SYSFS_PATH_SIZE];
 	char value[11];
 
 	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
-			  "/class/iscsi_session/session%d", session_id)) {
-		condlog(0, "attr_path for session%d too large", session_id);
+			  "/class/fc_remote_ports/rport-%d:%d-%d",
+			  pp->sg_id.host_no, pp->sg_id.channel,
+			  pp->sg_id.transport_id)) {
+		condlog(0, "attr_path for rport-%d:%d-%d too large",
+			pp->sg_id.host_no, pp->sg_id.channel,
+			pp->sg_id.transport_id);
+		return 1;
+	}
+	if (mpp->dev_loss){
+		snprintf(value, 11, "%u", mpp->dev_loss);
+		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+					 value, 11))
+			return 1;
+	}
+	if (mpp->fast_io_fail){
+		if (mpp->fast_io_fail == -1)
+			sprintf(value, "off");
+		else
+			snprintf(value, 11, "%u", mpp->fast_io_fail);
+		if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
+					 value, 11))
+			return 1;
+	}
+	return 0;
+}
+
+int
+update_session_timeout(struct multipath *mpp, struct path *pp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char value[11];
+
+	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
+			  "/class/iscsi_session/session%d",
+			  pp->sg_id.transport_id)) {
+		condlog(0, "attr_path for session%d too large",
+			pp->sg_id.transport_id);
 		return 1;
 	}
 	if (mpp->dev_loss) {
@@ -370,7 +485,6 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 {
 	struct path *pp;
 	int i;
-	int rport_id, session_id;
 	int dev_loss_tmo = mpp->dev_loss;
 
 	if (mpp->no_path_retry > 0) {
@@ -397,20 +511,47 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 		return 0;
 
 	vector_foreach_slot(mpp->paths, pp, i) {
-		rport_id = find_rport_id(pp);
-		if (rport_id != -1) {
-			update_rport_timeout(mpp, pp, rport_id);
-			continue;
+		if (pp->sg_id.proto_id == SCSI_PROTOCOL_FCP) {
+			update_rport_timeout(mpp, pp);
+		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_ISCSI) {
+			update_session_timeout(mpp, pp);
+		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_SAS) {
+			/* We can't set timeouts on SAS, but that's ok */
+		} else {
+			condlog(0, "%s: failed to set timeouts", pp->dev);
+			return 1;
 		}
-		session_id = find_session_id(pp);
-		if (session_id != -1) {
-			update_session_timeout(mpp, pp, session_id);
-			continue;
-		}
-		condlog(0, "%s: failed to set timeouts", pp->dev);
-		return 1;
 	}
 	return 0;
+}
+
+static int
+sysfs_get_transport_id(struct path *pp)
+{
+	int rport_id, session_id, phy_id;
+
+	rport_id = find_rport_id(pp);
+	if (rport_id != -1) {
+		pp->sg_id.transport_id = rport_id;
+		pp->sg_id.proto_id = SCSI_PROTOCOL_FCP;
+		return sysfs_get_fc_nodename(pp);
+	}
+	session_id = find_session_id(pp);
+	if (session_id != -1) {
+		pp->sg_id.transport_id = session_id;
+		pp->sg_id.proto_id = SCSI_PROTOCOL_ISCSI;
+		return sysfs_get_iscsi_targetname(pp);
+	}
+	phy_id = find_phy_id(pp);
+	if (phy_id != -1) {
+		pp->sg_id.transport_id = phy_id;
+		pp->sg_id.proto_id = SCSI_PROTOCOL_SAS;
+		return sysfs_get_sas_address(pp);
+	}
+	pp->sg_id.proto_id = SCSI_PROTOCOL_UNSPEC;
+	pp->sg_id.transport_id = -1;
+
+	return 1;
 }
 
 static int
@@ -636,10 +777,7 @@ scsi_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 	/*
 	 * target node name
 	 */
-	if(!sysfs_get_fc_nodename(parent, pp->tgt_node_name,
-				 pp->sg_id.host_no,
-				 pp->sg_id.channel,
-				 pp->sg_id.scsi_id)) {
+	if(!sysfs_get_transport_id(pp)) {
 		condlog(3, "%s: tgt_node_name = %s",
 			pp->dev, pp->tgt_node_name);
 	}

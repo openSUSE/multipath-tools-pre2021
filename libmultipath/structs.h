@@ -87,10 +87,17 @@ enum flush_states {
 	FLUSH_IN_PROGRESS,
 };
 
-struct scsi_idlun {
-	int dev_id;
-	int host_unique_id;
-	int host_no;
+enum scsi_protocol {
+	SCSI_PROTOCOL_FCP = 0,	/* Fibre Channel */
+	SCSI_PROTOCOL_SPI = 1,	/* parallel SCSI */
+	SCSI_PROTOCOL_SSA = 2,	/* Serial Storage Architecture - Obsolete */
+	SCSI_PROTOCOL_SBP = 3,	/* firewire */
+	SCSI_PROTOCOL_SRP = 4,	/* Infiniband RDMA */
+	SCSI_PROTOCOL_ISCSI = 5,
+	SCSI_PROTOCOL_SAS = 6,
+	SCSI_PROTOCOL_ADT = 7,	/* Media Changers */
+	SCSI_PROTOCOL_ATA = 8,
+	SCSI_PROTOCOL_UNSPEC = 0xf, /* No specific protocol */
 };
 
 struct sg_id {
@@ -98,16 +105,8 @@ struct sg_id {
 	int channel;
 	int scsi_id;
 	int lun;
-	short h_cmd_per_lun;
-	short d_queue_depth;
-	int unused1;
-	int unused2;
-};
-
-struct scsi_dev {
-	char dev[FILE_NAME_SIZE];
-	struct scsi_idlun scsi_id;
-	int host_no;
+	enum scsi_protocol proto_id;
+	int transport_id;
 };
 
 struct sysfs_device {
@@ -130,7 +129,6 @@ struct path {
 	char dev[FILE_NAME_SIZE];
 	char dev_t[BLK_DEV_SIZE];
 	struct sysfs_device *sysdev;
-	struct scsi_idlun scsi_id;
 	struct sg_id sg_id;
 	struct hd_geometry geom;
 	char wwid[WWID_SIZE];
