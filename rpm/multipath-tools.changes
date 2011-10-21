@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Fri Oct 21 16:44:28 CEST 2011 - hare@suse.de
+
+- Path checker should return PATH_DOWN when no path is found
+  (bnc#721874)
+- Check return code from pathinfo (bnc#721874)
+- Get right sysfs value for checker_timeout (bnc#724462)
+- Update session timeouts for iSCSI (bnc#714011)
+- Get correct targetname for various SCSI protocols (bnc#721820)
+- multipath throws wrong return value (bnc#721978)
+
+-------------------------------------------------------------------
 Mon Sep 19 13:58:11 CEST 2011 - hare@suse.de
 
 - Adding NetApp as brand name for RDAC (bnc#716970)
