@@ -612,7 +612,7 @@ struct sysfs_device *sysfs_device_from_path(struct path *pp)
 	strlcpy(sysdev,"/block/", FILE_NAME_SIZE);
 	strlcat(sysdev,pp->dev, FILE_NAME_SIZE);
 
-	return sysfs_device_get(sysdev);
+	return sysfs_device_get(sysdev, 0);
 }
 
 extern int

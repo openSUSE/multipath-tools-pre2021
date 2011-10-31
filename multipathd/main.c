@@ -629,7 +629,8 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	if (uev_discard(uev->devpath))
 		return 0;
 
-	sysdev = sysfs_device_get(uev->devpath);
+	sysdev = sysfs_device_get(uev->devpath,
+				  !strncmp(uev->action, "add", 3));
 	if(!sysdev)
 		return 0;
 

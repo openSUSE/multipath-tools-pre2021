@@ -150,7 +150,7 @@ int sysfs_resolve_link(char *devpath, size_t size)
 	return 0;
 }
 
-struct sysfs_device *sysfs_device_get(const char *devpath)
+struct sysfs_device *sysfs_device_get(const char *devpath, int add_event)
 {
 	char path[PATH_SIZE];
 	char devpath_real[PATH_SIZE];
@@ -172,9 +172,13 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	if (lstat(path, &statbuf) != 0) {
 		/* if stat fails look in the cache */
 		dbg("stat '%s' failed: %s", path, strerror(errno));
+		/* For 'add' events the path always has to exist */
+		if (add_event)
+			return NULL;
 		list_for_each_entry(sysdev_loop, &sysfs_dev_list, node) {
 			if (strcmp(sysdev_loop->dev.devpath, devpath_real) == 0) {
-				dbg("found vanished dev in cache '%s'", sysdev_loop->dev.devpath);
+				dbg("found vanished dev in cache '%s'",
+				    sysdev_loop->dev.devpath);
 				return &sysdev_loop->dev;
 			}
 		}
@@ -183,16 +187,19 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	if (S_ISLNK(statbuf.st_mode)) {
 		if (sysfs_resolve_link(devpath_real, sizeof(devpath_real)) != 0)
 			return NULL;
-
 	}
 
-	list_for_each_entry(sysdev_loop, &sysfs_dev_list, node) {
-		if (strcmp(sysdev_loop->dev.devpath, devpath_real) == 0) {
-			dbg("found dev in cache '%s'", sysdev_loop->dev.devpath);
+	if (!add_event) {
+		list_for_each_entry(sysdev_loop, &sysfs_dev_list, node) {
+			if (!strcmp(sysdev_loop->dev.devpath, devpath_real)) {
+				dbg("found dev in cache '%s'",
+				    sysdev_loop->dev.devpath);
 				dev = &sysdev_loop->dev;
+			}
 		}
 	}
-	if(!dev) {
+
+	if (!dev) {
 		/* it is a new device */
 		dbg("new device '%s'", devpath_real);
 		sysdev = malloc(sizeof(struct sysfs_dev));
@@ -315,7 +322,7 @@ struct sysfs_device *sysfs_device_get_parent(struct sysfs_device *dev)
 	}
 
 	/* get parent and remember it */
-	dev->parent = sysfs_device_get(parent_devpath);
+	dev->parent = sysfs_device_get(parent_devpath, 0);
 	return dev->parent;
 
 device_link:
@@ -325,7 +332,7 @@ device_link:
 		return NULL;
 
 	/* get parent and remember it */
-	dev->parent = sysfs_device_get(parent_devpath);
+	dev->parent = sysfs_device_get(parent_devpath, 0);
 	return dev->parent;
 }
 

@@ -331,7 +331,7 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 		return 0;
 	}
 	sprintf(dev_path,"/block/dm-%d", minor);
-	sysdev = sysfs_device_get(dev_path);
+	sysdev = sysfs_device_get(dev_path, 1);
 	if (!sysdev) {
 		condlog(2, "%s: not found in sysfs", param);
 		return 0;
