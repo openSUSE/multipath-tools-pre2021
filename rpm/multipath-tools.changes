@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Nov  4 09:27:53 CET 2011 - hare@suse.de
+
+- Remove explicit dependency again, should be done automatically
+  now (bnc#719424)
+
+-------------------------------------------------------------------
 Mon Oct 24 11:28:42 CEST 2011 - hare@suse.de
 
 - Depend on device-mapper 1.03 (bnc#719424)

@@ -23,7 +23,7 @@ BuildRequires:  device-mapper-devel libaio-devel readline-devel
 Url:            http://christophe.varoqui.free.fr/
 License:        BSD 3-clause (or similar) ; GPL v2 or later ; LGPL v2.1 or later ;  Public Domain, Freeware ; MIT License (or similar)
 Group:          System/Base
-Requires:       device-mapper >= 1.03 kpartx
+Requires:       device-mapper kpartx
 PreReq:         %insserv_prereq %fillup_prereq coreutils grep
 AutoReqProv:    on
 Version:        0.4.9
