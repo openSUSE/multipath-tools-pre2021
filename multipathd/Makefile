@@ -37,6 +37,11 @@ install:
 	$(INSTALL_PROGRAM) -m 755 multipathd.init.suse $(DESTDIR)$(rcdir)/multipathd
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
+	$(SED) 's/@LIB@/$(LIB)/g' boot-multipathd.sh > $(DESTDIR)/lib/mkinitrd/scripts/boot-multipathd.sh
+	chmod 755 $(DESTDIR)/lib/mkinitrd/scripts/boot-multipathd.sh
+	$(SED) 's/@LIB@/$(LIB)/g' boot-killmultipathd.sh > $(DESTDIR)/lib/mkinitrd/scripts/boot-killmultipathd.sh
+	chmod 755 $(DESTDIR)/lib/mkinitrd/scripts/boot-killmultipathd.sh
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
