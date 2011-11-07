@@ -130,6 +130,8 @@ exit 0
 %dir /lib/mkinitrd/scripts
 /lib/mkinitrd/scripts/boot-multipath.sh
 /lib/mkinitrd/scripts/setup-multipath.sh
+/lib/mkinitrd/scripts/boot-multipathd.sh
+/lib/mkinitrd/scripts/boot-killmultipathd.sh
 %{_mandir}/man8/multipath.8*
 %{_mandir}/man5/multipath.conf.5*
 %{_mandir}/man8/multipathd.8*
