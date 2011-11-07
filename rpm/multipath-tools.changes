@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Nov  7 10:35:09 CET 2011 - hare@suse.de
+
+- Add multipathd initrd scriptlets (bnc#714011)
+
+-------------------------------------------------------------------
 Fri Nov  4 09:27:53 CET 2011 - hare@suse.de
 
 - Remove explicit dependency again, should be done automatically
