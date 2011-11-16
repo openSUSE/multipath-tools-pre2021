@@ -403,11 +403,14 @@ find_phy_id(struct path *pp)
 	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
 		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
 	dirfd = opendir(attr_path);
-	while ((dirp = readdir(dirfd))) {
-		if (sscanf(dirp->d_name, "phy-%d:%d", &host, &phy_id) == 2)
-			break;
+	if (dirfd) {
+		while ((dirp = readdir(dirfd))) {
+			if (sscanf(dirp->d_name, "phy-%d:%d",
+				   &host, &phy_id) == 2)
+				break;
+		}
+		closedir(dirfd);
 	}
-	closedir(dirfd);
 	if (phy_id < 0)
 		return -1;
 
