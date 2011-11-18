@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Nov 18 11:20:21 CET 2011 - hare@suse.de
+
+- kpartx man page update (bnc#730606)
+- Update man page for multipath -r (bnc#730600)
+- multipathd crashes in find_phy_id (bnc#730573)
+
+-------------------------------------------------------------------
 Mon Nov  7 10:35:09 CET 2011 - hare@suse.de
 
 - Add multipathd initrd scriptlets (bnc#714011)
