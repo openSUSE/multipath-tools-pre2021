@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Nov 25 15:00:35 CET 2011 - hare@suse.de
+
+- mkinitrd script displays error during booting
+- Wrong scsi_id callout location in multipath.conf.defaults
+  (bnc#710952)
+- multipath: don't print so many add map messages
+  (bnc#721796)
+
+-------------------------------------------------------------------
 Fri Nov 18 11:20:21 CET 2011 - hare@suse.de
 
 - kpartx man page update (bnc#730606)
