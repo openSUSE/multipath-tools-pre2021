@@ -4,6 +4,7 @@
 #%provides: killprogs
 #%depends: killudev
 #
+#%if: "$root_mpath"
 #%dontshow
 #
 ##### kill multipathd 
@@ -14,6 +15,8 @@
 ## -----------------------
 ##
 
-wait_for_events
-/sbin/multipathd -k'shutdown'
+if [ -x /sbin/multipathd ] ; then
+    wait_for_events
+    /sbin/multipathd -k'shutdown'
+fi
 
