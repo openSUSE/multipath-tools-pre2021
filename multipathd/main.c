@@ -458,20 +458,9 @@ static int
 uev_remove_path (struct uevent *uev, struct vectors * vecs)
 {
 	struct sysfs_device * dev;
-	int retval;
 
-	dev = sysfs_device_get(uev->devpath);
-	if (!dev) {
-		condlog(2, "%s: not found in sysfs", uev->devpath);
-		return 1;
-	}
 	condlog(2, "%s: remove path (uevent)", uev->kernel);
-	retval = ev_remove_path(uev->kernel, vecs);
-
-	if (!retval)
-		sysfs_device_put(dev);
-
-	return retval;
+	return ev_remove_path(uev->kernel, vecs);
 }
 
 int

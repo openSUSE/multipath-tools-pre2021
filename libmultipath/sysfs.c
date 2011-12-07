@@ -45,13 +45,6 @@ struct sysfs_attr {
 	char value_local[NAME_SIZE];
 };
 
-/* list of sysfs devices */
-static LIST_HEAD(sysfs_dev_list);
-struct sysfs_dev {
-	struct list_head node;
-	struct sysfs_device dev;
-};
-
 int sysfs_init(char *path, size_t len)
 {
 	if (path) {
@@ -62,7 +55,6 @@ int sysfs_init(char *path, size_t len)
 	dbg("sysfs_path='%s'", sysfs_path);
 
 	INIT_LIST_HEAD(&attr_list);
-	INIT_LIST_HEAD(&sysfs_dev_list);
 	return 0;
 }
 
@@ -71,16 +63,9 @@ void sysfs_cleanup(void)
 	struct sysfs_attr *attr_loop;
 	struct sysfs_attr *attr_temp;
 
-	struct sysfs_dev *sysdev_loop;
-	struct sysfs_dev *sysdev_temp;
-
 	list_for_each_entry_safe(attr_loop, attr_temp, &attr_list, node) {
 		list_del(&attr_loop->node);
 		free(attr_loop);
-	}
-
-	list_for_each_entry_safe(sysdev_loop, sysdev_temp, &sysfs_dev_list, node) {
-		free(sysdev_loop);
 	}
 }
 
@@ -155,7 +140,6 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	char path[PATH_SIZE];
 	char devpath_real[PATH_SIZE];
 	struct sysfs_device *dev = NULL;
-	struct sysfs_dev *sysdev_loop, *sysdev;
 	struct stat statbuf;
 	char link_path[PATH_SIZE];
 	char link_target[PATH_SIZE];
@@ -172,12 +156,6 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 	if (lstat(path, &statbuf) != 0) {
 		/* if stat fails look in the cache */
 		dbg("stat '%s' failed: %s", path, strerror(errno));
-		list_for_each_entry(sysdev_loop, &sysfs_dev_list, node) {
-			if (strcmp(sysdev_loop->dev.devpath, devpath_real) == 0) {
-				dbg("found vanished dev in cache '%s'", sysdev_loop->dev.devpath);
-				return &sysdev_loop->dev;
-			}
-		}
 		return NULL;
 	}
 	if (S_ISLNK(statbuf.st_mode)) {
@@ -186,22 +164,12 @@ struct sysfs_device *sysfs_device_get(const char *devpath)
 
 	}
 
-	list_for_each_entry(sysdev_loop, &sysfs_dev_list, node) {
-		if (strcmp(sysdev_loop->dev.devpath, devpath_real) == 0) {
-			dbg("found dev in cache '%s'", sysdev_loop->dev.devpath);
-				dev = &sysdev_loop->dev;
-		}
-	}
-	if(!dev) {
-		/* it is a new device */
-		dbg("new device '%s'", devpath_real);
-		sysdev = malloc(sizeof(struct sysfs_dev));
-		if (sysdev == NULL)
-			return NULL;
-		memset(sysdev, 0x00, sizeof(struct sysfs_dev));
-		list_add(&sysdev->node, &sysfs_dev_list);
-		dev = &sysdev->dev;
-	}
+	/* it is a new device */
+	dbg("new device '%s'", devpath_real);
+	dev = malloc(sizeof(struct sysfs_device));
+	if (dev == NULL)
+		return NULL;
+	memset(dev, 0x00, sizeof(struct sysfs_device));
 
 	sysfs_device_set_values(dev, devpath_real, NULL, NULL);
 
@@ -340,25 +308,6 @@ struct sysfs_device *sysfs_device_get_parent_with_subsystem(struct sysfs_device 
 		dev_parent = sysfs_device_get_parent(dev_parent);
 	}
 	return NULL;
-}
-
-void sysfs_device_put(struct sysfs_device *dev)
-{
-	struct sysfs_dev *sysdev_loop;
-
-	list_for_each_entry(sysdev_loop, &sysfs_dev_list, node) {
-		if (&sysdev_loop->dev == dev) {
-			dbg("removed dev '%s' from cache",
-			    sysdev_loop->dev.devpath);
-			list_del(&sysdev_loop->node);
-			free(sysdev_loop);
-			return;
-		}
-	}
-	dbg("dev '%s' not found in cache",
-	    sysdev_loop->dev.devpath);
-
-	return;
 }
 
 char *sysfs_attr_get_value(const char *devpath, const char *attr_name)
