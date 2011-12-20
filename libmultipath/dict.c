@@ -2109,8 +2109,6 @@ snprint_hw_path_checker (char * buff, int len, void * data)
 static int
 snprint_def_polling_interval (char * buff, int len, void * data)
 {
-	if (conf->checkint == DEFAULT_CHECKINT)
-		return 0;
 	return snprintf(buff, len, "%i", conf->checkint);
 }
 
@@ -2143,8 +2141,6 @@ snprint_def_verbosity (char * buff, int len, void * data)
 static int
 snprint_def_max_polling_interval (char * buff, int len, void * data)
 {
-	if (conf->max_checkint == MAX_CHECKINT(conf->checkint))
-		return 0;
 	return snprintf(buff, len, "%i", conf->max_checkint);
 }
 
