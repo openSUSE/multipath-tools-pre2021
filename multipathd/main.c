@@ -1478,7 +1478,11 @@ set_oom_adj (int val)
 {
 	FILE *fp;
 
-	fp = fopen("/proc/self/oom_adj", "w");
+	fp = fopen("/proc/self/oom_score_adj", "w");
+	if (fp)
+		val = -1000;
+	else
+		fp = fopen("/proc/self/oom_adj", "w");
 
 	if (!fp)
 		return;
