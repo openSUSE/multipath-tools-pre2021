@@ -438,8 +438,11 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 	if (mpp->dev_loss){
 		snprintf(value, 11, "%u", mpp->dev_loss);
 		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
-					 value, 11))
+					 value, 11) < 0) {
+			condlog(0, "%s: failed to set dev_loss_tmo: error %d",
+				mpp->alias, errno);
 			return 1;
+		}
 	}
 	if (mpp->fast_io_fail){
 		if (mpp->fast_io_fail == -1)
@@ -447,8 +450,11 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 		else
 			snprintf(value, 11, "%u", mpp->fast_io_fail);
 		if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
-					 value, 11))
+					 value, 11) < 0) {
+			condlog(0, "%s: failed to set fast_io_fail_tmo: error %d",
+				mpp->alias, errno);
 			return 1;
+		}
 	}
 	return 0;
 }
