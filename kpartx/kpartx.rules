@@ -20,6 +20,8 @@ ENV{DM_UUID}=="mpath-*", \
 	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}"
 ENV{DM_MPATH}=="?*", ENV{DM_PART}!="?*", \
 	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_MPATH}"
+ENV{DM_WWN}=="?*", ENV{DM_PART}!="?*", \
+	SYMLINK+="disk/by-id/wwn-$env{DM_WWN}"
 
 # Create persistent links for dmraid tables
 ENV{DM_UUID}=="DMRAID-*|dmraid-*", \
@@ -34,6 +36,8 @@ ENV{DM_PART}=="?*", \
         SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}-part$env{DM_PART}"
 ENV{DM_MPATH}=="?*", ENV{DM_PART}=="?*", \
 	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_MPATH}-part$env{DM_PART}"
+ENV{DM_WWN}=="?*", ENV{DM_PART}=="?*", \
+	SYMLINK+="disk/by-id/wwn-$env{DM_WWN}-part$env{DM_PART}"
 
 # Create persistent by-label/by-uuid links
 ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", \
