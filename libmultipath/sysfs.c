@@ -367,16 +367,15 @@ ssize_t sysfs_attr_set_value(const char *devpath, const char *attr_name,
 		else
 			dbg("sysfs_path %s%s/%s too large", sysfs_path,
 			    devpath, attr_name);
+		errno = ENAMETOOLONG;
 		goto out;
 	}
 
 	/* skip directories */
-	if (S_ISDIR(statbuf.st_mode))
+	if (S_ISDIR(statbuf.st_mode)) {
+		errno = EISDIR;
 		goto out;
-
-	/* skip non-readable files */
-	if ((statbuf.st_mode & S_IRUSR) == 0)
-		goto out;
+	}
 
 	/* write attribute value */
 	fd = open(path_full, O_WRONLY);
