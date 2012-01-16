@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Mon Jan 16 09:01:37 CET 2012 - hare@suse.de
+
+- multipath: Don't remove dm devices on remove uevent
+- multipath: Fix scsi async tur checker corruption
+- multipathd is using deprecated oom_adj interface
+- Duplicate entries in multipath -t (bnc#735414)
+- Inconsistent string quoting (bnc#737857)
+- multipath -t doesn't display polling interface (bnc#737096)
+- multipath fails to open dev_loss_tmo attribute (bnc#737096)
+- multipath: fix scsi timeout code
+- kpartx_id: Generate persistent symlinks for 'wwn' (bnc#728328)
+
+-------------------------------------------------------------------
 Fri Nov 25 15:00:35 CET 2011 - hare@suse.de
 
 - mkinitrd script displays error during booting
