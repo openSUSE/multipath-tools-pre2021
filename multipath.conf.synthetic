@@ -18,9 +18,9 @@
 #	no_path_retry		fail
 #	queue_without_daemon    no
 #	user_friendly_names	no
-#	mode			644
-#	uid			0
-#	gid			disk
+#
+#	# See /lib/udev/rules.d/12-dm-permissions.rules
+#	# to set mode/uid/gid.
 #}
 #blacklist {
 #       wwid 26353900f02796769

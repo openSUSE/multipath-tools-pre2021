@@ -186,6 +186,9 @@
 #
 #	#
 #	# name    : mode
+#	# This option has been deprecated. Please see
+#	#  /lib/udev/rules.d/12-dm-permissions.rules
+#	# to set mode.
 #	# scope   : multipath & multipathd
 #	# desc    : The mode to use for the multipath device nodes, in octal.
 #	# values  : 0000 - 0777
@@ -194,6 +197,9 @@
 #
 #	#
 #	# name    : uid
+#	# This option has been deprecated. Please see
+#	#  /lib/udev/rules.d/12-dm-permissions.rules
+#	# to set uid.
 #	# scope   : multipath & multipathd
 #	# desc    : The user id to use for the multipath device nodes. You
 #	#           may use either the numeric or symbolic uid
@@ -203,6 +209,9 @@
 #
 #	#
 #	# name    : gid
+#	# This option has been deprecated. Please see
+#	#  /lib/udev/rules.d/12-dm-permissions.rules
+#	# to set gid.
 #	# scope   : multipath & multipathd
 #	# desc    : The group id to user for the multipath device nodes. You
 #	#           may use either the numeric or symbolic gid
@@ -396,6 +405,9 @@
 #
 #		#
 #		# name    : mode
+#		# This option has been deprecated. Please see
+#		#  /lib/udev/rules.d/12-dm-permissions.rules
+#		# to set mode.
 #		# scope   : multipath & multipathd
 #		# desc    : The mode to use for the multipath device nodes, in
 #		#           octal.
@@ -405,6 +417,9 @@
 #
 #		#
 #		# name    : uid
+#		# This option has been deprecated. Please see
+#		#  /lib/udev/rules.d/12-dm-permissions.rules
+#		# to set uid.
 #		# scope   : multipath & multipathd
 #		# desc    : The user id to use for the multipath device nodes.
 #		#           You may use either the numeric or symbolic uid
@@ -414,6 +429,9 @@
 #
 #		#
 #		# name    : gid
+#		# This option has been deprecated. Please see
+#		#  /lib/udev/rules.d/12-dm-permissions.rules
+#	 	# to set gid.
 #		# scope   : multipath & multipathd
 #		# desc    : The group id to user for the multipath device nodes.
 #		#           You may use either the numeric or symbolic gid
