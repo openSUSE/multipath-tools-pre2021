@@ -501,6 +501,8 @@ load_config (char * file)
 	conf->minio = DEFAULT_MINIO;
 	conf->minio_rq = DEFAULT_MINIO_RQ;
 	conf->max_fds = 0;
+	conf->dev_loss = DEFAULT_DEV_LOSS_TMO;
+	conf->fast_io_fail = DEFAULT_FAST_IO_FAIL;
 	conf->bindings_file = set_default(DEFAULT_BINDINGS_FILE);
 	conf->bindings_read_only = 0;
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
