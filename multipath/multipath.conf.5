@@ -302,7 +302,11 @@ will disable the timeout.
 .TP
 .B dev_loss_tmo
 Specify the number of seconds the scsi layer will wait after a problem has
-been detected on a FC remote port before removing it from the system.
+been detected on a FC remote port before removing it from the system. It
+will be automatically adjusted to the overall retry interval
+\fIno_path_retry\fR * \fIpolling_interval\fR
+if a number of retries is given with \fIno_path_retry\fR and the
+overall retry interval is longer than the specified \fIdev_loss_tmo\fR value.
 .TP
 .B queue_without_daemon
 If set to
