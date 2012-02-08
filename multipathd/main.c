@@ -770,7 +770,8 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 */
 	if (!strncmp(uev->kernel, "dm-", 3)) {
 		if (!strncmp(uev->action, "change", 6)) {
-			r = uev_add_map(uev, vecs);
+			if (!uevent_get_env(uev, "DM_ACTION"))
+				r = uev_add_map(uev, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "remove", 6)) {

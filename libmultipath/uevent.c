@@ -518,6 +518,26 @@ uevent_get_dm_name(struct uevent *uev)
 	return p;
 }
 
+extern char *
+uevent_get_env(struct uevent *uev, const char *env)
+{
+	char *p = NULL;
+	int i, l;
+
+	l = strlen(env);
+	if (!l)
+		return NULL;
+
+	for (i = 0; uev->envp[i] != NULL; i++) {
+		if (!strncmp(uev->envp[i], env, l) &&
+		    strlen(uev->envp[i]) > l + 1) {
+			p = uev->envp[i] + l + 2;
+			break;
+		}
+	}
+	return p;
+}
+
 #define USECTONSEC  1000 /* microseconds to nanoseconds */
 
 extern int
