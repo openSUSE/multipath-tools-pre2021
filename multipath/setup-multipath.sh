@@ -24,12 +24,19 @@ if [ -x /sbin/multipath -a -x /sbin/dmsetup ] ; then
 fi
 
 if use_script multipath; then
+    bindings_dir=/etc/multipath
+    bindings_file=${bindings_dir}/bindings
     if [ -f /etc/multipath.conf ] ; then
 	cp -a /etc/multipath.conf $tmp_mnt/etc
+	    f=$(sed -n '/^[ \t]*#.*/b;s/.*bindings_file *\"\?\([^" ]*\)\"\? */\1/p' /etc/multipath.conf)
+	    if [ "$f" ] ; then
+		bindings_file=$f
+		bindings_dir=${bindings_file%/*}
     fi
-    if [ -f /var/lib/multipath/bindings ] ; then
-	mkdir -p $tmp_mnt/var/lib/multipath
-	cp -a /var/lib/multipath/bindings $tmp_mnt/var/lib/multipath
+    fi
+    [ -d ${tmp_mnt}${bindings_dir} ] || mkdir -p ${tmp_mnt}${bindings_dir}
+    if [ -f $bindings_file ] ; then
+	    cp -a $bindings_file ${tmp_mnt}${bindings_file}
     fi
     if [ -e /etc/udev/rules.d/71-multipath.rules ]; then
 	cp /etc/udev/rules.d/71-multipath.rules $tmp_mnt/etc/udev/rules.d
