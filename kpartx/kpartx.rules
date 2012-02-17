@@ -8,10 +8,11 @@ KERNEL!="dm-*", GOTO="kpartx_end"
 ACTION=="remove", GOTO="kpartx_end"
 
 ENV{DM_TABLE_STATE}!="LIVE", GOTO="kpartx_end"
+
 ENV{DM_UUID}=="?*", IMPORT{program}=="kpartx_id %M %m $env{DM_UUID}"
 
-ENV{DM_UUID}=="mpath-*", IMPORT{program}="vol_id --export $tempnode"
-ENV{DM_PART}=="?*", IMPORT{program}="vol_id --export $tempnode"
+ENV{DM_UUID}=="mpath-*", IMPORT{program}="/sbin/blkid -o udev -p $tempnode"
+ENV{DM_PART}=="?*", IMPORT{program}="/sbin/blkid -o udev -p $tempnode"
 
 OPTIONS="link_priority=50"
 
