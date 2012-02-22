@@ -620,6 +620,7 @@ path_offline (struct path * pp)
 {
 	struct sysfs_device * parent;
 	char buff[SCSI_STATE_SIZE];
+	int retval;
 
 	if (pp->bus != SYSFS_BUS_SCSI)
 		return PATH_UP;
@@ -627,7 +628,7 @@ path_offline (struct path * pp)
 	pp->sysdev = sysfs_device_from_path(pp);
 	if (!pp->sysdev) {
 		condlog(1, "%s: failed to get sysfs information", pp->dev);
-		return PATH_WILD;
+		return PATH_DOWN;
 	}
 
 	parent = sysfs_device_get_parent(pp->sysdev);
@@ -640,8 +641,9 @@ path_offline (struct path * pp)
 		return PATH_WILD;
 	}
 
-	if (sysfs_get_state(parent, buff, SCSI_STATE_SIZE))
-		return PATH_WILD;
+	retval = sysfs_get_state(parent, buff, SCSI_STATE_SIZE);
+	if (retval)
+		return (retval == 1) ? PATH_DOWN : PATH_WILD;
 
 	condlog(3, "%s: path state = %s", pp->dev, buff);
 
