@@ -524,11 +524,13 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 			update_rport_timeout(mpp, pp);
 		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_ISCSI) {
 			update_session_timeout(mpp, pp);
-		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_SAS) {
-			/* We can't set timeouts on SAS, but that's ok */
 		} else {
-			condlog(0, "%s: failed to set timeouts", pp->dev);
-			return 1;
+			/*
+			 * We can't set timeouts on other transports,
+			 * but that's ok
+			 */
+			condlog(3, "Cannot set timeouts on transport %d",
+				pp->sg_id.proto_id);
 		}
 	}
 	return 0;
