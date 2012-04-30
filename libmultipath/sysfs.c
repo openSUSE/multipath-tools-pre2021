@@ -380,8 +380,8 @@ ssize_t sysfs_attr_set_value(const char *devpath, const char *attr_name,
 	/* write attribute value */
 	fd = open(path_full, O_WRONLY);
 	if (fd < 0) {
-		dbg("attribute '%s' can not be opened: %s",
-		    path_full, strerror(errno));
+		condlog(4, "attribute '%s' can not be opened: %s",
+			path_full, strerror(errno));
 		goto out;
 	}
 	size = write(fd, value, value_len);

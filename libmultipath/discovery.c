@@ -435,23 +435,27 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 			pp->sg_id.transport_id);
 		return 1;
 	}
-	if (mpp->dev_loss){
-		snprintf(value, 11, "%u", mpp->dev_loss);
-		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
-					 value, 11) < 0) {
-			condlog(0, "%s: failed to set dev_loss_tmo: error %d",
-				mpp->alias, errno);
-			return 1;
-		}
-	}
-	if (mpp->fast_io_fail){
-		if (mpp->fast_io_fail == -1)
+	if (mpp->fast_io_fail > FAST_IO_FAIL_UNSET) {
+		if (mpp->fast_io_fail == FAST_IO_FAIL_OFF)
 			sprintf(value, "off");
 		else
 			snprintf(value, 11, "%u", mpp->fast_io_fail);
 		if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
 					 value, 11) < 0) {
 			condlog(0, "%s: failed to set fast_io_fail_tmo: error %d",
+				mpp->alias, errno);
+			return 1;
+		}
+	}
+	if (mpp->dev_loss) {
+		/* Cap dev_loss tmo to 600 if fast_io_fail is off or unset */
+		if (mpp->fast_io_fail < 0 && mpp->dev_loss > 600)
+			snprintf(value, 11, "%u", 600);
+		else
+			snprintf(value, 11, "%u", mpp->dev_loss);
+		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+					 value, 11) < 0) {
+			condlog(0, "%s: failed to set dev_loss_tmo: error %d",
 				mpp->alias, errno);
 			return 1;
 		}
@@ -475,8 +479,8 @@ update_session_timeout(struct multipath *mpp, struct path *pp)
 	if (mpp->dev_loss) {
 		condlog(3, "%s: ignoring dev_loss_tmo on iSCSI", pp->dev);
 	}
-	if (mpp->fast_io_fail){
-		if (mpp->fast_io_fail == -1) {
+	if (mpp->fast_io_fail > FAST_IO_FAIL_UNSET){
+		if (mpp->fast_io_fail == FAST_IO_FAIL_OFF) {
 			condlog(3, "%s: can't switch off fast_io_fail_tmo "
 				"on iSCSI", pp->dev);
 		} else {
@@ -511,12 +515,12 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 			mpp->alias, dev_loss_tmo);
 	}
 	mpp->dev_loss = dev_loss_tmo;
-	if (mpp->fast_io_fail > mpp->dev_loss) {
+	if (mpp->fast_io_fail > 0 && mpp->fast_io_fail > mpp->dev_loss) {
 		mpp->fast_io_fail = mpp->dev_loss;
 		condlog(3, "%s: update fast_io_fail to %d\n",
 			mpp->alias, mpp->fast_io_fail);
 	}
-	if (!mpp->dev_loss && !mpp->fast_io_fail)
+	if (!mpp->dev_loss && mpp->fast_io_fail < FAST_IO_FAIL_OFF)
 		return 0;
 
 	vector_foreach_slot(mpp->paths, pp, i) {

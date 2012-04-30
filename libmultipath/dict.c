@@ -43,10 +43,10 @@ def_fast_io_fail_handler(vector strvec)
 
 	buff = set_value(strvec);
 	if (strlen(buff) == 3 && !strcmp(buff, "off"))
-		conf->fast_io_fail = -1;
+		conf->fast_io_fail = FAST_IO_FAIL_OFF;
 	else if (sscanf(buff, "%d", &conf->fast_io_fail) != 1 ||
-		 conf->fast_io_fail < -1)
-		conf->fast_io_fail = 0;
+		 conf->fast_io_fail < FAST_IO_FAIL_OFF)
+		conf->fast_io_fail = FAST_IO_FAIL_UNSET;
 
 	FREE(buff);
 	return 0;
@@ -841,10 +841,10 @@ hw_fast_io_fail_handler(vector strvec)
 
 	buff = set_value(strvec);
 	if (strlen(buff) == 3 && !strcmp(buff, "off"))
-		hwe->fast_io_fail = -1;
+		hwe->fast_io_fail = FAST_IO_FAIL_OFF;
 	else if (sscanf(buff, "%d", &hwe->fast_io_fail) != 1 ||
-		 hwe->fast_io_fail < -1)
-		hwe->fast_io_fail = 0;
+		 hwe->fast_io_fail < FAST_IO_FAIL_OFF)
+		hwe->fast_io_fail = FAST_IO_FAIL_UNSET;
 
 	FREE(buff);
 	return 0;
@@ -1823,11 +1823,11 @@ static int
 snprint_hw_fast_io_fail(char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
-	if (!hwe->fast_io_fail)
+	if (hwe->fast_io_fail < FAST_IO_FAIL_OFF)
 		return 0;
 	if (hwe->fast_io_fail == conf->fast_io_fail)
 		return 0;
-	if (hwe->fast_io_fail == -1)
+	if (hwe->fast_io_fail == FAST_IO_FAIL_OFF)
 		return snprintf(buff, len, "\"off\"");
 	return snprintf(buff, len, "%d", hwe->fast_io_fail);
 }
@@ -2115,9 +2115,9 @@ snprint_def_polling_interval (char * buff, int len, void * data)
 static int
 snprint_def_fast_io_fail(char * buff, int len, void * data)
 {
-	if (!conf->fast_io_fail)
+	if (conf->fast_io_fail < FAST_IO_FAIL_OFF)
 		return 0;
-	if (conf->fast_io_fail == -1)
+	if (conf->fast_io_fail == FAST_IO_FAIL_OFF)
 		return snprintf(buff, len, "\"off\"");
 	return snprintf(buff, len, "%d", conf->fast_io_fail);
 }

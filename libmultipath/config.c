@@ -262,6 +262,7 @@ alloc_hwe (void)
 	struct hwentry * hwe = (struct hwentry *)
 				MALLOC(sizeof(struct hwentry));
 
+	hwe->fast_io_fail = FAST_IO_FAIL_UNSET;
 	return hwe;
 }
 
