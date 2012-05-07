@@ -524,7 +524,11 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 		return 0;
 
 	vector_foreach_slot(mpp->paths, pp, i) {
-		if (pp->sg_id.proto_id == SCSI_PROTOCOL_FCP) {
+		if (pp->state == PATH_DOWN) {
+			condlog(3, "%s: cannot set timeout on %s, path is down",
+				mpp->alias,
+				pp->sysdev ? pp->sysdev->devpath : pp->dev_t);
+		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_FCP) {
 			update_rport_timeout(mpp, pp);
 		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_ISCSI) {
 			update_session_timeout(mpp, pp);
