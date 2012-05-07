@@ -1171,6 +1171,9 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		}
 	}
 
+	if (path_state == PATH_UP && (mask & DI_WWID) && !strlen(pp->wwid))
+		get_uid(pp);
+
 	 /*
 	  * Retrieve path priority, even for PATH_DOWN paths if it has never
 	  * been successfully obtained before.
@@ -1184,9 +1187,6 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 			pp->priority = PRIO_UNDEF;
 		}
 	}
-
-	if (path_state == PATH_UP && (mask & DI_WWID) && !strlen(pp->wwid))
-		get_uid(pp);
 
 	return 0;
 
