@@ -507,17 +507,17 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 			no_path_retry_tmo = MAX_DEV_LOSS_TMO;
 		if (no_path_retry_tmo > dev_loss_tmo)
 			dev_loss_tmo = no_path_retry_tmo;
-		condlog(3, "%s: update dev_loss_tmo to %d\n",
+		condlog(3, "%s: update dev_loss_tmo to %d",
 			mpp->alias, dev_loss_tmo);
 	} else if (mpp->no_path_retry == NO_PATH_RETRY_QUEUE) {
 		dev_loss_tmo = MAX_DEV_LOSS_TMO;
-		condlog(4, "%s: update dev_loss_tmo to %d\n",
+		condlog(4, "%s: update dev_loss_tmo to %d",
 			mpp->alias, dev_loss_tmo);
 	}
 	mpp->dev_loss = dev_loss_tmo;
 	if (mpp->fast_io_fail > 0 && mpp->fast_io_fail > mpp->dev_loss) {
 		mpp->fast_io_fail = mpp->dev_loss;
-		condlog(3, "%s: update fast_io_fail to %d\n",
+		condlog(3, "%s: update fast_io_fail to %d",
 			mpp->alias, mpp->fast_io_fail);
 	}
 	if (!mpp->dev_loss && mpp->fast_io_fail < FAST_IO_FAIL_OFF)
