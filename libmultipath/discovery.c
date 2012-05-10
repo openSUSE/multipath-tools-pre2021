@@ -154,6 +154,7 @@ declare_sysfs_get_str(model);
 declare_sysfs_get_str(rev);
 declare_sysfs_get_str(state);
 declare_sysfs_get_str(dev);
+declare_sysfs_get_str(sas_address);
 
 int
 sysfs_get_timeout(struct sysfs_device *dev, unsigned int *timeout)
@@ -255,27 +256,6 @@ sysfs_get_iscsi_targetname (struct path *pp)
 	return 0;
 }
 
-int
-sysfs_get_sas_address (struct path *pp)
-{
-	char attr_path[SYSFS_PATH_SIZE];
-	size_t len;
-
-	if (safe_sprintf(attr_path,
-			 "/class/sas_phy/phy-%d:%d",
-			 pp->sg_id.host_no, pp->sg_id.transport_id)) {
-		condlog(0, "attr_path too small");
-		return 1;
-	}
-
-	len = sysfs_attr_get_value(attr_path, "sas_address",
-				   pp->tgt_node_name, NODE_NAME_SIZE);
-	if (!len)
-		return 1;
-
-	return 0;
-}
-
 static int
 find_rport_id(struct path *pp)
 {
@@ -349,75 +329,6 @@ find_session_id(struct path *pp)
 	condlog(4, "%d:%d:%d:%d -> session %d", pp->sg_id.host_no,
 		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, session);
 	return session;
-}
-
-static int
-find_phy_id(struct path *pp)
-{
-	char attr_path[SYSFS_PATH_SIZE];
-	char *dir, *base;
-	DIR *dirfd;
-	struct dirent *dirp;
-	int host, port_id = -1, phy_id = -1;
-
-	if (safe_sprintf(attr_path,
-			 "/class/scsi_device/%i:%i:%i:%i",
-			 pp->sg_id.host_no, pp->sg_id.channel,
-			 pp->sg_id.scsi_id, pp->sg_id.lun)) {
-		condlog(0, "attr_path too small for scsi device");
-		return -1;
-	}
-
-	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
-		return -1;
-
-	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
-		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
-	dir = attr_path;
-	do {
-		base = basename(dir);
-		dir = dirname(dir);
-
-		if (sscanf((const char *)base, "port-%d:%d",
-			   &host, &port_id) == 2)
-			break;
-	} while (strcmp((const char *)dir, "/"));
-
-	if (port_id < 0)
-		return -1;
-
-	condlog(4, "%d:%d:%d:%d -> port %d:%d", pp->sg_id.host_no,
-		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun,
-		host, port_id);
-
-	if (safe_sprintf(attr_path,
-			 "/class/sas_port/port-%i:%i/device",
-			 pp->sg_id.host_no, port_id)) {
-		condlog(0, "attr_path too small for scsi device");
-		return -1;
-	}
-
-	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
-		return -1;
-
-	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
-		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
-	dirfd = opendir(attr_path);
-	if (dirfd) {
-		while ((dirp = readdir(dirfd))) {
-			if (sscanf(dirp->d_name, "phy-%d:%d",
-				   &host, &phy_id) == 2)
-				break;
-		}
-		closedir(dirfd);
-	}
-	if (phy_id < 0)
-		return -1;
-
-	condlog(4, "%d:%d:%d:%d -> phy %d:%d", pp->sg_id.host_no,
-		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun,
-		host, phy_id);
-	return phy_id;
 }
 
 int
@@ -545,9 +456,9 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 }
 
 static int
-sysfs_get_transport_id(struct path *pp)
+sysfs_get_transport_id(struct sysfs_device *dev, struct path *pp)
 {
-	int rport_id, session_id, phy_id;
+	int rport_id, session_id;
 
 	rport_id = find_rport_id(pp);
 	if (rport_id != -1) {
@@ -561,11 +472,10 @@ sysfs_get_transport_id(struct path *pp)
 		pp->sg_id.proto_id = SCSI_PROTOCOL_ISCSI;
 		return sysfs_get_iscsi_targetname(pp);
 	}
-	phy_id = find_phy_id(pp);
-	if (phy_id != -1) {
-		pp->sg_id.transport_id = phy_id;
+	if (!sysfs_get_sas_address(dev, pp->tgt_node_name, NODE_NAME_SIZE)) {
+		pp->sg_id.transport_id = -1;
 		pp->sg_id.proto_id = SCSI_PROTOCOL_SAS;
-		return sysfs_get_sas_address(pp);
+		return 0;
 	}
 	pp->sg_id.proto_id = SCSI_PROTOCOL_UNSPEC;
 	pp->sg_id.transport_id = -1;
@@ -796,7 +706,7 @@ scsi_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 	/*
 	 * target node name
 	 */
-	if(!sysfs_get_transport_id(pp)) {
+	if(!sysfs_get_transport_id(parent, pp)) {
 		condlog(3, "%s: tgt_node_name = %s",
 			pp->dev, pp->tgt_node_name);
 	}
