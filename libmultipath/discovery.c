@@ -295,36 +295,19 @@ find_rport_id(struct path *pp)
 }
 
 static int
-find_session_id(struct path *pp)
+find_session_id(struct sysfs_device *dev, struct path *pp)
 {
-	char attr_path[SYSFS_PATH_SIZE];
-	char *dir, *base;
-	int session = -1;
+	int host, session = -1;
 
-	if (safe_sprintf(attr_path,
-			 "/class/scsi_device/%i:%i:%i:%i",
-			 pp->sg_id.host_no, pp->sg_id.channel,
-			 pp->sg_id.scsi_id, pp->sg_id.lun)) {
-		condlog(0, "attr_path too small for scsi device");
+	if (sscanf(dev->devpath, "/devices/platform/host%u/session%u",
+		   &host, &session) != 2) {
+		/* Not an iSCSI device */
 		return -1;
 	}
-
-	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
+	if (host != pp->sg_id.host_no) {
+		condlog(1, "%s: host number doesn't match", pp->dev);
 		return -1;
-
-	condlog(4, "%d:%d:%d:%d -> path %s", pp->sg_id.host_no,
-		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, attr_path);
-	dir = attr_path;
-	do {
-		base = basename(dir);
-		dir = dirname(dir);
-
-		if (sscanf((const char *)base, "session%d", &session) == 1)
-			break;
-	} while (strcmp((const char *)dir, "/"));
-
-	if (session < 0)
-		return -1;
+	}
 
 	condlog(4, "%d:%d:%d:%d -> session %d", pp->sg_id.host_no,
 		pp->sg_id.channel, pp->sg_id.scsi_id, pp->sg_id.lun, session);
@@ -466,7 +449,7 @@ sysfs_get_transport_id(struct sysfs_device *dev, struct path *pp)
 		pp->sg_id.proto_id = SCSI_PROTOCOL_FCP;
 		return sysfs_get_fc_nodename(pp);
 	}
-	session_id = find_session_id(pp);
+	session_id = find_session_id(dev, pp);
 	if (session_id != -1) {
 		pp->sg_id.transport_id = session_id;
 		pp->sg_id.proto_id = SCSI_PROTOCOL_ISCSI;
