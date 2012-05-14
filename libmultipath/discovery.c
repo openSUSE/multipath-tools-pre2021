@@ -318,7 +318,7 @@ int
 update_rport_timeout(struct multipath *mpp, struct path *pp)
 {
 	char attr_path[SYSFS_PATH_SIZE];
-	char value[11];
+	char value[16];
 
 	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
 			  "/class/fc_remote_ports/rport-%d:%d-%d",
@@ -327,6 +327,22 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 		condlog(0, "attr_path for rport-%d:%d-%d too large",
 			pp->sg_id.host_no, pp->sg_id.channel,
 			pp->sg_id.transport_id);
+		return 1;
+	}
+	/*
+	 * port attributes can only be updated if not in state
+	 * 'Blocked', 'Deleted', or 'Not Present'.
+	 * As states other than 'Online' can't be used anyway
+	 * it should be sufficient to just check for 'Online' here.
+	 */
+	if (sysfs_attr_get_value(attr_path, "port_state", value, 16) < 0) {
+		condlog(3, "%s: failed to read port_state, error %d",
+			mpp->alias, errno);
+		return 1;
+	}
+	if (strncmp(value, "Online", 6)) {
+		condlog(3, "%s: port is %s, cannot update timeouts",
+			mpp->alias, value);
 		return 1;
 	}
 	if (mpp->fast_io_fail > FAST_IO_FAIL_UNSET) {
@@ -418,11 +434,7 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 		return 0;
 
 	vector_foreach_slot(mpp->paths, pp, i) {
-		if (pp->state == PATH_DOWN) {
-			condlog(3, "%s: cannot set timeout on %s, path is down",
-				mpp->alias,
-				pp->sysdev ? pp->sysdev->devpath : pp->dev_t);
-		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_FCP) {
+		if (pp->sg_id.proto_id == SCSI_PROTOCOL_FCP) {
 			update_rport_timeout(mpp, pp);
 		} else if (pp->sg_id.proto_id == SCSI_PROTOCOL_ISCSI) {
 			update_session_timeout(mpp, pp);
