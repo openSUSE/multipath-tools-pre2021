@@ -757,7 +757,6 @@ device_handler(vector strvec)
 	struct hwentry * hwe;
 
 	hwe = alloc_hwe();
-
 	if (!hwe)
 		return 1;
 
