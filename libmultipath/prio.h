@@ -6,7 +6,10 @@
  */
 #include "checkers.h"
 #include "vector.h"
-#include "structs.h"
+
+/* forward declaration to avoid circular dependency */
+struct path;
+
 #include "list.h"
 #include "memory.h"
 
@@ -42,6 +45,7 @@
 
 struct prio {
 	void *handle;
+	int refcount;
 	struct list_head node;
 	char name[PRIO_NAME_LEN];
 	char args[PRIO_ARGS_LEN];
@@ -53,6 +57,9 @@ void cleanup_prio (void);
 struct prio * add_prio (char *);
 struct prio * prio_lookup (char *);
 int prio_getprio (struct prio *, struct path *);
+void prio_get (struct prio *, char *, char *);
+void prio_put (struct prio *);
+int prio_selected (struct prio *);
 char * prio_name (struct prio *);
 char * prio_args (struct prio *);
 int prio_set_args (struct prio *, char *);
