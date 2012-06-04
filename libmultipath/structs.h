@@ -24,9 +24,6 @@
 #define NO_PATH_RETRY_FAIL	-1
 #define NO_PATH_RETRY_QUEUE	-2
 
-#define FAST_IO_FAIL_UNSET      -2
-#define FAST_IO_FAIL_OFF        -1
-
 enum free_path_mode {
 	KEEP_PATHS,
 	FREE_PATHS

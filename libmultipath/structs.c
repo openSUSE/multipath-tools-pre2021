@@ -122,7 +122,7 @@ alloc_multipath (void)
 		mpp->bestpg = 1;
 		mpp->mpcontext = NULL;
 		mpp->no_path_retry = NO_PATH_RETRY_UNDEF;
-		mpp->fast_io_fail = FAST_IO_FAIL_UNSET;
+		mpp->fast_io_fail = MP_FAST_IO_FAIL_UNSET;
 	}
 	return mpp;
 }

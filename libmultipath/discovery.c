@@ -345,9 +345,11 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 			mpp->alias, value);
 		return 1;
 	}
-	if (mpp->fast_io_fail > FAST_IO_FAIL_UNSET) {
-		if (mpp->fast_io_fail == FAST_IO_FAIL_OFF)
+	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET) {
+		if (mpp->fast_io_fail == MP_FAST_IO_FAIL_OFF)
 			sprintf(value, "off");
+		else if (mpp->fast_io_fail == MP_FAST_IO_FAIL_ZERO)
+			snprintf(value, 11, "0");
 		else
 			snprintf(value, 11, "%u", mpp->fast_io_fail);
 		if (sysfs_attr_set_value(attr_path, "fast_io_fail_tmo",
@@ -389,9 +391,12 @@ update_session_timeout(struct multipath *mpp, struct path *pp)
 	if (mpp->dev_loss) {
 		condlog(3, "%s: ignoring dev_loss_tmo on iSCSI", pp->dev);
 	}
-	if (mpp->fast_io_fail > FAST_IO_FAIL_UNSET){
-		if (mpp->fast_io_fail == FAST_IO_FAIL_OFF) {
+	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET){
+		if (mpp->fast_io_fail == MP_FAST_IO_FAIL_OFF) {
 			condlog(3, "%s: can't switch off fast_io_fail_tmo "
+				"on iSCSI", pp->dev);
+		} else if (mpp->fast_io_fail == MP_FAST_IO_FAIL_ZERO) {
+			condlog(3, "%s: can't set fast_io_fail_tmo to '0'"
 				"on iSCSI", pp->dev);
 		} else {
 			snprintf(value, 11, "%u", mpp->fast_io_fail);
@@ -425,12 +430,12 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 			mpp->alias, dev_loss_tmo);
 	}
 	mpp->dev_loss = dev_loss_tmo;
-	if (mpp->fast_io_fail > 0 && mpp->fast_io_fail > mpp->dev_loss) {
+	if (mpp->dev_loss && mpp->fast_io_fail > mpp->dev_loss) {
 		mpp->fast_io_fail = mpp->dev_loss;
-		condlog(3, "%s: update fast_io_fail to %d",
-			mpp->alias, mpp->fast_io_fail);
+		condlog(3, "%s: fast_io_fail larger than dev_loss_tmo, "
+			"reduce to dev_loss_tmo", mpp->alias);
 	}
-	if (!mpp->dev_loss && mpp->fast_io_fail < FAST_IO_FAIL_OFF)
+	if (!mpp->dev_loss && mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET)
 		return 0;
 
 	vector_foreach_slot(mpp->paths, pp, i) {
