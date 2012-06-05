@@ -973,7 +973,8 @@ get_state (struct path * pp, int daemon)
 	if (daemon)
 		checker_set_async(c);
 	if (!conf->checker_timeout &&
-	    sysfs_get_timeout(pp->sysdev, &(c->timeout)))
+	    (pp->bus != SYSFS_BUS_SCSI ||
+	     sysfs_get_timeout(pp->sysdev, &(c->timeout))))
 		c->timeout = DEF_TIMEOUT;
 	state = checker_check(c);
 	condlog(3, "%s: state = %s", pp->dev, checker_state_name(state));
