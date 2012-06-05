@@ -422,11 +422,11 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 			no_path_retry_tmo = MAX_DEV_LOSS_TMO;
 		if (no_path_retry_tmo > dev_loss_tmo)
 			dev_loss_tmo = no_path_retry_tmo;
-		condlog(3, "%s: update dev_loss_tmo to %d",
-			mpp->alias, dev_loss_tmo);
+		condlog(3, "%s: no_path_retry enabled, update "
+			"dev_loss_tmo to %d", mpp->alias, dev_loss_tmo);
 	} else if (mpp->no_path_retry == NO_PATH_RETRY_QUEUE) {
 		dev_loss_tmo = MAX_DEV_LOSS_TMO;
-		condlog(4, "%s: update dev_loss_tmo to %d",
+		condlog(3, "%s: queueing enabled, update dev_loss_tmo to %d",
 			mpp->alias, dev_loss_tmo);
 	}
 	mpp->dev_loss = dev_loss_tmo;
