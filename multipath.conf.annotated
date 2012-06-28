@@ -31,7 +31,13 @@
 #	# scope   : multipath
 #	# desc    : the default path selector algorithm to use
 #	#           these algorithms are offered by the kernel multipath target
-#	# values  : "round-robin 0"
+#	# values  : "round-robin 0"     = balance traffic across all active paths
+#	#           "least-pending 0"   = consider unserviced requests pending on
+#	#                                 a path and select the path with least
+#	#                                 pending service requests
+#	#           "queue-length 0"    = balance traffic based on number of 
+#	#                                 in-flight requests
+#	#           "service-time 0"    = balance traffic according to latency
 #	# default : "round-robin 0"
 #	#
 #	selector	"round-robin 0"
@@ -287,7 +293,13 @@
 #		# name    : path_selector
 #		# desc    : the path selector algorithm to use for this mpath
 #		#           these algo are offered by the kernel mpath target
-#		# values  : "round-robin 0"
+#		# values  : "round-robin 0"     = balance traffic across all active paths
+#		#           "least-pending 0"   = consider unserviced requests pending on
+#		#                                 a path and select the path with least
+#		#                                 pending service requests
+#		#           "queue-length 0"    = balance traffic based on number of 
+#		#                                 in-flight requests
+#		#           "service-time 0"    = balance traffic according to latency
 #		#
 #		path_selector		"round-robin 0"
 #
