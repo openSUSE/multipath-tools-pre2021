@@ -1,14 +1,28 @@
 -------------------------------------------------------------------
 Thu Jun 28 15:56:58 CEST 2012 - hare@suse.de
 
-- Backport fast_io_fail definitions from upstream (bnc#749631)
-- Do not try to set timeout on non-SCSI devices
+- Backport fast_io_fail definitions from upstream
+  (bnc#749631, bnc#747891)
+- Do not try to set timeout on non-SCSI devices (bnc#747891)
 - Clarify messages when updating dev_loss_tmo
 - Document new path_selectors (bnc#735174)
 - Fix prio merging of prioritizers with different args (bnc#760148)
 - Add definitions for HP P6300 (bnc#763632)
 - Increase parameter buffer (bnc#767802)
 - Update NetApp device parameter
+- Check port state before updating timeouts (bnc#749631)
+- Fix typo in mp_prio_handler (bnc#760148)
+- Remove duplicate calls from verify_paths (bnc#749631)
+- Fix inconsitent hwtable entries (bnc#737414)
+- do not update rport timeouts on failed paths (bnc#749631)
+- Fix up fast_io_fail settings (bnc#743692)
+- vpd 0x83 processing fixes (bnc#749921)
+- Add Datacore SANSymphony to hwtable (bnc#749584)
+- Fix copying bindings_file to initrd (bnc#738340,bnc#747905)
+- Add Fujitsu Eternus defaults (bnc#746396)
+- Add Intel Multi-Flex defaults (bnc#743469)
+- kpartx: Check for accessible device-mapper device (bnc#719449)
+- Use blkid in kpartx rules (bnc#747587)
 
 -------------------------------------------------------------------
 Fri Feb  3 16:18:14 UTC 2012 - jankit@suse.de
