@@ -1,4 +1,24 @@
 -------------------------------------------------------------------
+Fri Jun 29 08:55:04 CEST 2012 - hare@suse.de
+
+- Duplicate entries in 'multipath -t' (bnc#735414)
+- Ignore PATH_FAILED/PATH_REINSTATE events (bnc#738295)
+- Fix copying bindigs_file to initrd (bnc#738340)
+- clarify dev_loss_tmo settings (bnc#736334)
+- Add hardware entry for Intel Multi-Flex (bnc#743469)
+- Set rdac TAS bit if changeable (bnc#724373)
+- Report PATH_UP for both paths for rdac if io-shipping
+  is enabled (bnc#724373)
+- Report different priority values for rdac if io-shipping
+  is enabled (bnc#724373)
+- Return PATH_DOWN if a device has disappeared from sysfs
+  (bnc#699350)
+- Add Datacore SANSymphony to hwtable (bnc#749584)
+- Fix inconsitent entries after merging hwtable (bnc#737414)
+- Document new path_selectors (bnc#735174)
+- Add definitions for HP P6300 (bnc#763632)
+
+-------------------------------------------------------------------
 Wed Sep 28 13:32:07 CEST 2011 - hare@suse.de
 
 - multipathd: use correct socket length (bnc#705546)
