@@ -19,7 +19,7 @@
 #	queue_without_daemon    no
 #	user_friendly_names	no
 #
-#	# See /lib/udev/rules.d/12-dm-permissions.rules
+#	# See /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #	# to set mode/uid/gid.
 #}
 #blacklist {

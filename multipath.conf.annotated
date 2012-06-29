@@ -193,7 +193,7 @@
 #	#
 #	# name    : mode
 #	# This option has been deprecated. Please see
-#	#  /lib/udev/rules.d/12-dm-permissions.rules
+#	#  /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #	# to set mode.
 #	# scope   : multipath & multipathd
 #	# desc    : The mode to use for the multipath device nodes, in octal.
@@ -204,7 +204,7 @@
 #	#
 #	# name    : uid
 #	# This option has been deprecated. Please see
-#	#  /lib/udev/rules.d/12-dm-permissions.rules
+#	#  /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #	# to set uid.
 #	# scope   : multipath & multipathd
 #	# desc    : The user id to use for the multipath device nodes. You
@@ -216,7 +216,7 @@
 #	#
 #	# name    : gid
 #	# This option has been deprecated. Please see
-#	#  /lib/udev/rules.d/12-dm-permissions.rules
+#	#  /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #	# to set gid.
 #	# scope   : multipath & multipathd
 #	# desc    : The group id to user for the multipath device nodes. You
@@ -418,7 +418,7 @@
 #		#
 #		# name    : mode
 #		# This option has been deprecated. Please see
-#		#  /lib/udev/rules.d/12-dm-permissions.rules
+#		#  /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #		# to set mode.
 #		# scope   : multipath & multipathd
 #		# desc    : The mode to use for the multipath device nodes, in
@@ -430,7 +430,7 @@
 #		#
 #		# name    : uid
 #		# This option has been deprecated. Please see
-#		#  /lib/udev/rules.d/12-dm-permissions.rules
+#		#  /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #		# to set uid.
 #		# scope   : multipath & multipathd
 #		# desc    : The user id to use for the multipath device nodes.
@@ -442,7 +442,7 @@
 #		#
 #		# name    : gid
 #		# This option has been deprecated. Please see
-#		#  /lib/udev/rules.d/12-dm-permissions.rules
+#		#  /usr/share/doc/packages/device-mapper/12-dm-permissions.rules
 #	 	# to set gid.
 #		# scope   : multipath & multipathd
 #		# desc    : The group id to user for the multipath device nodes.

@@ -11,6 +11,13 @@ Thu Jun 28 15:56:58 CEST 2012 - hare@suse.de
 - Update NetApp device parameter
 
 -------------------------------------------------------------------
+Fri Feb  3 16:18:14 UTC 2012 - jankit@suse.de
+
+- Update path for udev rules file 12-dm-permissions.rules to
+  /usr/share/doc/packages/device-mapper instead of
+  /lib/udev/rules.d . Change caused by bnc#743797 . 
+
+-------------------------------------------------------------------
 Fri Feb  3 12:42:34 CET 2012 - hare@suse.de
 
 - multipath.conf.5: clarify dev_loss_tmo settings (bnc#743692)
