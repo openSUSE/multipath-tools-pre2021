@@ -4,6 +4,11 @@ Thu Jun 28 15:56:58 CEST 2012 - hare@suse.de
 - Backport fast_io_fail definitions from upstream (bnc#749631)
 - Do not try to set timeout on non-SCSI devices
 - Clarify messages when updating dev_loss_tmo
+- Document new path_selectors (bnc#735174)
+- Fix prio merging of prioritizers with different args (bnc#760148)
+- Add definitions for HP P6300 (bnc#763632)
+- Increase parameter buffer (bnc#767802)
+- Update NetApp device parameter
 
 -------------------------------------------------------------------
 Fri Feb  3 12:42:34 CET 2012 - hare@suse.de
