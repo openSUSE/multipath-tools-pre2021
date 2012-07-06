@@ -26,9 +26,14 @@ fi
 if use_script multipath; then
     bindings_dir=/etc/multipath
     bindings_file=${bindings_dir}/bindings
-    if [ -f /etc/multipath.conf ] ; then
-	cp -a /etc/multipath.conf $tmp_mnt/etc
-	    f=$(sed -n '/^[ \t]*#.*/b;s/.*bindings_file *\"\?\([^" ]*\)\"\? */\1/p' /etc/multipath.conf)
+    if (( $use_kdump )) && [ -f /etc/multipath.conf.kdump ] ; then
+	multipath_conf=/etc/multipath.conf.kdump
+    else
+	multipath_conf=/etc/multipath.conf
+    fi
+    if [ -f $multipath_conf ] ; then
+	cp -a $multipath_conf $tmp_mnt/etc/multipath.conf
+	    f=$(sed -n '/^[ \t]*#.*/b;s/.*bindings_file *\"\?\([^" ]*\)\"\? */\1/p' $multipath_conf)
 	    if [ "$f" ] ; then
 		bindings_file=$f
 		bindings_dir=${bindings_file%/*}
