@@ -547,6 +547,8 @@ def_async_timeout_handler(vector strvec)
 	int async_timeout;
 	char * buff;
 
+	fprintf(stderr, "async_timeout is deprecated: use checker_timeout instead\n");
+
 	buff = set_value(strvec);
 
 	if (!buff)

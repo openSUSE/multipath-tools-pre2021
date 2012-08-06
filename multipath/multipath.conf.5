@@ -293,6 +293,11 @@ Specify the timeout to user for path checkers that issue scsi commands with an
 explict timeout, in seconds; default taken from
 .I /sys/block/sd<x>/device/timeout
 .TP
+.B async_timeout
+(Deprecated) The timeout for asynchronous I/O calls. Any asynchronous I/O returning after
+this timeout is assumed to be an error. Used eg. in the 'directio' path checker.
+Default is 30. This option is deprecated, please use \fIchecker_timeout\fR instead.
+.TP
 .B fast_io_fail_tmo
 Specify the number of seconds the scsi layer will wait after a problem has been
 detected on a FC remote port before failing IO to devices on that remote port.
