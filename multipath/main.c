@@ -507,7 +507,7 @@ main (int argc, char *argv[])
 
 	if (conf->remove == FLUSH_ONE) {
 		if (conf->dev_type == DEV_DEVMAP) {
-			r = dm_flush_map(conf->dev);
+			r = dm_suspend_and_flush_map(conf->dev);
 		} else
 			condlog(0, "must provide a map name to remove");
 
