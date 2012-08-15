@@ -383,7 +383,8 @@ int uevent_listen(void)
 		}
 		uev->envp[i] = NULL;
 
-		condlog(3, "uevent '%s' from '%s'", uev->action, uev->devpath);
+		condlog(3, "uevent %ld '%s' from '%s'", uev->seqnum,
+			uev->action, uev->devpath);
 		uev->kernel = strrchr(uev->devpath, '/');
 		if (uev->kernel)
 			uev->kernel++;
