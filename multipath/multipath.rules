@@ -4,4 +4,6 @@
 #
 
 # socket for uevents
+SUBSYSTEM=="block", KERNEL=="dm-*", ACTION=="change", ENV{DM_ACTION}=="PATH_FAILED|PATH_REINSTATED", GOTO="multipath_end"
 SUBSYSTEM=="block", RUN+="socket:/org/kernel/dm/multipath_event"
+LABEL="multipath_end"
