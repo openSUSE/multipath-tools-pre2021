@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Aug 20 12:05:28 CEST 2012 - hare@suse.de
+
+- multipathd: Call 'reconfigure' during startup (bnc#744271)
+- multipathd: skip netlink uevents (bnc#719449)
+- multipath: disable queueing when flushing maps (bnc#719449)
+- Print out uevent sequence number (bnc#719449)
+- Allow separate kdump configuration (bnc#738865)
+
+-------------------------------------------------------------------
 Thu Jun 28 15:56:58 CEST 2012 - hare@suse.de
 
 - Backport fast_io_fail definitions from upstream
@@ -13,7 +22,7 @@ Thu Jun 28 15:56:58 CEST 2012 - hare@suse.de
 - Check port state before updating timeouts (bnc#749631)
 - Fix typo in mp_prio_handler (bnc#760148)
 - Remove duplicate calls from verify_paths (bnc#749631)
-- Fix inconsitent hwtable entries (bnc#737414)
+- Fix inconsitent hwtable entries (bnc#735414)
 - do not update rport timeouts on failed paths (bnc#749631)
 - Fix up fast_io_fail settings (bnc#743692)
 - vpd 0x83 processing fixes (bnc#749921)
