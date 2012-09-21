@@ -383,6 +383,7 @@ domap (struct multipath * mpp)
 		 */
 		mpp->action = ACT_NOTHING;
 #endif
+		dm_setgeometry(mpp);
 		return DOMAP_OK;
 	}
 	return DOMAP_FAIL;
