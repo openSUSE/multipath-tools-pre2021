@@ -26,6 +26,8 @@ fi
 if use_script multipath; then
     bindings_dir=/etc/multipath
     bindings_file=${bindings_dir}/bindings
+    bindings_dir_fb=/var/lib/multipath
+    bindings_file_fb=${bindings_dir_fb}/bindings
     if (( $use_kdump )) && [ -f /etc/multipath.conf.kdump ] ; then
 	multipath_conf=/etc/multipath.conf.kdump
     else
@@ -33,15 +35,20 @@ if use_script multipath; then
     fi
     if [ -f $multipath_conf ] ; then
 	cp -a $multipath_conf $tmp_mnt/etc/multipath.conf
-	    f=$(sed -n '/^[ \t]*#.*/b;s/.*bindings_file *\"\?\([^" ]*\)\"\? */\1/p' $multipath_conf)
-	    if [ "$f" ] ; then
-		bindings_file=$f
-		bindings_dir=${bindings_file%/*}
+	f=$(sed -n '/^[ \t]*#.*/b;s/.*bindings_file *\"\?\([^" ]*\)\"\? */\1/p' $multipath_conf)
+	if [ "$f" ] ; then
+	    bindings_file=$f
+	    bindings_dir=${bindings_file%/*}
+	fi
     fi
+    if [ ! -f ${bindings_file} -a -f ${bindings_file_fb} ]; then
+	# Fall back to old path to bindings file (bnc#723620)
+	bindings_dir=${bindings_dir_fb}
+	bindings_file=${bindings_file_fb}
     fi
-    [ -d ${tmp_mnt}${bindings_dir} ] || mkdir -p ${tmp_mnt}${bindings_dir}
     if [ -f $bindings_file ] ; then
-	    cp -a $bindings_file ${tmp_mnt}${bindings_file}
+	[ -d ${tmp_mnt}${bindings_dir} ] || mkdir -p ${tmp_mnt}${bindings_dir}
+	cp -a $bindings_file ${tmp_mnt}${bindings_file}
     fi
     if [ -e /etc/udev/rules.d/71-multipath.rules ]; then
 	cp /etc/udev/rules.d/71-multipath.rules $tmp_mnt/etc/udev/rules.d
