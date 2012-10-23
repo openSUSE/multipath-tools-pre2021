@@ -59,7 +59,7 @@ if ! which git > /dev/null ; then
 fi
 
 if [ -z "$BRANCH" ] ; then
-    BRANCH="sles10-sp3"
+    BRANCH="sles10-sp4"
     echo "Branch is not set, checking out from $BRANCH"
 fi
 
