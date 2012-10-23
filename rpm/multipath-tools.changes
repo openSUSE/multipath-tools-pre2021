@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Tue Oct 23 10:33:45 CEST 2012 - hare@suse.de
+
+- Set geometry information for multipath maps (bnc#749577)
+- Intialize pointer passed to get_cmdvec (bnc#bnc#773407)
+- Fix exit status for -h and -t options in multipath command
+  (bnc#775623)
+- Add new arrays to hardware table (bnc#749584)
+- Rework sysfs device handling (bnc#719838)
+
+-------------------------------------------------------------------
 Fri Sep 23 16:04:48 CEST 2011 - hare@suse.de
 
 - option to multipath to not modify the bindinfs file (bnc#718071)
