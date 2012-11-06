@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Nov  6 17:18:32 CET 2012 - hare@suse.de
+
+- multipath -t terminated by signal (bnc#787217)
+
+-------------------------------------------------------------------
 Tue Oct 23 10:33:45 CEST 2012 - hare@suse.de
 
 - Set geometry information for multipath maps (bnc#749577)

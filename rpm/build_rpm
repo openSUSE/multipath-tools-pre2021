@@ -7,6 +7,10 @@ RPM="multipath-tools"
 BRANCH="sles10-sp4"
 BASEVER="0.4.7"
 DESTDIR=
+TMPDIR=
+OBS_PRJ=SUSE:SLE-10-SP4:Update:Test
+OBS_BRANCH=home:hreinecke:branches
+OSC="osc -A https://api.suse.de --no-keyring"
 uncommitted_changes=0
 
 while [ $# -gt 0 ] ; do
@@ -37,6 +41,17 @@ while [ $# -gt 0 ] ; do
 	    ;;
         -f|--force)
             force=1;
+	    update=;
+            shift;
+            ;;
+	-m|--maintenance)
+	    OBS=SUSE:SLE-10-SP4:GA
+	    OSC="osc -A https://api.suse.de"
+	    shift;
+	    ;;
+        -u|--update)
+            update=1;
+	    force=;
             shift;
             ;;
         --uncommitted-changes)
@@ -64,10 +79,10 @@ if [ -z "$BRANCH" ] ; then
 fi
 
 if [ -d "$DESTDIR" ] ; then
-    if [ -z "$force" ] ; then
+    if [ -z "$force" ] && [ -z "$update" ] ; then
         echo "directory $DESTDIR exists, cannot continue"
         exit 1
-    else
+    elif [ -z "$update" ] ; then
         if ! rm -rf "$DESTDIR" ; then
             echo "Cannot remove directory $DESTDIR"
             exit 1
@@ -90,7 +105,10 @@ fi
 
 if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
-    osc co --current-dir home:hreinecke:SLES10-SP4 multipath-tools
+    if ! $OSC meta pkg $OBS_BRANCH:$OBS_PRJ $RPM > /dev/null 2>&1 ; then
+	$OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM
+    fi
+    $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ multipath-tools
     TMPDIR=${DESTDIR}
     DESTDIR="${DESTDIR}/multipath-tools"
     popd
@@ -125,12 +143,13 @@ if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
     osc ar
     osc ci --message="Checked in from git branch $BRANCH"
+    osc sr
     popd
 fi
 
 if [ -n "$remove_destdir" ] ; then
     rm -rf $DESTDIR
-    if [ -d "$TMPDIR" ] ; then
+    if [ "$TMPDIR" ] ; then
 	rm -rf $TMPDIR
     fi
 fi
