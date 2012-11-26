@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Nov 26 16:28:01 CET 2012 - hare@suse.de
+
+- Add definition for HSV3[46]0 to multipath.conf.defaults (bnc#783184)
+- Fallback to old bindings file (bnc#776997)
+- Fix typos in documentation (bnc#777019)
+- New path selectors are missing from initrd scripts (bnc#771203)
+- retry the DID_SOFT_ERROR for rdac checker commands (bnc#771934)
+- Do not trigger a map reload on priority updates (bnc#746675)
+- Document and deprecate async_timeout option (bnc#770122)
+
+-------------------------------------------------------------------
 Mon Aug 20 12:05:28 CEST 2012 - hare@suse.de
 
 - multipathd: Call 'reconfigure' during startup (bnc#744271)
