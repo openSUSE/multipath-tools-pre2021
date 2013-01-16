@@ -19,6 +19,8 @@ $(EXEC): $(OBJS)
 install:
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -m 755 $(EXEC) $(DESTDIR)$(bindir)/
+	$(INSTALL_PROGRAM) -d $(DESTDIR)$(rcdir)
+	$(INSTALL_PROGRAM) -m 755 multipath.init.suse $(DESTDIR)$(rcdir)/boot.multipath
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(man5dir)
@@ -33,6 +35,7 @@ uninstall:
 	rm $(DESTDIR)$(bindir)/$(EXEC)
 	rm $(DESTDIR)$(mandir)/$(EXEC).8
 	rm $(DESTDIR)$(man5dir)/$(EXEC).conf.5
+	rm $(DESTDIR)$(rcdir)/boot.multipath
 	rm -f $(DESTDIR)/lib/mkinitrd/scripts/boot-multipath.sh
 	rm -f $(DESTDIR)/lib/mkinitrd/scripts/setup-multipath.sh
 
