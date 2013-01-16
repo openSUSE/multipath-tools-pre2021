@@ -19,7 +19,7 @@
 
 
 Name:           multipath-tools
-BuildRequires:  device-mapper-devel libaio-devel readline-devel
+BuildRequires:  device-mapper-devel libaio-devel readline-devel libudev-devel
 Url:            http://christophe.varoqui.free.fr/
 License:        BSD 3-clause (or similar) ; GPL v2 or later ; LGPL v2.1 or later ;  Public Domain, Freeware ; MIT License (or similar)
 Group:          System/Base
@@ -31,7 +31,7 @@ Release:        41
 Summary:        Tools to Manage Multipathed Devices with the device-mapper
 Source:         multipath-tools-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-Patch0:         %{name}-%{version}-sles11-sp2.diff.bz2
+Patch0:         %{name}-%{version}-sles11-sp3.diff.bz2
 
 %description
 This package provides the tools to manage multipathed devices by
@@ -82,6 +82,7 @@ make OPTFLAGS="$RPM_OPT_FLAGS" LIB=%_lib
 
 %install
 make DESTDIR=$RPM_BUILD_ROOT LIB=%_lib install
+rm $RPM_BUILD_ROOT/usr/include/mpath_persist.h
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 ln -sf ../etc/init.d/multipathd $RPM_BUILD_ROOT/sbin/rcmultipathd
 
@@ -96,6 +97,7 @@ fi
 
 %post
 [ -f /.buildenv ] && exit 0
+%{run_ldconfig}
 if dmsetup --target multipath table | grep -q multipath ; then
     /etc/init.d/multipathd start
 fi
@@ -110,6 +112,7 @@ exit 0
 %postun
 [ -x /sbin/mkinitrd_setup ] && mkinitrd_setup
 %{insserv_cleanup}
+%{run_ldconfig}
 
 %files
 %defattr(-,root,root)
@@ -119,22 +122,28 @@ exit 0
 %dir /etc/udev/rules.d
 %config /etc/init.d/multipathd
 %config /etc/init.d/boot.multipath
-%config /etc/udev/rules.d/71-multipath.rules
 /%{_lib}/libmultipath.so.0
+/%{_lib}/libmpathpersist.so.0
 /%{_lib}/multipath
 /sbin/multipath
 /sbin/multipathd
+/sbin/mpathpersist
 /sbin/rcmultipathd
 %attr (0700, root, root) /var/cache/multipath
+%dir /lib/systemd
+%dir /lib/systemd/system
+/lib/systemd/system/multipathd.service
 %dir /lib/mkinitrd
 %dir /lib/mkinitrd/scripts
 /lib/mkinitrd/scripts/boot-multipath.sh
 /lib/mkinitrd/scripts/setup-multipath.sh
 /lib/mkinitrd/scripts/boot-multipathd.sh
 /lib/mkinitrd/scripts/boot-killmultipathd.sh
+%{_mandir}/man3/mpath_persistent_*
 %{_mandir}/man8/multipath.8*
 %{_mandir}/man5/multipath.conf.5*
 %{_mandir}/man8/multipathd.8*
+%{_mandir}/man8/mpathpersist.8*
 
 %files -n kpartx
 %defattr(-,root,root)
@@ -142,7 +151,6 @@ exit 0
 %dir /etc/udev/rules.d
 %config /etc/udev/rules.d/70-kpartx.rules
 /sbin/kpartx
-/sbin/activate_dm_linear
 %dir /lib/udev
 /lib/udev/kpartx_id
 %dir /lib/mkinitrd
