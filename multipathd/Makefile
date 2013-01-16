@@ -38,12 +38,19 @@ install:
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).service $(DESTDIR)$(unitdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
+	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
+	$(SED) 's/@LIB@/$(LIB)/g' boot-multipathd.sh > $(DESTDIR)/lib/mkinitrd/scripts/boot-multipathd.sh
+	chmod 755 $(DESTDIR)/lib/mkinitrd/scripts/boot-multipathd.sh
+	$(SED) 's/@LIB@/$(LIB)/g' boot-killmultipathd.sh > $(DESTDIR)/lib/mkinitrd/scripts/boot-killmultipathd.sh
+	chmod 755 $(DESTDIR)/lib/mkinitrd/scripts/boot-killmultipathd.sh
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
 	rm -f $(DESTDIR)$(rcdir)/$(EXEC)
 	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
 	rm -f $(DESTDIR)$(unitdir)/$(EXEC).service
+	rm -f $(DESTDIR)/lib/mkinitrd/scripts/boot-multipathd.sh
+	rm -f $(DESTDIR)/lib/mkinitrd/scripts/boot-killmultipathd.sh
 
 clean:
 	rm -f core *.o $(EXEC)

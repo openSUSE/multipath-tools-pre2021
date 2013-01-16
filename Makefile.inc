@@ -36,6 +36,7 @@ unitdir     = $(prefix)/lib/systemd/system
 mpathpersistdir = $(TOPDIR)/libmpathpersist
 
 GZIP        = /bin/gzip -9 -c
+SED         = sed
 INSTALL_PROGRAM = install
 
 ifndef RPM_OPT_FLAGS
