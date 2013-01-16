@@ -22,8 +22,6 @@ $(LIBS):
 	$(CC) -Wall -fPIC -c $(CFLAGS) *.c 
 	$(CC)  -shared $(LIBDEPS) -Wl,-soname=$@ $(CFLAGS) -o $@ $(OBJS)
 	ln -s $(LIBS) $(DEVLIB)
-	$(GZIP) mpath_persistent_reserve_in.3 > mpath_persistent_reserve_in.3.gz	
-	$(GZIP) mpath_persistent_reserve_out.3 > mpath_persistent_reserve_out.3.gz	
 
 install: $(LIBS)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(syslibdir)
@@ -33,17 +31,16 @@ install: $(LIBS)
 	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)/usr/include/
 	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)/usr/share/doc/mpathpersist/
 	ln -sf $(DESTDIR)$(syslibdir)/$(LIBS) $(DESTDIR)$(syslibdir)/$(DEVLIB)
-	install -m 644 mpath_persistent_reserve_in.3.gz $(DESTDIR)$(man3dir)	
-	install -m 644 mpath_persistent_reserve_out.3.gz $(DESTDIR)$(man3dir)	
+	install -m 644 mpath_persistent_reserve_in.3 $(DESTDIR)$(man3dir)
+	install -m 644 mpath_persistent_reserve_out.3 $(DESTDIR)$(man3dir)
 	install -m 644 mpath_persist.h $(DESTDIR)/usr/include/
 
 uninstall:
 	rm -f $(DESTDIR)$(syslibdir)/$(LIBS)
-	rm $(DESTDIR)$(mandir)/mpath_persistent_reserve_in.3.gz	
-	rm $(DESTDIR)$(mandir)/mpath_persistent_reserve_out.3.gz	
+	rm $(DESTDIR)$(mandir)/mpath_persistent_reserve_in.3
+	rm $(DESTDIR)$(mandir)/mpath_persistent_reserve_out.3
 
 clean:
 	rm -f core *.a *.o 
 	rm -f libmpathpersist.so.0
 	rm -f libmpathpersist.so
-	rm -f mpath_persistent_reserve_in.3.gz mpath_persistent_reserve_out.3.gz
