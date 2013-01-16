@@ -1,0 +1,1263 @@
+-------------------------------------------------------------------
+Mon Nov 26 16:28:01 CET 2012 - hare@suse.de
+
+- Add definition for HSV3[46]0 to multipath.conf.defaults (bnc#783184)
+- Fallback to old bindings file (bnc#776997)
+- Fix typos in documentation (bnc#777019)
+- New path selectors are missing from initrd scripts (bnc#771203)
+- retry the DID_SOFT_ERROR for rdac checker commands (bnc#771934)
+- Do not trigger a map reload on priority updates (bnc#746675)
+- Document and deprecate async_timeout option (bnc#770122)
+
+-------------------------------------------------------------------
+Mon Aug 20 12:05:28 CEST 2012 - hare@suse.de
+
+- multipathd: Call 'reconfigure' during startup (bnc#744271)
+- multipathd: skip netlink uevents (bnc#719449)
+- multipath: disable queueing when flushing maps (bnc#719449)
+- Print out uevent sequence number (bnc#719449)
+- Allow separate kdump configuration (bnc#738865)
+
+-------------------------------------------------------------------
+Thu Jun 28 15:56:58 CEST 2012 - hare@suse.de
+
+- Backport fast_io_fail definitions from upstream
+  (bnc#749631, bnc#747891)
+- Do not try to set timeout on non-SCSI devices (bnc#747891)
+- Clarify messages when updating dev_loss_tmo
+- Document new path_selectors (bnc#735174)
+- Fix prio merging of prioritizers with different args (bnc#760148)
+- Add definitions for HP P6300 (bnc#763632)
+- Increase parameter buffer (bnc#767802)
+- Update NetApp device parameter
+- Check port state before updating timeouts (bnc#749631)
+- Fix typo in mp_prio_handler (bnc#760148)
+- Remove duplicate calls from verify_paths (bnc#749631)
+- Fix inconsitent hwtable entries (bnc#735414)
+- do not update rport timeouts on failed paths (bnc#749631)
+- Fix up fast_io_fail settings (bnc#743692)
+- vpd 0x83 processing fixes (bnc#749921)
+- Add Datacore SANSymphony to hwtable (bnc#749584)
+- Fix copying bindings_file to initrd (bnc#738340,bnc#747905)
+- Add Fujitsu Eternus defaults (bnc#746396)
+- Add Intel Multi-Flex defaults (bnc#743469)
+- kpartx: Check for accessible device-mapper device (bnc#719449)
+- Use blkid in kpartx rules (bnc#747587)
+
+-------------------------------------------------------------------
+Fri Feb  3 16:18:14 UTC 2012 - jankit@suse.de
+
+- Update path for udev rules file 12-dm-permissions.rules to
+  /usr/share/doc/packages/device-mapper instead of
+  /lib/udev/rules.d . Change caused by bnc#743797 .
+
+-------------------------------------------------------------------
+Fri Feb  3 12:42:34 CET 2012 - hare@suse.de
+
+- multipath.conf.5: clarify dev_loss_tmo settings (bnc#743692)
+- multipathd: set default dev_loss_tmo settings (bnc#743692)
+
+-------------------------------------------------------------------
+Mon Jan 16 09:01:37 CET 2012 - hare@suse.de
+
+- multipath: Don't remove dm devices on remove uevent
+- multipath: Fix scsi async tur checker corruption
+- multipathd is using deprecated oom_adj interface
+- Duplicate entries in multipath -t (bnc#735414)
+- Inconsistent string quoting (bnc#737857)
+- multipath -t doesn't display polling interface (bnc#737096)
+- multipath fails to open dev_loss_tmo attribute (bnc#737096)
+- multipath: fix scsi timeout code
+- kpartx_id: Generate persistent symlinks for 'wwn' (bnc#728328)
+
+-------------------------------------------------------------------
+Fri Dec  2 15:30:27 UTC 2011 - jankit@suse.de
+
+- Config file options - mode/gid/uid are deprecated. udev rules
+  should be used for setting these now. Mark them as such in the
+  config file samples.
+  (bnc#728897)
+
+-------------------------------------------------------------------
+Fri Nov 25 15:00:35 CET 2011 - hare@suse.de
+
+- mkinitrd script displays error during booting
+- Wrong scsi_id callout location in multipath.conf.defaults
+  (bnc#710952)
+- multipath: don't print so many add map messages
+  (bnc#721796)
+
+-------------------------------------------------------------------
+Fri Nov 18 11:20:21 CET 2011 - hare@suse.de
+
+- kpartx man page update (bnc#730606)
+- Update man page for multipath -r (bnc#730600)
+- multipathd crashes in find_phy_id (bnc#730573)
+
+-------------------------------------------------------------------
+Mon Nov  7 10:35:09 CET 2011 - hare@suse.de
+
+- Add multipathd initrd scriptlets (bnc#714011)
+
+-------------------------------------------------------------------
+Fri Nov  4 09:27:53 CET 2011 - hare@suse.de
+
+- Remove explicit dependency again, should be done automatically
+  now (bnc#719424)
+
+-------------------------------------------------------------------
+Mon Oct 24 11:28:42 CEST 2011 - hare@suse.de
+
+- Depend on device-mapper 1.03 (bnc#719424)
+
+-------------------------------------------------------------------
+Fri Oct 21 16:44:28 CEST 2011 - hare@suse.de
+
+- Path checker should return PATH_DOWN when no path is found
+  (bnc#721874)
+- Check return code from pathinfo (bnc#721874)
+- Get right sysfs value for checker_timeout (bnc#724462)
+- Update session timeouts for iSCSI (bnc#714011)
+- Get correct targetname for various SCSI protocols (bnc#721820)
+- multipath throws wrong return value (bnc#721978)
+
+-------------------------------------------------------------------
+Mon Sep 19 13:58:11 CEST 2011 - hare@suse.de
+
+- Adding NetApp as brand name for RDAC (bnc#716970)
+- Service mode changes for RDAC storage
+- multipath-tools doesn't provide rc symlink (bnc#692872)
+- Errorneous group priority displayed (bnc#714953)
+- Multipathd crashes on map reload (bnc#715205)
+
+-------------------------------------------------------------------
+Mon Sep  5 09:19:16 CEST 2011 - hare@suse.de
+
+- 'probe' isn't supported in init script (bnc#709577)
+- Formatting cleanup in alua prioritizer
+- Backport patches from mainline:
+  * Remove prio_callout from manpage
+  * fix linebreaks
+  * Add kpartx example to manpage
+
+-------------------------------------------------------------------
+Fri Jul 29 15:13:52 CEST 2011 - hare@suse.de
+
+- Switch to abstract sockets for CLI commands (bnc#705546)
+- Ignore errors when creating pidfile (bnc#705546)
+- Update usage message for /etc/init.d/boot.multipath (bnc#708277)
+- Accept several whitespaces in bindings file (bnc#708558)
+- multipath crashes on failback (bnc#709094)
+- Backport patches from mainline:
+  * multipath: check setup_multipath return value
+  * multipath: strdup multipath alias, so that it isn't deleted
+
+-------------------------------------------------------------------
+Fri Jul  1 07:56:50 CEST 2011 - hare@suse.de
+
+- Fixup buffer overflow in devt2devname()
+
+-------------------------------------------------------------------
+Mon Jun 20 13:17:48 CEST 2011 - hare@suse.de
+
+- Update to version 0.4.9
+- Merge with mainline. Fixes:
+  * Change MPIO defaults to exclude friendly names (FATE#310081)
+  * possibility to set dev_loss_tmo to infinity (FATE#310183)
+  * Power Virtual SCSI Next Generation (FATE#311630)
+  * Enable RDAC IO-shipping (bnc#688934)
+  * Allow users to set the revision in multipath.conf
+  * Add -r to kpartx to mark devices read-only
+  * Support different 'minio' values for rq and bio-based
+    dm-multipath
+  * Standardize on 'path_selector'
+  * Add checker_timeout default config option
+  * Clean up path orphaning and adoption
+  * sort all pathgroups by priority
+
+-------------------------------------------------------------------
+Mon Jun 20 13:02:11 CEST 2011 - hare@suse.de
+
+- multipathd: Disassociate from /dev/console (FATE#310684)
+- Resource leak in read_value_block()
+- Error checking in remove_features()
+- Invalid check for mpp->wwid in dm_addmap()
+- Missing locking in uevent_listen()
+- Missing locking in uevent_dispatch()
+- Double free in assemble_map
+- Uninitalized retval in uev_update_path()
+- Signal handlers might use uninitialized gvecs (bnc#691791)
+- Zero out buffer in readline (bnc#691724)
+
+-------------------------------------------------------------------
+Fri Jun  3 11:21:29 CEST 2011 - hare@suse.de
+
+- multipathd deadlocks during restart (bnc#697112)
+- Syntax error in /etc/init.d/boot.multipath (bnc#697125)
+
+-------------------------------------------------------------------
+Thu May 26 08:09:44 CEST 2011 - hare@suse.de
+
+- Do not attempt to rename a device from multipathd (bnc#695975)
+
+-------------------------------------------------------------------
+Fri May 20 13:14:50 CEST 2011 - hare@suse.de
+
+- Race condition fixes (bnc#642846)
+  * Make log_pthread more robust
+  * Use refcounting for sysfs devices
+  * Make 'allocated' an integer in vector.h
+  * Use correct return value when handling uevents
+  * Race condition when calling stop_waiter_thread()
+
+-------------------------------------------------------------------
+Mon May 16 13:53:09 CEST 2011 - hare@suse.de
+
+- Test for functions in checkers.c (bnc#642846)
+
+-------------------------------------------------------------------
+Tue Apr 19 15:28:03 CEST 2011 - hare@suse.de
+
+- Fix typos in vector paranoia patch (bnc#688430)
+- Retry host transient errors for rdac checker (bnc#681316)
+
+-------------------------------------------------------------------
+Tue Mar 15 13:44:36 CET 2011 - hare@suse.de
+
+- Check return value for select_alias()
+- Use enum for free_paths argument
+- Check for invalid argument in vector functions (bnc#642846)
+- Fixup pathgroup allocation in disassemble_map() (bnc#642846)
+
+-------------------------------------------------------------------
+Fri Feb 25 15:08:00 CET 2011 - hare@suse.de
+
+- multipathd: lock vectors during initial configuration
+  (bnc#665289)
+- multipathd: Fix vector locking
+- Fix potential overflow in log_enqueue
+
+-------------------------------------------------------------------
+Wed Feb 23 16:24:29 CET 2011 - hare@suse.de
+
+- libmultipath: removing dead maps accesses memory after free
+  (bnc#642846)
+
+-------------------------------------------------------------------
+Fri Feb 18 09:36:50 CET 2011 - hare@suse.de
+
+- libmultipath: correct path count in setup_map() (bz#677821)
+- multipath: clean up path orphaning and adoption (bnc#673174)
+- multipathd: crash in 'reconfigure' CLI command (bnc#673174)
+
+-------------------------------------------------------------------
+Thu Feb 17 09:14:56 CET 2011 - hare@suse.de
+
+- libmultipath: invalid buffer access in regex.c
+- multipath: Missing .TP in man page (bnc#671823)
+- libmultipath: potential use after free in dm_geteventnr
+  (bnc#672857)
+- multipathd: Check for valid multipath pointer in update_prio()
+  (bnc#672852)
+
+-------------------------------------------------------------------
+Mon Feb 14 09:23:34 CET 2011 - hare@suse.de
+
+- libmultipath: resolve hash collisions in pgcmp() (bnc#662010)
+- tur: Zero out context (bnc#665289)
+- multipathd: Don't update priorities for failed paths (bnc#665289)
+- libmultipath: Only count UP and GHOST paths (bnc#665289)
+- Fixup debug message in devt2devname
+- checkers: check for NULL argument (bnc#665289)
+
+-------------------------------------------------------------------
+Fri Jan 28 09:37:51 CET 2011 - hare@suse.de
+
+- libmultipath: do not fallback to search /proc/partitions
+- libmultipath: Fix possible string overflow
+- multipathd: Update priority for all paths correctly (bnc#587456)
+- multipathd: Fix uxlsnr race condition on shutdown (bnc#659859)
+- libmultipath: Improve debugging of log messages (bnc#659859)
+- multipathd: flush logqueue before shutdown (bnc#659859)
+- libmultipath: Zero 'wp->thread' after pthread_kill() (bnc#642846)
+- multipathd: Fix 'status' command for init script (bnc#600412)
+
+-------------------------------------------------------------------
+Mon Dec  6 08:41:25 CET 2010 - hare@suse.de
+
+- Add option '-f' to kpartx (bnc#613584)
+
+-------------------------------------------------------------------
+Fri Nov 26 16:15:34 CET 2010 - hare@suse.de
+
+- multipath display messages intended for different level
+  (bnc#636519)
+- emit change event after path event processing (bnc#630434)
+- Add alias_prefix to get multipath names based on storage
+  type
+- Option '-B' to multipath to not modify bindings file
+  (bnc#636993)
+- Use option '-B' during initrd run (bnc#636993)
+- Update hwtable defaults for EMC Symmetrix (bnc#579103)
+- Fix deadlock in tur checker (bnc#613330)
+- Handle LBA_DEPENDENT state
+- Multipath fails to update maps after state transition
+  (bnc#587456)
+- Update hardware table for NetApp to use 'tur' checker
+  (bnc#600043)
+- Check for opendir() failure (bnc#642846)
+- Use pthread_cleanup_push() to terminate tur thread (bnc#649287)
+- Update wait logic in init script (bnc#637991)
+- Multipathd crashes in stop_waiter_thread (bnc#642846)
+- Multipathd crashed on empty CLI command (bnc#643108)
+
+-------------------------------------------------------------------
+Mon Jul 12 15:55:02 CEST 2010 - hare@suse.de
+
+- Reset checker message before calling checker_check (bnc#613330)
+- Call pthread_cancel() to terminate tur checker (bnc#613330)
+- multipathd init script returns 'failed' on stop (bnc#619147)
+- Do not refresh priority for failed paths (bnc#613330)
+- Update tur checker handling (bnc#620869)
+- Improve logging for tur checker
+
+-------------------------------------------------------------------
+Wed Jun 23 15:09:46 CEST 2010 - hare@suse.de
+
+- Increase initial timeout for 'tur' checker (bnc#616694)
+
+-------------------------------------------------------------------
+Fri Jun 18 13:19:13 CEST 2010 - hare@suse.de
+
+- Set geometry information for multipath maps (bnc#613363)
+- Reset 'running' parameter for directio (bnc#600043)
+- Add fallback to init script for older versions (bnc#602957)
+
+-------------------------------------------------------------------
+Fri Jun  4 12:18:02 CEST 2010 - hare@suse.de
+
+- Add HP 2000 to internal hardware table (bnc#603359)
+- Make path state messages unique
+- Add 'reassign_maps' configuration parameter
+- Profiling fixes:
+  * Update 'max_fds' handling
+  * Use strcmp() instead of strcmp_chomp()
+  * Simplify sysfs_get_device()
+  * Remove duplicate calls to path_offline()
+  * Simplify dm_get_name()
+  * Fixup devt2devname()
+  * Rework dm_reassign()
+- check argument length in execute_program(bnc#610914)
+- Do not use LOG_CONS when opening syslog (bnc#610914)
+- Remove pid file usage from init scripts (bnc#600412)
+- Fixup boot.multipath init script (bnc#600412)
+
+-------------------------------------------------------------------
+Wed May 12 08:08:47 CEST 2010 - hare@suse.de
+
+- Always provide symlinks for udev (bnc#603785)
+
+-------------------------------------------------------------------
+Thu May  6 14:02:11 CEST 2010 - hare@suse.de
+
+- Use minor number in ev_remove_map() (bnc#599770)
+- signal_waiter() overwrites structure (bnc#591399)
+- Serialize startup on large machines (bnc#598697)
+- Update multipath(8) manpage for '-p' (bnc#602970)
+- Mark 'readsector0' checker as deprecated (bnc#589340)
+
+-------------------------------------------------------------------
+Mon Apr 26 13:33:30 CEST 2010 - hare@suse.de
+
+- Errorneous message 'error starting uevent listener'
+- Graceful shutdown of logging thread (bnc#591399)
+
+-------------------------------------------------------------------
+Mon Apr 26 12:02:32 CEST 2010 - hare@suse.de
+
+- Missing '-p' option for mkdir in mkinitrd script (bnc#597786)
+- rdac message not printed correctly (bnc#598302)
+- Use alias when printing log messages (bnc#598302)
+- valgrind fixes (bnc#591399)
+- Use VECTOR_SIZE() defines
+- Update hwtable factorization
+- Use log_close() on shutdown
+- Use refcounting for checkers (bnc#591399)
+- More valgrind fixes
+
+-------------------------------------------------------------------
+Tue Apr 20 13:41:07 CEST 2010 - hare@suse.de
+
+- Provide correct persistent symlinks for user_friendly_names
+  (bnc#596301)
+- Fixup hardware table for LSI arrays (bnc#597713)
+- Reassign maps during startup (bnc#586834)
+- Update manpage
+
+-------------------------------------------------------------------
+Tue Apr 20 12:51:53 CEST 2010 - mmarek@suse.cz
+
+- Use mkdir -p in mkinitrd setup script (bnc#597786).
+
+-------------------------------------------------------------------
+Fri Apr  9 15:30:55 CEST 2010 - hare@suse.de
+
+- Remove 'minor' argument from add_map_without_path
+- Check for correct device-mapper device in uevent handler
+- Start uevent service handler from main thread
+- Do not reassign multipath maps (bnc#594341)
+- Protect waiter structure by mutex (bnc#581200)
+- Log directly to syslog on shutdown (bnc#581200)
+- Clear up uevent queue on shutdown
+- Add more IBM/FAStT arrays (bnc#578738)
+
+-------------------------------------------------------------------
+Mon Mar 29 16:35:15 CEST 2010 - hare@suse.de
+
+- Display average priority as group priority (bnc#588591)
+- Implement 'wait event' cli command (bnc#586834)
+- Reset existing maps (bnc#577894)
+
+-------------------------------------------------------------------
+Mon Mar 15 13:54:56 CET 2010 - hare@suse.de
+
+- Setup 'checkint' when loading config file (bnc#586847)
+
+-------------------------------------------------------------------
+Wed Mar 10 11:20:56 CET 2010 - hare@suse.de
+
+- Fix typo in persistent rules for by-label/by-uuid
+- Update debug string in verify_paths()
+- Evaluate feature setting in verify_paths() (bnc#584197)
+
+-------------------------------------------------------------------
+Fri Mar  5 09:34:37 CET 2010 - hare@suse.de
+
+- Fixup 'async_timeout' initialization again (bnc#580413)
+
+-------------------------------------------------------------------
+Fri Feb 26 12:37:10 UTC 2010 - coolo@novell.com
+
+- fix buffer overflow in strncat
+
+-------------------------------------------------------------------
+Mon Feb 22 10:08:44 CET 2010 - hare@suse.de
+
+- 'reset log' cli command crashes daemon (bnc#577889)
+- Initialize 'async_timeout' variable correctly (bnc#580413)
+
+-------------------------------------------------------------------
+Thu Feb  4 11:28:36 CET 2010 - hare@suse.de
+
+- Add hardware defaults for EMC Invista (bnc#573870)
+- Use '--replace-whitespace' for scsi_id (bnc#572209)
+- Asynchronous mode for tur checker (bnc#552688)
+- Update queue_if_no_path after sync with kernel state
+  (bnc#570932)
+- Add 'max_polling_interval' config variable (bnc#570932)
+- Add 'async_timeout' configuration variable (bnc#570932)
+- Use default scsi_id callout for EMC Symmetrix (bnc#528481)
+- Update path_offline() to return device status
+- Update filename in init script
+- Fixes from upstream:
+  * do not allow 0 size for multipath devices
+  * Add nexenta comstart hardware defaults
+  * Add checks for conf->xxx
+  * Add %z wildcard to display path serial
+  * don't pretend config file has setup parameters
+  * documentation fixes
+
+-------------------------------------------------------------------
+Mon Jan 25 14:44:43 CET 2010 - hare@suse.de
+
+- Fixup kpartx initrd script to handle loop devices (bnc#523749)
+- Switch off 'queue_if_no_path' before removing maps (bnc#475523)
+- Update logical partition handling (bnc#551827)
+
+-------------------------------------------------------------------
+Fri Jan 22 16:19:17 CET 2010 - hare@suse.de
+
+- Fix mkinitrd scripts for 64bit (bnc572143)
+- Remove logical partitions maps with 'multipath -f'
+
+-------------------------------------------------------------------
+Fri Jan 22 14:30:36 CET 2010 - ro@suse.de
+
+- testing for existence of /lib64 is not sufficient to find out
+  if we are building for a lib64 platform
+
+-------------------------------------------------------------------
+Mon Jan 11 15:10:18 CET 2010 - hare@suse.de
+
+- Update dev_loss_tmo for no_path_retry (bnc#492469)
+
+-------------------------------------------------------------------
+Tue Nov 17 16:36:19 CET 2009 - hare@suse.de
+
+- Merge in changes from OpenSUSE 11.2
+- Update 'no_path_retry' correctly for failed paths (bnc#534666)
+- Update no_path_retry setting when evaluating features (bnc#542145)
+- directio: block count calculation wrong (bnc#549028)
+- multipath segfaults if configuration file contains errors
+  (bnc#540118)
+
+-------------------------------------------------------------------
+Thu Oct 22 16:29:35 CEST 2009 - hare@suse.de
+
+- Make 'param' local (bnc#548708)
+- Include multipath-fix.patch in git tree.
+
+-------------------------------------------------------------------
+Mon Sep 28 15:34:02 CEST 2009 - hare@suse.de
+
+- Fixup strip whitespaces from getuid output (bnc#542085)
+- Change prefix for DASD devices to 'ccw'
+- Update no_path_retry setting when evaluating features (bnc#542145)
+
+-------------------------------------------------------------------
+Wed Sep 16 12:54:03 CEST 2009 - hare@suse.de
+
+- Update features when queue_if_no_path is set (bnc#511607)
+- Ignore error messages when multipathd is not started
+- Add debugging output for feature changes
+- Add generic LSI/Engenio controller (bnc#508030)
+- Update 'no_path_retry' correctly for failed paths (bnc#534666)
+- TUR checker should not return 'failed' for reservation conflict
+  (bnc#498413)
+
+-------------------------------------------------------------------
+Tue Sep  8 20:56:53 UTC 2009 - aj@suse.de
+
+- Fix last patch, one caller of dm_simplecmd was not updated
+  (multipath-fix.patch).
+
+-------------------------------------------------------------------
+Fri Aug 21 15:49:47 CEST 2009 - hare@suse.de
+
+- Update to latest upstream git version
+- Merge in SLES11 fixes
+- Build package from git tree
+- Implement '-u' option for kpartx (bnc#517442)
+
+-------------------------------------------------------------------
+Mon Jul 13 12:24:34 CEST 2009 - hare@suse.de
+
+- Check for errors in pthread_create()
+- Lock vectors during shutdown
+- Cleanup various MALLOC/REALLOC callers
+- Fix multipathd crash on shutdown
+- Do not run kpartx on dm-uevent messages (bnc#473352)
+- Set pthread stacksize correctly (bnc#485287)
+- Add STK arrays to internal hardware table (bnc#503855)
+- Correct persistent symlink for cciss (bnc#497997)
+- Backport some fixes from upstream (bnc#445023)
+- Add 'reset log' cli command
+- no_path_retry <N> causes I/O to fail (bnc#485281)
+- Terminate uevent service queue
+- Wait for daemon to shutdown (bnc#481389)
+- Update cli request processing
+- Safe memory allocation in cli_handlers
+- Use 'LOG_CONS' option for openlog()
+- Remove sysfs attribute cache
+- Add 'shutdown' cli command
+- Display FC error messages correctly
+- Wait for devices in init script (bnc#487586)
+- Always synchronize with dm state (bnc#447887)
+- Add 'aas' path prioritizer (bnc#472069)
+- Synchronize daemon startup with init file (bnc#481389)
+- Merge feature string in assemble_map (bnc#507793)
+
+ -------------------------------------------------------------------
+Fri Jun 19 10:35:46 CEST 2009 - coolo@novell.com
+
+- disable as-needed for this package as it fails to build with it
+
+-------------------------------------------------------------------
+Fri Mar 20 10:43:12 CET 2009 - hare@suse.de
+
+- Reset checker message for blocked checkers
+- Increase priority for EMC Clariion arrays (bnc#484529)
+- Start waiter threads for single paths correctly (bnc#473841)
+- Use pthread_sigmask in alias.c when called from daemon.
+
+-------------------------------------------------------------------
+Thu Mar 19 12:09:03 CET 2009 - hare@suse.de
+
+- Add %pre and %post scripts to stop multipathd during update
+- Don't set FC parameter on non-SCSI devices
+- multipath -t crashes with invalid configuration file
+
+-------------------------------------------------------------------
+Fri Mar 13 14:21:05 CET 2009 - hare@suse.de
+
+- Don't remove partition mappings on stop (bnc#468826)
+- Set stacksize for log thread
+- Terminate all I/O before flushing maps (bnc#475523)
+- Select 'features' keyword from multipath setting (bnc#465009)
+
+-------------------------------------------------------------------
+Tue Mar 10 12:46:36 CET 2009 - hare@suse.de
+
+- Use lists for uevent processing (bnc#478874)
+- Set stacksize of uevent handling thread (bnc#478874)
+- Increase uevent buffer size
+- Strip trailing blanks from wwid
+- Stack overflow in uev_trigger (bnc#476540)
+
+-------------------------------------------------------------------
+Thu Feb 26 12:36:40 CET 2009 - hare@suse.de
+
+- Fixup multibus zero path handling (bnc#476330)
+- Update checker handling for blocked devices
+- Only pass block events to multipathd
+- Clean up uevent processing (bnc#478874)
+- Set stacksize correctly for event processing thread (bnc#478874)
+
+-------------------------------------------------------------------
+Mon Feb 23 16:36:32 CET 2009 - hare@suse.de
+
+- Remove stray umask() call (bnc#458598)
+- Don't call kpartx if no paths are active (bnc#473352)
+
+-------------------------------------------------------------------
+Thu Feb 19 16:26:32 CET 2009 - hare@suse.de
+
+- Multipathd dies immediately after startup (bnc#473029)
+- Return ghost state if port is in standby (bnc#475816)
+- Switch off queue_if_no_path before removing paths (bnc#475523)
+
+-------------------------------------------------------------------
+Mon Feb  9 14:53:01 CET 2009 - hare@suse.de
+
+- Fix leastpending loadbalancer output (bnc#444199)
+- Start waitevent checker on new paths (bnc#473841)
+- Use 'noflush' for kpartx (bnc#473352)
+
+-------------------------------------------------------------------
+Fri Feb  6 15:00:45 CET 2009 - hare@suse.de
+
+- Display multipath output for leastpending loadbalancer
+  properly (bnc#444199)
+
+-------------------------------------------------------------------
+Wed Feb  4 11:38:31 CET 2009 - hare@suse.de
+
+- Set queue_if_no_path setting during map reload (bnc#472253)
+- Remove obsolete 'umount map' uevent handling
+- Retry TUR on driver errors (bnc#456961)
+
+-------------------------------------------------------------------
+Tue Feb  3 11:22:41 CET 2009 - hare@suse.de
+
+- Copy persistent bindings file into initramfs (bnc#468804)
+- Invert DM_STATE check for kpartx rules (bnc#440959)
+
+-------------------------------------------------------------------
+Mon Feb  2 11:27:51 CET 2009 - hare@suse.de
+
+- Correct dbg_malloc() definition
+- Fix more memory leaks
+- Double free on path release (bnc#458393)
+
+-------------------------------------------------------------------
+Mon Jan 26 14:17:57 CET 2009 - hare@suse.de
+
+- Don't access blocked devices in checkerloop()
+- Check for validity in VECTOR_XXX defines (bnc#469269,bnc#457465)
+
+-------------------------------------------------------------------
+Fri Jan 23 14:15:18 CET 2009 - hare@suse.de
+
+- Update dev_loss_tmo handling (bnc#458393)
+- Fix directio error messages
+- Update sdev_state handling
+
+-------------------------------------------------------------------
+Mon Jan 19 09:18:28 CET 2009 - hare@suse.de
+
+- Add new HP machines to hardware table (bnc#442133)
+- Print device-mapper tables for debugging
+- Properly quote variables in mkinitrd scripts (bnc#447966)
+- shuffle call to memarea_init
+- Add xdr_setsite in init scripts (bnc#459529)
+
+-------------------------------------------------------------------
+Tue Jan 13 16:14:39 CET 2009 - hare@suse.de
+
+- Do not run checkers or prioritizers on blocked devices
+  (bnc#464155)
+- Implement dev_loss_tmo and fast_io_fail_tmo (bnc#464155)
+- Use default values for dev_loss_tmo and fast_io_fail_tmo
+- Display checker and prio name on failure
+- Add more debugging output
+
+-------------------------------------------------------------------
+Mon Jan 12 17:28:47 CET 2009 - hare@suse.de
+
+- Set max_fds setting for multipath (bnc#457443)
+- Enhance error messages for checker and prio loading (bnc#456214)
+- Fix merge errors for prio_weightedpath (bnc#441007)
+- Fix sysfs_attr_get_value (bnc#456747)
+- Do not reinitialize prio and checker lists after config file
+  has been parsed (bnc#464373)
+- Minor cleanups
+
+-------------------------------------------------------------------
+Thu Dec  4 15:05:08 CET 2008 - hare@suse.de
+
+- Split off IBM ESS hwtable entries (bnc#439763)
+- Reload map when device R/O setting changes (bnc#440959)
+
+-------------------------------------------------------------------
+Fri Nov 21 14:07:56 CET 2008 - hare@suse.de
+
+- Add 'Weighted Paths' prioritizer (bnc#441007)
+- Fix crashes in update_multipath
+
+-------------------------------------------------------------------
+Thu Nov 20 16:10:48 CET 2008 - hare@suse.de
+
+- Valgrind fixes
+  * Add missing initialisation
+  * Always allocate memory for alias
+  * Check return value of basename
+- Adapt to new sysfs layout (bnc#435215, bnc#445041)
+- Use /sys/dev to speedup reverse lookups
+- Rework sysfs device handling (bnc#435215, bnc#438031)
+- Search for correct hardware entry during reconfigure (bnc#435688)
+- Use local variables for device mapper params
+- Allow zero paths for multipath maps
+
+-------------------------------------------------------------------
+Mon Nov 17 12:42:34 CET 2008 - hare@suse.de
+
+- Update HP hardware table (bnc#442133)
+- Zero out lines in print.c (bnc#445023)
+
+-------------------------------------------------------------------
+Mon Nov 10 08:51:26 CET 2008 - hare@suse.de
+
+- Check for empty mpvecs in mpvec_garbage_collector() (bnc#437245)
+- dmraid uuid starts with 'DMRAID' (bnc#439439)
+- Handle arguments to multipathd from the init file
+
+-------------------------------------------------------------------
+Thu Nov  6 17:36:51 CET 2008 - ro@suse.de
+
+- commenting multiline rpm macros is dangerous (read broken)
+  remove percent sign in commented macro lines
+
+-------------------------------------------------------------------
+Mon Nov  3 15:37:08 CET 2008 - hare@suse.de
+
+- Use pthread_join() during shutdown to avoid crash (bnc#437245)
+- Fixup '%n' to handle '!' kernel device name syntax (bnc#435172)
+- Use correct commandline for cciss scsi_id callouts (bnc#435172)
+- Do not check for valid mp context in get_state() (bnc#433659)
+- Link directio checker against libaio (bnc#433659)
+- Use regmatch when checking for duplicates in hwtable (bnc#439763)
+
+-------------------------------------------------------------------
+Mon Oct 27 10:30:18 CET 2008 - hare@suse.de
+
+- Patches from mainline:
+  * Increase bindings file lock timeout
+  * Fixes for 'show paths format'
+  * Add 'show wildcards' cli cmd
+  * Add support for IBM storage devices
+- fopen() returns NULL on failure (bnc#432598)
+- Read verbosity level from configuration file (bnc#388284)
+- kpartx -l does not remove it's loop device (bnc#417266)
+- Missing fixes for libprio ontap.c (bnc#426975)
+- Increase buffer size in find_loop_by_file (bnc#436428)
+- Include SCSI device handler modules for initrd (bnc#431877)
+
+-------------------------------------------------------------------
+Fri Sep 26 16:26:55 CEST 2008 - hare@suse.de
+
+- Implement map resize (FATE#302007)
+- Handle cciss devices correctly (bnc#419123)
+
+-------------------------------------------------------------------
+Wed Sep 24 22:59:11 CEST 2008 - ro@suse.de
+
+- use udevadm info instead of udevinfo
+
+-------------------------------------------------------------------
+Wed Sep  3 11:09:34 CEST 2008 - hare@suse.de
+
+- Merge in fixes from upstream:
+  * Add IBM IPR to hardware table (bnc#419086)
+  * Add IBM DS4300 to hardware table
+  * Fix settings for scsi_id changes
+- Call mkinitrd_setup during %post and %postun (bnc#413709)
+
+-------------------------------------------------------------------
+Thu Aug 28 17:08:16 CEST 2008 - ro@suse.de
+
+- fix init scripts
+
+-------------------------------------------------------------------
+Wed Jul 23 14:45:18 CEST 2008 - hare@suse.de
+
+- Update to version 0.4.8
+- Include changes from SLES10
+- Include mkinitrd scriptlets
+
+-------------------------------------------------------------------
+Wed May 28 09:50:28 CEST 2008 - hare@suse.de
+
+- Calculate correct partition offset in kpartx (bnc#394658)
+
+-------------------------------------------------------------------
+Fri May  9 13:25:30 CEST 2008 - hare@suse.de
+
+- Fixup kpartx rules (bnc#387667)
+
+-------------------------------------------------------------------
+Tue Apr 29 17:05:19 CEST 2008 - hare@suse.de
+
+- Merge in fixes from upstream
+- Merge fixes from SLES10 SP2
+
+-------------------------------------------------------------------
+Wed Sep 19 15:30:41 CEST 2007 - hare@suse.de
+
+- Fixup generated dm_linear udev rules (#218122)
+
+-------------------------------------------------------------------
+Thu Aug 30 09:24:27 CEST 2007 - hare@suse.de
+
+- Rework dm_linear; udev rules should only be
+  created if the feature was activated (#302422)
+
+-------------------------------------------------------------------
+Fri Aug 10 16:48:31 CEST 2007 - hare@suse.de
+
+- Implement dm_linear (#218122)
+
+-------------------------------------------------------------------
+Thu Aug  2 11:10:35 CEST 2007 - hare@suse.de
+
+- Merge in latest fixes from upstream
+- Remove local patches; merge with upstream
+- Fix kpartx handling of extended partitions
+- Use underscores for partition names (#293792)
+
+-------------------------------------------------------------------
+Mon May 21 15:34:07 CEST 2007 - hare@suse.de
+
+- Rework udev handling
+- Split off kpartx package
+
+-------------------------------------------------------------------
+Mon May 14 16:20:55 CEST 2007 - hare@suse.de
+
+- Merge in latest fixes from upstream
+- Add all SuSE specific files to git repository.
+
+-------------------------------------------------------------------
+Fri May 11 16:06:16 CEST 2007 - hare@suse.de
+
+- Include latest changes from upstream
+- Remove libsysfs (242766)
+- Handle extended partitions for kpartx
+
+-------------------------------------------------------------------
+Mon Dec  4 16:51:13 CET 2006 - dmueller@suse.de
+
+- don't build as root
+
+-------------------------------------------------------------------
+Fri Nov 17 11:55:00 CET 2006 - hare@suse.de
+
+- integrate upstream fixes
+- update udev rule for YaST2 dmraid support (217807])
+
+-------------------------------------------------------------------
+Mon Nov  6 13:11:17 CET 2006 - hare@suse.de
+
+- Really fixup udev rule (216167).
+
+-------------------------------------------------------------------
+Fri Oct 20 02:07:47 CEST 2006 - ro@suse.de
+
+- make it build
+
+-------------------------------------------------------------------
+Mon Sep 25 10:03:49 CEST 2006 - hare@suse.de
+
+- update to latest fixes from git tree
+- remove fixes integrated in upstream
+- fixup udev rule (#203688)
+
+-------------------------------------------------------------------
+Thu Sep 14 00:18:10 CEST 2006 - ro@suse.de
+
+- use device-mapper-devel in BuildRequires
+
+-------------------------------------------------------------------
+Thu Aug 31 10:56:01 CEST 2006 - hare@suse.de
+
+- include latest fixes from git tree
+- update kpartx_id and udev rules to work
+  with dmraid.
+- Fix return value for multipath -l
+
+-------------------------------------------------------------------
+Thu Aug 17 02:07:59 CEST 2006 - ro@suse.de
+
+- workaround problem in git-patch
+  normal patch can't do a "rename", so copy file first
+
+-------------------------------------------------------------------
+Tue Jul 11 15:04:59 CEST 2006 - hare@suse.de
+
+- Update to official version 0.4.7
+- Refactor git update to apply to 0.4.7
+
+-------------------------------------------------------------------
+Wed Jun 28 13:51:36 CEST 2006 - hare@suse.de
+
+- Remove blacklisting of dasd device node,
+  use product_blacklist instead (#188688)
+
+-------------------------------------------------------------------
+Mon Jun 12 15:14:41 CEST 2006 - hare@suse.de
+
+- Add 72-multipath-compat.rules to create 'by-name'
+  symlink again for compability (#183663)
+
+-------------------------------------------------------------------
+Fri Jun  2 12:47:05 CEST 2006 - hare@suse.de
+
+- Merge in fixed from upstream
+  - Set device-mapper name correctly (#181127)
+
+-------------------------------------------------------------------
+Thu Jun  1 17:29:23 CEST 2006 - hare@suse.de
+
+- Merge in fixes from upstream
+  - Fixup aliasing handling
+  - Fix string length in pp_alua
+- Use correct regexp patterns for hwtable (#177842)
+- Fixup 71-multipath.rules to work correctly with the
+  updated device-mapper online/offline events (#176516 - LTC23961)
+- Add kpartx_id for the updated 71-multipath.rules
+
+-------------------------------------------------------------------
+Mon May 22 17:16:00 CEST 2006 - schwab@suse.de
+
+- Don't strip binaries.
+
+-------------------------------------------------------------------
+Tue May  2 12:48:56 CEST 2006 - hare@suse.de
+
+- Merge in fixes from upstream
+  - Merged local patches
+  - Added hds_modular prioritizer
+- Remove merged patches
+- Allow for setting of maximum number of open files (#149979)
+- Implement 'stop' for init scripts
+
+-------------------------------------------------------------------
+Mon Apr 10 09:48:16 CEST 2006 - hare@suse.de
+
+- Lowering priority for pp_tpc
+- Split off DS6000 to fixup priority handler (#161347)
+
+-------------------------------------------------------------------
+Wed Apr  5 12:14:53 CEST 2006 - hare@suse.de
+
+- Disable debug messages in pp_tpc.
+
+-------------------------------------------------------------------
+Wed Mar 29 09:27:50 CEST 2006 - hare@suse.de
+
+- Explicitely create partitions at boot time (#159927)
+
+-------------------------------------------------------------------
+Thu Mar 23 11:36:25 CET 2006 - hare@suse.de
+
+- Add hwtable entry for IBM 3526.
+
+-------------------------------------------------------------------
+Tue Mar 14 16:40:41 CET 2006 - hare@suse.de
+
+- Fix another typo in mpath_id.
+
+-------------------------------------------------------------------
+Tue Mar 14 16:20:33 CET 2006 - hare@suse.de
+
+- Fix typo in mpath_id.
+
+-------------------------------------------------------------------
+Mon Mar 13 13:29:08 CET 2006 - hare@suse.de
+
+- Fix autobuild warnings.
+- Include some minor fixed from upstream.
+
+-------------------------------------------------------------------
+Thu Mar  9 11:28:11 CET 2006 - hare@suse.de
+
+- Add mpath_id program to call kpartx only on multipathed
+  devices (#149995 - LTC21557).
+- Include latest fixes from upstream.
+
+-------------------------------------------------------------------
+Wed Feb  8 16:13:15 CET 2006 - hare@suse.de
+
+- Add device blacklisting (#85778)
+- Further manpage installation fixes (#146179, #147053, #147911)
+
+-------------------------------------------------------------------
+Wed Jan 25 21:38:27 CET 2006 - mls@suse.de
+
+- converted neededforbuild to BuildRequires
+
+-------------------------------------------------------------------
+Thu Jan 19 13:59:32 CET 2006 - hare@suse.de
+
+- Fix manpage installation.
+
+-------------------------------------------------------------------
+Tue Jan 17 09:01:03 CET 2006 - hare@suse.de
+
+- Include latest git fixes
+- Remove old patches which are now upstream
+- Add new hwtable entry for shark (#142176)
+
+-------------------------------------------------------------------
+Fri Dec 16 15:20:47 CET 2005 - hare@suse.de
+
+- Fix dependencies for /etc/init.d/boot.multipath
+- Fix kpartx rules to generate proper partition names.
+
+-------------------------------------------------------------------
+Wed Dec  7 16:49:02 CET 2005 - hare@suse.de
+
+- Update to multipath-tools-0.4.6
+- Include latest git fixes
+- Port patches from SLES9 SP3
+
+-------------------------------------------------------------------
+Mon Oct 31 12:30:14 CET 2005 - dmueller@suse.de
+
+- don't build as root
+
+-------------------------------------------------------------------
+Mon Sep  5 17:40:04 CEST 2005 - matz@suse.de
+
+- Fix broken usage of self-defined syscall [#114933].
+
+-------------------------------------------------------------------
+Fri Aug 26 16:00:36 CEST 2005 - hare@suse.de
+
+- Fix kpartx DASD partition support
+
+-------------------------------------------------------------------
+Thu Aug  4 16:45:27 CEST 2005 - hare@suse.de
+
+- Add 'directio' path checker
+- Add support for S/390 DASD (PAV enablement).
+- Update to package from SLES9
+
+-------------------------------------------------------------------
+Thu Jun 23 10:05:56 CEST 2005 - lmb@suse.de
+
+- LUs with a WWN containing "fd" were blacklisted (#93562).
+
+-------------------------------------------------------------------
+Thu Jun 16 16:33:42 CEST 2005 - lmb@suse.de
+
+- Remove stray newline character from /dev/disk/by-name/ entries
+  (#85798, #86763)
+- Clear /dev/disk/by-name/ on boot. (#85978)
+- scsi_id now handles EMC Symmetrix; remove work-around for #86760.
+
+-------------------------------------------------------------------
+Wed Jun 15 13:31:47 CEST 2005 - meissner@suse.de
+
+- use RPM_OPT_FLAGS.
+
+-------------------------------------------------------------------
+Mon Jun 13 23:51:59 CEST 2005 - ro@suse.de
+
+- neededforbuild: udev -> sysfsutils
+
+-------------------------------------------------------------------
+Tue Jun  7 15:38:36 CEST 2005 - lmb@suse.de
+
+- Import fixes from upstream.
+- Hardware table updates for IBM ESS and EMC CX (#81688).
+- Reinstate paths correctly after failure/restore cycle (#85781,
+  #86444).
+- Create map names again and fix segfault in devmap_name (#85798).
+
+-------------------------------------------------------------------
+Tue May 24 15:16:16 CEST 2005 - hare@suse.de
+
+- Fix segmentation fault with EMC Symmetrix (#85614).
+- Update EMC Symmetrix entry in hwtable.
+
+-------------------------------------------------------------------
+Mon May 23 12:21:31 CEST 2005 - hare@suse.de
+
+- Add hwtable entry for IBM DS6000. (#63903)
+- Do a rescan for devices if multipath command line option is set.
+
+-------------------------------------------------------------------
+Fri May 20 15:29:45 CEST 2005 - hare@suse.de
+
+- Fix devmap_name to use mapname and return proper status (#84748).
+
+-------------------------------------------------------------------
+Thu May 12 12:10:39 CEST 2005 - lmb@suse.de
+
+- Don't complain about default prio callout command (#81695).
+- Reflect recent changes in boot.multipath as well as multipathd init
+  scripts.
+- Actually fail paths when they are detected to be failed by multipathd
+  (#81679).
+- killproc/startproc/checkproc can't be used with multipathd because of
+  the way the daemon switches to its own namespace (#80443).
+
+-------------------------------------------------------------------
+Mon May  9 11:18:35 CEST 2005 - hare@suse.de
+
+- Use proper path checker for SGI TPC arrays.
+- Update hwtable entries for SGI TP9400 and SGI TP9500.
+- Write correct PID file (#80443).
+
+-------------------------------------------------------------------
+Mon Apr 25 11:41:33 CEST 2005 - lmb@suse.de
+
+- Update to 0.4.4: pp_alua now licensed as GPL (#78628).
+- multipath-tools-oom-adj.patch: oom_adj to a valid value.
+
+-------------------------------------------------------------------
+Thu Apr 21 10:50:05 CEST 2005 - lmb@suse.de
+
+- Update to 0.4.4-pre18 which fixes the multipathd to initialize
+  correctly in the absence of a configuration file (79239).
+
+-------------------------------------------------------------------
+Wed Apr 20 16:05:56 CEST 2005 - lmb@suse.de
+
+- Put multipath cache back into /dev because /var might not be mounted.
+- Correct hwtable entry SGI TP9400, TP9500 and IBM 3542.
+
+-------------------------------------------------------------------
+Wed Apr 20 13:32:51 CEST 2005 - lmb@suse.de
+
+- Update to 0.4.4-pre16
+- Build against device-mapper.1.01.xx correctly.
+
+-------------------------------------------------------------------
+Tue Apr 19 12:02:49 CEST 2005 - lmb@suse.de
+
+- Build w/o device-mapper update again.
+
+-------------------------------------------------------------------
+Mon Apr 18 14:21:59 CEST 2005 - lmb@suse.de
+
+- Update to 0.4.4-pre14
+- Build versus device-mapper-1.01.01 to prevent deadlocks in
+  kernel-space.
+- Fix devmap_name to work with udev.
+- Fix startup of multipathd w/o configuration file present.
+
+-------------------------------------------------------------------
+Fri Apr 15 14:46:19 CEST 2005 - lmb@suse.de
+
+- Add path priority checker for EMC CLARiiON and make necessary
+  adjustments so that it gets called by default (#62491).
+- Set the default udev dir to '/dev'
+
+-------------------------------------------------------------------
+Fri Apr 15 13:18:42 CEST 2005 - hare@suse.de
+
+- Fix to allocate default strings (#78056)
+- Fix default entry for TPC9500.
+
+-------------------------------------------------------------------
+Wed Apr 13 08:30:21 CEST 2005 - hare@suse.de
+
+- Added pp_alua path priority checker.
+- Update to multipath-tools-0.4.4-pre12.
+
+-------------------------------------------------------------------
+Mon Apr 11 13:32:05 CEST 2005 - hare@suse.de
+
+- Update to multipath-tools-0.4.4-pre10.
+
+-------------------------------------------------------------------
+Fri Apr  8 09:38:16 CEST 2005 - hare@suse.de
+
+- Update multipath to handle only true multipath devices (#62491).
+- Update kpartx to use the device mapper target name if available.
+- Add boot.multipath script for early set up of multipath targets.
+
+-------------------------------------------------------------------
+Thu Mar 31 09:32:12 CEST 2005 - hare@suse.de
+
+- Update devmap_name to select targets by table type (#62493).
+
+-------------------------------------------------------------------
+Tue Jan 25 11:16:26 CET 2005 - lmb@suse.de
+
+- Update to 0.4.2 and fix some bugs + add support for the extended DM
+  multipath kernel module. (#47491)
+
+-------------------------------------------------------------------
+Thu Nov 11 18:15:15 CET 2004 - hare@suse.de
+
+- Fix bugs to make it work on S/390 (#47491).
+
+-------------------------------------------------------------------
+Fri Nov  5 13:58:00 CET 2004 - hare@suse.de
+
+- Update to version 0.3.6 (#47491).
+- Fix multipath init script
+- Install configuration file example.
+- Install multipathd in /sbin instead of /usr/bin.
+
+-------------------------------------------------------------------
+Tue Jul 20 09:22:11 CEST 2004 - fehr@suse.de
+
+- updated README mp-tools-issues.pdf (see #40640)
+
+-------------------------------------------------------------------
+Wed Jun  9 12:18:01 CEST 2004 - fehr@suse.de
+
+- added pdf with README to package (see #40640)
+
+-------------------------------------------------------------------
+Thu Jun  3 18:11:41 CEST 2004 - fehr@suse.de
+
+- updated to version 0.2.1
+- removed patches zero-currpath.patch and rm-newline-in-name.patch
+  already contained in 0.2.1
+
+-------------------------------------------------------------------
+Thu Jun  3 09:38:49 CEST 2004 - fehr@suse.de
+
+- added patch zero-currpath.patch (see bugzilla #40640)
+
+-------------------------------------------------------------------
+Wed May 26 20:14:05 CEST 2004 - uli@suse.de
+
+- fixed to build on s390x
+
+-------------------------------------------------------------------
+Wed May 26 10:57:37 CEST 2004 - fehr@suse.de
+
+- added patch rm-newline-in-name.patch (see bugzilla #40640)
+
+-------------------------------------------------------------------
+Tue May 25 10:43:15 CEST 2004 - fehr@suse.de
+
+- created initial version of a SuSE package from version 0.2.0 of
+  multipath tools
+
+-------------------------------------------------------------------
