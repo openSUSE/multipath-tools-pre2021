@@ -18,19 +18,16 @@ OBJS = mpath_persist.o mpath_updatepr.o mpath_pr_ioctl.o
 all: $(LIBS)
 
 
-$(LIBS): 
-	$(CC) -Wall -fPIC -c $(CFLAGS) *.c 
-	$(CC)  -shared $(LIBDEPS) -Wl,-soname=$@ $(CFLAGS) -o $@ $(OBJS)
-	ln -s $(LIBS) $(DEVLIB)
+$(LIBS): $(OBJS)
+	$(CC) $(LDFLAGS) $(SHARED_FLAGS) -Wl,-soname=$@ $(CFLAGS) -o $@ $(OBJS)
+	ln -sf $@ $(DEVLIB)
 
 install: $(LIBS)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(syslibdir)
 	$(INSTALL_PROGRAM) -m 755 $(LIBS) $(DESTDIR)$(syslibdir)/$(LIBS)
-	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)$(syslibdir)
 	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)$(man3dir)
 	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)/usr/include/
 	$(INSTALL_PROGRAM) -m 755 -d $(DESTDIR)/usr/share/doc/mpathpersist/
-	ln -sf $(DESTDIR)$(syslibdir)/$(LIBS) $(DESTDIR)$(syslibdir)/$(DEVLIB)
 	install -m 644 mpath_persistent_reserve_in.3 $(DESTDIR)$(man3dir)
 	install -m 644 mpath_persistent_reserve_out.3 $(DESTDIR)$(man3dir)
 	install -m 644 mpath_persist.h $(DESTDIR)/usr/include/
