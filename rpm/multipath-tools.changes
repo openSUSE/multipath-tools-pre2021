@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jan 17 15:48:41 CET 2013 - hare@suse.de
+
+- Do not install service file
+
+-------------------------------------------------------------------
 Wed Jan 16 15:29:22 CET 2013 - hare@suse.de
 
 - Rebase to current mainline (FATE#314163):
