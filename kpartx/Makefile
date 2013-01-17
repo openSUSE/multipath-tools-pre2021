@@ -28,7 +28,7 @@ install: $(EXEC) $(EXEC).8
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -m 755 kpartx_id $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/etc/udev/rules.d
-	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/
+	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8 $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)/lib/mkinitrd/scripts
@@ -38,6 +38,7 @@ install: $(EXEC) $(EXEC).8
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(EXEC)
 	rm -f $(DESTDIR)$(mandir)/$(EXEC).8
+	rm -f $(DESTDIR)/etc/udev/rules.d/70-kpartx.rules
 	rm -f $(DESTDIR)$(libudevdir)/kpartx_id
 	rm -f $(DESTDIR)/lib/mkinitrd/scripts/boot-kpartx.sh
 	rm -f $(DESTDIR)/lib/mkinitrd/scripts/setup-kpartx.sh
