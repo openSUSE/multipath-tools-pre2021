@@ -130,9 +130,6 @@ exit 0
 /sbin/mpathpersist
 /sbin/rcmultipathd
 %attr (0700, root, root) /var/cache/multipath
-%dir /lib/systemd
-%dir /lib/systemd/system
-/lib/systemd/system/multipathd.service
 %dir /lib/mkinitrd
 %dir /lib/mkinitrd/scripts
 /lib/mkinitrd/scripts/boot-multipath.sh
