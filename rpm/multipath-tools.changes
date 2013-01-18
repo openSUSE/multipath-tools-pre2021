@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jan 18 13:41:40 CET 2013 - hare@suse.de
+
+- Remove service file from spec file
+
+-------------------------------------------------------------------
 Thu Jan 17 15:48:41 CET 2013 - hare@suse.de
 
 - Do not install service file
