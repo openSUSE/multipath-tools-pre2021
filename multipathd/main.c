@@ -1131,6 +1131,11 @@ check_path (struct vectors * vecs, struct path * pp)
 		pp->tick = 1;
 		return;
 	}
+	if (newstate == PATH_TIMEOUT) {
+		/* Command timeout, block path */
+		sysfs_block_fc_rport(pp);
+		newstate = PATH_DOWN;
+	}
 	/*
 	 * Synchronize with kernel state
 	 */
