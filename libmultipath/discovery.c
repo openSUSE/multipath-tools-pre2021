@@ -483,6 +483,62 @@ sysfs_get_transport_id(struct sysfs_device *dev, struct path *pp)
 	return 1;
 }
 
+int
+sysfs_set_fc_rport_state (struct path *pp, int blocked)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char attr_value[NAME_SIZE];
+	int retval;
+
+	if (pp->bus != SYSFS_BUS_SCSI) {
+		condlog(4, "%s: no FC settings on non-SCSI device", pp->dev);
+		return 0;
+	}
+
+	if (!pp->sysdev) {
+		condlog(3, "%s: no sysfs device set", pp->dev);
+		return ENXIO;
+	}
+	condlog(4, "%s: using rport-%d:%d-%d for target%d:%d:%d", pp->dev,
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.transport_id,
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
+
+	if (safe_sprintf(attr_path,
+			"/class/fc_remote_ports/rport-%d:%d-%d",
+			 pp->sg_id.host_no, pp->sg_id.channel,
+			 pp->sg_id.transport_id)) {
+		condlog(1, "attr_path too small");
+		return ENOMEM;
+	}
+
+	retval = sysfs_attr_get_value(attr_path, "port_state",
+				      attr_value, NAME_SIZE);
+	if (retval < 0) {
+		condlog(1, "%s: failed to read rport state from '%s'",
+			pp->dev, attr_path);
+		return EBADF;
+	}
+	condlog(3, "%s: rport state '%s'", pp->dev, attr_value);
+	if (blocked) {
+		if (strncmp(attr_value, "Online", 6))
+			return EAGAIN;
+
+		sprintf(attr_value, "Blocked");
+	} else {
+		if (strncmp(attr_value, "Blocked", 7))
+			return EAGAIN;
+
+		sprintf(attr_value, "Online");
+	}
+	retval = sysfs_attr_set_value(attr_path, "port_state",
+				   attr_value, strlen(attr_value));
+	if (retval < 0)
+		condlog(1, "%s: failed to set rport to '%s', error %d",
+			pp->dev, attr_value, errno);
+
+	return retval < 0 ? retval : 0;
+}
+
 static int
 opennode (char * dev, int mode)
 {
@@ -849,7 +905,8 @@ path_offline (struct path * pp)
 
 	condlog(3, "%s: path state = %s", pp->dev, buff);
 
-	if (!strncmp(buff, "offline", 7)) {
+	if (!strncmp(buff, "offline", 7) ||
+	    !strncmp(buff, "quiesce", 7)) {
 		pp->offline = 1;
 		return PATH_DOWN;
 	}
@@ -1085,6 +1142,8 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 			if (pp->state == PATH_UNCHECKED ||
 			    pp->state == PATH_WILD)
 				goto blank;
+			if (pp->state == PATH_TIMEOUT)
+				pp->state = PATH_DOWN;
 		} else {
 			condlog(3, "%s: path inaccessible", pp->dev);
 			pp->state = path_state;

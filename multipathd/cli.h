@@ -66,7 +66,7 @@ enum {
 #define SHUTDOWN	(1 << __SHUTDOWN)
 #define QUIT		(1 << __QUIT)
 
-#define INITIAL_REPLY_LEN 1000
+#define INITIAL_REPLY_LEN 4096
 
 struct key {
 	char * str;
