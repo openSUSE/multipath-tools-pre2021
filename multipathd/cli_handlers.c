@@ -469,6 +469,56 @@ cli_del_path (void * v, char ** reply, int * len, void * data)
 }
 
 int
+cli_block_path(void * v, char ** reply, int * len, void * data)
+{
+	struct vectors * vecs = (struct vectors *)data;
+	char * param = get_keyparam(v, PATH);
+	struct path * pp;
+	int r;
+
+	pp = find_path_by_dev(vecs->pathvec, param);
+	if (!pp)
+		 pp = find_path_by_devt(vecs->pathvec, param);
+
+	if (!pp || !pp->mpp || !pp->mpp->alias) {
+		condlog(3, "%s: path not found\n", param);
+		return 1;
+	}
+	condlog(2, "%s: block path %s (operator)",
+		pp->mpp->alias, pp->dev_t);
+
+
+	r = sysfs_set_fc_rport_state(pp, 1);
+
+	return r ? 1 : 0;
+}
+
+int
+cli_unblock_path(void * v, char ** reply, int * len, void * data)
+{
+	struct vectors * vecs = (struct vectors *)data;
+	char * param = get_keyparam(v, PATH);
+	struct path * pp;
+	int r;
+
+	pp = find_path_by_dev(vecs->pathvec, param);
+	if (!pp)
+		 pp = find_path_by_devt(vecs->pathvec, param);
+
+	if (!pp || !pp->mpp || !pp->mpp->alias) {
+		condlog(3, "%s: path not found\n", param);
+		return 1;
+	}
+	condlog(2, "%s: unblock path %s (operator)",
+		pp->mpp->alias, pp->dev_t);
+
+
+	r = sysfs_set_fc_rport_state(pp, 0);
+
+	return r ? 1 : 0;
+}
+
+int
 cli_add_map (void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;

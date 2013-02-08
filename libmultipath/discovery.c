@@ -512,6 +512,66 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 }
 
 int
+sysfs_set_fc_rport_state (struct path *pp, int blocked)
+{
+	struct udev_device *rport_dev = NULL;
+	char rport_id[32];
+	char value[NAME_SIZE];
+	int retval = 0;
+
+	if (pp->bus != SYSFS_BUS_SCSI) {
+		condlog(4, "%s: no FC settings on non-SCSI device", pp->dev);
+		return 0;
+	}
+
+	sprintf(rport_id, "rport-%d:%d-%d",
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.transport_id);
+	rport_dev = udev_device_new_from_subsystem_sysname(conf->udev,
+				"fc_remote_ports", rport_id);
+	if (!rport_dev) {
+		condlog(1, "%s: No fc_remote_port device for '%s'", pp->dev,
+			rport_id);
+		return 0;
+	}
+
+	if (sysfs_attr_get_value(rport_dev, "port_state",
+				 value, 16) <= 0) {
+		condlog(1, "%s: failed to read rport state from '%s'",
+			pp->dev, rport_id);
+		retval = EBADF;
+		goto out;
+	}
+	condlog(3, "%s: rport state '%s'", pp->dev, value);
+	if (blocked) {
+		/* Can only transition Online -> Blocked */
+		if (strncmp(value, "Online", 6)) {
+			retval = EAGAIN;
+			goto out;
+		}
+		sprintf(value, "Blocked");
+	} else {
+		/* Can only transition Blocked -> Online */
+		if (strncmp(value, "Blocked", 7)) {
+			retval = EAGAIN;
+			goto out;
+		}
+
+		sprintf(value, "Online");
+	}
+
+	if (sysfs_attr_set_value(rport_dev, "port_state",
+				 value, strlen(value)) <= 0) {
+		condlog(1, "%s: failed to set rport to '%s', error %d",
+			pp->dev, value, errno);
+		retval = ENXIO;
+	}
+out:
+	udev_device_unref(rport_dev);
+
+	return retval;
+}
+
+int
 do_inq(int sg_fd, int cmddt, int evpd, unsigned int pg_op,
        void *resp, int mx_resp_len)
 {

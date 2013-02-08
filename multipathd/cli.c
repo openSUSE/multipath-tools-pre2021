@@ -439,6 +439,8 @@ cli_init (void) {
 	add_handler(LIST+WILDCARDS, NULL);
 	add_handler(ADD+PATH, NULL);
 	add_handler(DEL+PATH, NULL);
+	add_handler(SUSPEND+PATH, NULL);
+	add_handler(RESUME+PATH, NULL);
 	add_handler(ADD+MAP, NULL);
 	add_handler(DEL+MAP, NULL);
 	add_handler(SWITCH+MAP+GROUP, NULL);
