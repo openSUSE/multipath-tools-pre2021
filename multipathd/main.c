@@ -1104,9 +1104,6 @@ check_path (struct vectors * vecs, struct path * pp)
 	int chkr_new_path_up = 0;
 	int oldchkrstate = pp->chkrstate;
 
-	if (!pp->mpp)
-		return;
-
 	if (pp->tick && --pp->tick)
 		return; /* don't check this path yet */
 
@@ -1123,6 +1120,16 @@ check_path (struct vectors * vecs, struct path * pp)
 	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
 		pathinfo(pp, conf->hwtable, 0);
+		return;
+	}
+	if (!pp->mpp) {
+		if (!strlen(pp->wwid) &&
+		    (newstate == PATH_UP || newstate == PATH_GHOST)) {
+			condlog(2, "%s: add missing path", pp->dev);
+			pathinfo(pp, conf->hwtable, DI_ALL);
+			ev_add_path(pp->dev, vecs);
+			pp->tick = 1;
+		}
 		return;
 	}
 	/*
