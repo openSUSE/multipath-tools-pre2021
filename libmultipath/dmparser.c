@@ -71,10 +71,12 @@ assemble_map (struct multipath * mp)
 	 */
 	if (mp->no_path_retry == NO_PATH_RETRY_UNDEF ||
 	    mp->no_path_retry == NO_PATH_RETRY_FAIL) {
-		/* remove queue_if_no_path settings */
-		condlog(3, "%s: remove queue_if_no_path from '%s'",
-			mp->alias, mp->features);
-		remove_feature(&f, no_path_retry);
+		if (f[0] != '0') {
+			/* remove queue_if_no_path settings */
+			condlog(3, "%s: remove queue_if_no_path from '%s'",
+				mp->alias, mp->features);
+			remove_feature(&f, no_path_retry);
+		}
 	} else {
 		add_feature(&f, no_path_retry);
 	}
