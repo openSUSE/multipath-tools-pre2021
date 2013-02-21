@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 21 14:16:55 CET 2013 - hare@suse.de
+
+- Fix crash on reconfigure (bnc#804954)
+
+-------------------------------------------------------------------
 Thu Feb 21 11:39:32 CET 2013 - hare@suse.de
 
 - Use underscore in kpartx partition names (bnc#804885)
