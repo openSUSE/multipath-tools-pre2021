@@ -46,9 +46,9 @@ ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", \
 
 # Create dm tables for partitions
 ENV{DM_STATE}!="SUSPENDED", ENV{DM_UUID}=="mpath-*", \
-	RUN+="/sbin/kpartx -u -p -part /dev/$name"
+	RUN+="/sbin/kpartx -u -p _part /dev/$name"
 ENV{DM_STATE}=="ACTIVE", ENV{DM_UUID}=="DMRAID-*|dmraid-*", \
-	RUN+="/sbin/kpartx -u -p -part /dev/$kernel"
+	RUN+="/sbin/kpartx -u -p _part /dev/$kernel"
 
 LABEL="kpartx_end"
 
