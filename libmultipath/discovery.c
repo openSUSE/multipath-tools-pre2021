@@ -319,6 +319,7 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 {
 	char attr_path[SYSFS_PATH_SIZE];
 	char value[16];
+	unsigned long long tmo;
 
 	if (safe_snprintf(attr_path, SYSFS_PATH_SIZE,
 			  "/class/fc_remote_ports/rport-%d:%d-%d",
@@ -344,6 +345,25 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 		condlog(3, "%s: port is %s, cannot update timeouts",
 			mpp->alias, value);
 		return 1;
+	}
+	if (sysfs_attr_get_value(attr_path, "dev_loss_tmo", value, 16) < 0) {
+		condlog(0, "%s: failed to read dev_loss_tmo value, error %d",
+			mpp->alias, errno);
+		return 1;
+	}
+	if (sscanf(value, "%llu\n", &tmo) != 1) {
+		condlog(0, "%s: Cannot parse dev_loss_tmo attribute '%s'",
+			attr_path, value);
+		return 1;
+	}
+	if (mpp->fast_io_fail >= tmo) {
+		snprintf(value, 11, "%u", mpp->fast_io_fail);
+		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
+					 value, 11) < 0) {
+			condlog(0, "%s: failed to update dev_loss_tmo: error %d",
+				mpp->alias, errno);
+			return 1;
+		}
 	}
 	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET) {
 		if (mpp->fast_io_fail == MP_FAST_IO_FAIL_OFF)
