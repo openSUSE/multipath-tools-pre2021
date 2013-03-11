@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Mar 11 12:05:30 CET 2013 - hare@suse.de
+
+- add path when transitioned from 'blocked' state (bnc#789008)
+- Document 'infinity' as possible value for dev_loss_tmo
+  (bnc#802837,bnc#803262)
+- Do not add preferred path priority for active/optimized
+  (bnc#802456)
+- Increase dev_loss_tmo prior to fast_io_fail (bnc#800353)
+- Handle blocked FC ports (bnc#787438)
+
+-------------------------------------------------------------------
 Thu Feb 21 14:16:55 CET 2013 - hare@suse.de
 
 - Fix crash on reconfigure (bnc#804954)
