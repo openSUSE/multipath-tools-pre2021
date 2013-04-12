@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr 12 15:44:40 CEST 2013 - hare@suse.de
+
+- Deprecate 'pg_timeout' keyword (bnc#809726)
+- Fixup typo in missing path check.
+
+-------------------------------------------------------------------
 Mon Mar 11 12:05:30 CET 2013 - hare@suse.de
 
 - add path when transitioned from 'blocked' state (bnc#789008)
