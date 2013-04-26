@@ -38,6 +38,7 @@
 #include <byteswap.h>
 #include <linux/fs.h>
 #include "crc32.h"
+#include "kpartx.h"
 
 #if BYTE_ORDER == LITTLE_ENDIAN
 #  define __le16_to_cpu(x) (x)
@@ -114,25 +115,6 @@ is_pmbr_valid(legacy_mbr *mbr)
 	return (signature && found);
 }
 
-
-/************************************************************
- * get_sector_size
- * Requires:
- *  - filedes is an open file descriptor, suitable for reading
- * Modifies: nothing
- * Returns:
- *  sector size, or 512.
- ************************************************************/
-static int
-get_sector_size(int filedes)
-{
-	int rc, sector_size = 512;
-
-	rc = ioctl(filedes, BLKSSZGET, &sector_size);
-	if (rc)
-		sector_size = 512;
-	return sector_size;
-}
 
 /************************************************************
  * _get_num_sectors
@@ -637,6 +619,7 @@ read_gpt_pt (int fd, struct slice all, struct slice *sp, int ns)
 	uint32_t i;
 	int n = 0;
         int last_used_index=-1;
+	int sector_size_mul = get_sector_size(fd)/512;
 
 	if (!find_valid_gpt (fd, &gpt, &ptes) || !gpt || !ptes) {
 		if (gpt)
@@ -652,9 +635,11 @@ read_gpt_pt (int fd, struct slice all, struct slice *sp, int ns)
 			sp[n].size = 0;
 			n++;
 		} else {
-			sp[n].start = __le64_to_cpu(ptes[i].starting_lba);
-			sp[n].size  = __le64_to_cpu(ptes[i].ending_lba) -
-				__le64_to_cpu(ptes[i].starting_lba) + 1;
+			sp[n].start = sector_size_mul *
+				      __le64_to_cpu(ptes[i].starting_lba);
+			sp[n].size  = sector_size_mul *
+				      (__le64_to_cpu(ptes[i].ending_lba) -
+				       __le64_to_cpu(ptes[i].starting_lba) + 1);
                         last_used_index=n;
 			n++;
 		}
