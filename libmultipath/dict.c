@@ -1846,11 +1846,11 @@ snprint_mp_failback (char * buff, int len, void * data)
 	case  FAILBACK_UNDEF:
 		break;
 	case -FAILBACK_MANUAL:
-		return snprintf(buff, len, "manual");
+		return snprintf(buff, len, "\"manual\"");
 	case -FAILBACK_IMMEDIATE:
-		return snprintf(buff, len, "immediate");
+		return snprintf(buff, len, "\"immediate\"");
 	case -FAILBACK_FOLLOWOVER:
-		return snprintf(buff, len, "followover");
+		return snprintf(buff, len, "\"followover\"");
 	default:
 		return snprintf(buff, len, "%i", mpe->pgfailback);
 	}
@@ -2031,9 +2031,9 @@ snprint_mp_user_friendly_names (char * buff, int len, void * data)
 	if (mpe->user_friendly_names == USER_FRIENDLY_NAMES_UNDEF)
 		return 0;
 	else if (mpe->user_friendly_names == USER_FRIENDLY_NAMES_OFF)
-		return snprintf(buff, len, "no");
+		return snprintf(buff, len, "\"no\"");
 	else
-		return snprintf(buff, len, "yes");
+		return snprintf(buff, len, "\"yes\"");
 }
 
 static int
@@ -2213,11 +2213,11 @@ snprint_hw_failback (char * buff, int len, void * data)
 	case  FAILBACK_UNDEF:
 		break;
 	case -FAILBACK_MANUAL:
-		return snprintf(buff, len, "manual");
+		return snprintf(buff, len, "\"manual\"");
 	case -FAILBACK_IMMEDIATE:
-		return snprintf(buff, len, "immediate");
+		return snprintf(buff, len, "\"immediate\"");
 	case -FAILBACK_FOLLOWOVER:
-		return snprintf(buff, len, "followover");
+		return snprintf(buff, len, "\"followover\"");
 	default:
 		return snprintf(buff, len, "%i", hwe->pgfailback);
 	}
@@ -2322,9 +2322,9 @@ snprint_hw_user_friendly_names (char * buff, int len, void * data)
 	if (hwe->user_friendly_names == USER_FRIENDLY_NAMES_UNDEF)
 		return 0;
 	else if (hwe->user_friendly_names == USER_FRIENDLY_NAMES_OFF)
-		return snprintf(buff, len, "no");
+		return snprintf(buff, len, "\"no\"");
 	else
-		return snprintf(buff, len, "yes");
+		return snprintf(buff, len, "\"yes\"");
 }
 
 static int
@@ -2333,9 +2333,9 @@ snprint_hw_retain_hwhandler_handler(char * buff, int len, void * data)
 	struct hwentry * hwe = (struct hwentry *)data;
 
 	if (hwe->retain_hwhandler == RETAIN_HWHANDLER_ON)
-		return snprintf(buff, len, "yes");
+		return snprintf(buff, len, "\"yes\"");
 	else if (hwe->retain_hwhandler == RETAIN_HWHANDLER_OFF)
-		return snprintf(buff, len, "no");
+		return snprintf(buff, len, "\"no\"");
 	else
 		return 0;
 }
@@ -2346,9 +2346,9 @@ snprint_detect_prio(char * buff, int len, void * data)
 	struct hwentry * hwe = (struct hwentry *)data;
 
 	if (hwe->detect_prio == DETECT_PRIO_ON)
-		return snprintf(buff, len, "yes");
+		return snprintf(buff, len, "\"yes\"");
 	else if (hwe->detect_prio == DETECT_PRIO_OFF)
-		return snprintf(buff, len, "no");
+		return snprintf(buff, len, "\"no\"");
 	else
 		return 0;
 }
