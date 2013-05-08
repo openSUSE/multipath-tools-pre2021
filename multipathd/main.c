@@ -1128,9 +1128,10 @@ check_path (struct vectors * vecs, struct path * pp)
 		if (!strlen(pp->wwid) &&
 		    (newstate == PATH_UP || newstate == PATH_GHOST)) {
 			condlog(2, "%s: add missing path", pp->dev);
-			pathinfo(pp, conf->hwtable, DI_ALL);
-			ev_add_path(pp, vecs);
-			pp->tick = 1;
+			if (pathinfo(pp, conf->hwtable, DI_ALL) == 0) {
+				ev_add_path(pp, vecs);
+				pp->tick = 1;
+			}
 		}
 		return;
 	}
