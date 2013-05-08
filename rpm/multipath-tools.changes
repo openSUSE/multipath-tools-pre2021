@@ -1,4 +1,33 @@
 -------------------------------------------------------------------
+Wed May  8 14:57:11 CEST 2013 - hare@suse.de
+
+- Fix handling of the string values for failback (bnc#816793)
+- Fix inconsistencies in string quoting in snprint handlers
+  (bnc#816793)
+- create correct symlinks for PATH_FAILED events (bnc#7897799)
+- Deprecate 'getuid' configuration variable (bnc#817279)
+- kpartx: support disk with non-512B sectors (bnc#815402)
+- Add 'Datacore Virtual Disk' to internal hardware table (bnc#802837)
+- Fixes from upstream:
+  * Make kpartx advise modprobe instead of insmod
+  * Fix print_multipath_topology for large outputs
+  * Don't print checker messages for ghost paths
+  * Fix hardware entry matching code
+  * Fix some socket issues
+  * Avoid race between ueventloop and uevqloop
+  * Add existing multipath devices to wwids file
+  * add wwids file cleanup options
+  * Fix max path checker timing
+  * Make set_multipath_wwid actually do something
+  * Stop annoying prio_lookup warning messages
+  * Correctly ignore empty prio names
+- Minor fixes for priority handling
+- Ignore SCSI devices without a WWN (bnc#816063)
+- Check return values from pathinfo (bnc#816063)
+- Read directly from sysfs when checking the device size
+  (bnc#817335)
+
+-------------------------------------------------------------------
 Fri Apr 12 15:44:40 CEST 2013 - hare@suse.de
 
 - Deprecate 'pg_timeout' keyword (bnc#809726)
