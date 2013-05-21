@@ -4,6 +4,7 @@
 #defaults {
 #	verbosity 2
 #	polling_interval 5
+#	multipath_dir "/lib64/multipath"
 #	path_selector "service-time 0"
 #	path_grouping_policy "failover"
 #	uid_attribute "ID_SERIAL"
@@ -78,7 +79,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "const"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -143,7 +144,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 12
 #		rr_min_io 100
@@ -156,7 +157,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 12
 #		rr_min_io 100
@@ -169,7 +170,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "const"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 18
 #		rr_min_io 100
@@ -182,7 +183,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 18
 #		rr_min_io 100
@@ -195,7 +196,7 @@
 #		features "0"
 #		hardware_handler "1 alua"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 12
 #		rr_min_io 100
@@ -219,7 +220,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 18
 #		rr_min_io 100
@@ -254,7 +255,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "1 emc"
 #		prio "emc"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 60
 #	}
@@ -288,7 +289,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 10
 #	}
@@ -310,7 +311,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "0"
 #		prio "hds"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -332,7 +333,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 300
 #	}
@@ -345,7 +346,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 300
 #	}
@@ -358,7 +359,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 300
 #	}
@@ -371,7 +372,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -384,7 +385,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -397,7 +398,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -410,7 +411,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -423,7 +424,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -436,7 +437,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -478,7 +479,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -499,7 +500,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -534,7 +535,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "1 alua"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -545,7 +546,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #		rr_min_io 100
@@ -570,7 +571,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "const"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 60
 #	}
@@ -582,7 +583,7 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "const"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 60
 #	}
@@ -594,7 +595,7 @@
 #		features "0"
 #		hardware_handler "1 alua"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 60
 #	}
@@ -607,7 +608,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -620,7 +621,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -633,7 +634,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -646,7 +647,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -658,13 +659,13 @@
 #		features "3 queue_if_no_path pg_init_retries 50"
 #		hardware_handler "0"
 #		prio "ontap"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		rr_min_io 128
 #		flush_on_last_del "yes"
 #		dev_loss_tmo "infinity"
-#		retain_attached_hw_handler yes
-#		detect_prio yes
+#		retain_attached_hw_handler "yes"
+#		detect_prio "yes"
 #	}
 #	device {
 #		vendor "NEXENTA"
@@ -674,7 +675,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "0"
 #		prio "const"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 30
 #		rr_min_io 128
@@ -687,7 +688,7 @@
 #		features "1 queue_if_no_path"
 #		hardware_handler "0"
 #		prio "ontap"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		rr_min_io 128
 #	}
@@ -720,7 +721,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -733,7 +734,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -745,7 +746,7 @@
 #		features "0"
 #		hardware_handler "1 alua"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -757,7 +758,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -778,7 +779,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #	}
 #	device {
@@ -811,7 +812,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -824,7 +825,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -836,7 +837,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #		rr_min_io 1000
@@ -851,7 +852,7 @@
 #		features "2 pg_init_retries 50"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry 15
 #	}
@@ -864,7 +865,7 @@
 #		features "0"
 #		hardware_handler "1 rdac"
 #		prio "rdac"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -876,7 +877,7 @@
 #		features "0"
 #		hardware_handler "1 alua"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
@@ -888,7 +889,19 @@
 #		features "0"
 #		hardware_handler "0"
 #		prio "alua"
-#		failback immediate
+#		failback "immediate"
+#		rr_weight "uniform"
+#		no_path_retry "queue"
+#	}
+#	device {
+#		vendor "DataCore"
+#		product "Virtual Disk"
+#		path_grouping_policy "group_by_prio"
+#		path_checker "tur"
+#		features "0"
+#		hardware_handler "0"
+#		prio "alua"
+#		failback "immediate"
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
