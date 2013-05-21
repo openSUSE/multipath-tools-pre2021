@@ -1872,12 +1872,11 @@ snprint_mp_failback (char * buff, int len, void * data)
 {
 	struct mpentry * mpe = (struct mpentry *)data;
 
-	if (!mpe->pgfailback)
+	if (mpe->pgfailback == FAILBACK_UNDEF ||
+	    mpe->pgfailback == DEFAULT_FAILBACK)
 		return 0;
 
 	switch(mpe->pgfailback) {
-	case  FAILBACK_UNDEF:
-		break;
 	case -FAILBACK_MANUAL:
 		return snprintf(buff, len, "\"manual\"");
 	case -FAILBACK_IMMEDIATE:
@@ -2250,12 +2249,11 @@ snprint_hw_failback (char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
 
-	if (!hwe->pgfailback)
+	if (hwe->pgfailback == FAILBACK_UNDEF ||
+	    hwe->pgfailback == DEFAULT_FAILBACK)
 		return 0;
 
 	switch(hwe->pgfailback) {
-	case  FAILBACK_UNDEF:
-		break;
 	case -FAILBACK_MANUAL:
 		return snprintf(buff, len, "\"manual\"");
 	case -FAILBACK_IMMEDIATE:
@@ -2537,13 +2535,9 @@ snprint_def_path_checker (char * buff, int len, void * data)
 static int
 snprint_def_failback (char * buff, int len, void * data)
 {
-	int pgfailback = conf->pgfailback;
-	if (!pgfailback)
-		pgfailback = DEFAULT_FAILBACK;
-
 	switch(conf->pgfailback) {
 	case  FAILBACK_UNDEF:
-		break;
+		return snprintf(buff, len, "\"undef\"");
 	case -FAILBACK_MANUAL:
 		return snprintf(buff, len, "\"manual\"");
 	case -FAILBACK_IMMEDIATE:
