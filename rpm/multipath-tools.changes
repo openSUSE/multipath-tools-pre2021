@@ -1,4 +1,22 @@
 -------------------------------------------------------------------
+Thu May 23 13:29:47 CEST 2013 - hare@suse.de
+
+- Do not print error when rport is blocked (bnc#819600)
+- correctly initialize variable in sysfs_set_rport_tmo() (bnc#819600)
+- Implement 'property' blacklist (bnc#816063)
+- Documentation fixes (bnc#820899)
+  * multipath.conf.annotated: remove 'udev_dir'
+  * multipath.conf.5: clarify 'no_path_retry' default setting
+  * Correctly set pgfailback
+  * Correctly set max_fds in case of failure
+  * Update multipath.conf.defaults
+  * Correctly print out 'max' for max_fds
+  * multipath.conf.annotated: Document rr_min_io_rq
+  * Make 'multipath -t' able to run as normal user
+- Handle SCSI device states "quiesce" and "transport-offline"
+  properly (bnc#819588)
+
+-------------------------------------------------------------------
 Wed May  8 14:57:11 CEST 2013 - hare@suse.de
 
 - Fix handling of the string values for failback (bnc#816793)
