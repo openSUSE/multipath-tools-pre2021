@@ -13,6 +13,7 @@
 #	features "0"
 #	path_checker "directio"
 #	alias_prefix "mpath"
+#	failback "manual"
 #	rr_min_io 1000
 #	rr_min_io_rq 1
 #	max_fds "max"
@@ -69,6 +70,7 @@
 #	}
 #}
 #blacklist_exceptions {
+#	property "(ID_SCSI_VPD|ID_WWN)"
 #}
 #devices {
 #	device {

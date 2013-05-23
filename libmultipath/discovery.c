@@ -77,28 +77,13 @@ path_discover (vector pathvec, struct config * conf,
 {
 	struct path * pp;
 	const char * devname;
-	const char *vendor, *wwn = NULL;
 
 	devname = udev_device_get_sysname(udevice);
 	if (!devname)
 		return 0;
 
-	/*
-	 * ID_VENDOR tells us that 'scsi_id' has been run.
-	 */
-	vendor = udev_device_get_property_value(udevice, "ID_VENDOR");
-
-	/*
-	 * And ID_WWN is filled out if the device supports
-	 * VPD page 0x83.
-	 */
-	if (vendor && strlen(vendor)) {
-		wwn = udev_device_get_property_value(udevice, "ID_WWN");
-		if (!wwn || !strlen(wwn)) {
-			condlog(3, "%s: ignoring device, no ID_WWN", devname);
-			return 0;
-		}
-	}
+	if (filter_property(conf, udevice) > 0)
+		return 0;
 
 	if (filter_devnode(conf->blist_devnode, conf->elist_devnode,
 			   (char *)devname) > 0)
