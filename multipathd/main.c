@@ -816,10 +816,12 @@ out:
 static void *
 ueventloop (void * ap)
 {
+	struct udev *udev = ap;
+
 	block_signal(SIGUSR1, NULL);
 	block_signal(SIGHUP, NULL);
 
-	if (uevent_listen())
+	if (uevent_listen(udev))
 		condlog(0, "error starting uevent listener");
 
 	return NULL;
@@ -1654,7 +1656,7 @@ child (void * param)
 	/*
 	 * Start uevent listener early to catch events
 	 */
-	if ((rc = pthread_create(&uevent_thr, &misc_attr, ueventloop, vecs))) {
+	if ((rc = pthread_create(&uevent_thr, &misc_attr, ueventloop, udev))) {
 		condlog(0, "failed to create uevent thread: %d", rc);
 		exit(1);
 	}

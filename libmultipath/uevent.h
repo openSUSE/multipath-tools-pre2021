@@ -27,7 +27,7 @@ struct uevent {
 int is_uevent_busy(void);
 void setup_thread_attr(pthread_attr_t *attr, size_t stacksize, int detached);
 
-int uevent_listen(void);
+int uevent_listen(struct udev *udev);
 int uevent_dispatch(int (*store_uev)(struct uevent *, void * trigger_data),
 		    void * trigger_data);
 int uevent_get_major(struct uevent *uev);
