@@ -351,6 +351,7 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 	 */
 	value[0] = '\0';
 	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET &&
+	    mpp->fast_io_fail != MP_FAST_IO_FAIL_ZERO &&
 	    mpp->fast_io_fail != MP_FAST_IO_FAIL_OFF) {
 		/* Check if we need to temporarily increase dev_loss_tmo */
 		ret = sysfs_attr_get_value(rport_dev, "dev_loss_tmo",
@@ -367,8 +368,6 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 		}
 		if (mpp->fast_io_fail >= tmo) {
 			snprintf(value, 11, "%u", mpp->fast_io_fail);
-		} else {
-			tmo = 0;
 		}
 	} else if (mpp->dev_loss > 600) {
 		condlog(3, "%s: limiting dev_loss_tmo to 600, since "
