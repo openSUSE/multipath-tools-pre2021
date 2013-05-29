@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Wed May 29 16:16:53 CEST 2013 - hare@suse.de
+
+- Reference udev context when starting event queue (bnc#821419)
+- Fixup 'correctly initialize variable in sysfs_set_rport_tmo()'
+  (bnc#819600)
+- multipath.conf.5: Fixup default path grouping policy (bnc#820899)
+- multipathd: valgrind fixes
+
+-------------------------------------------------------------------
 Thu May 23 13:29:47 CEST 2013 - hare@suse.de
 
 - Do not print error when rport is blocked (bnc#819600)
