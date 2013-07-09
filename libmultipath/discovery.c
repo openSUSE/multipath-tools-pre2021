@@ -357,7 +357,7 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 		return 1;
 	}
 	if (mpp->fast_io_fail >= tmo) {
-		snprintf(value, 11, "%u", mpp->fast_io_fail);
+		snprintf(value, 11, "%u", mpp->fast_io_fail + 1);
 		if (sysfs_attr_set_value(attr_path, "dev_loss_tmo",
 					 value, 11) < 0) {
 			condlog(0, "%s: failed to update dev_loss_tmo: error %d",
