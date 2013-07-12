@@ -13,6 +13,8 @@
 #define NETLINK_KOBJECT_UEVENT		15
 #endif
 
+struct udev;
+
 struct uevent {
 	struct list_head node;
 	struct udev_device *udev;
