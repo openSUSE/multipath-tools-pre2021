@@ -1,4 +1,30 @@
 -------------------------------------------------------------------
+Fri Jul 12 10:03:27 CEST 2013 - hare@suse.de
+
+- reset queue_if_no_path if flush failed (bnc#828868)
+- fix setting of fast_io_fail_tmo (bnc#824148)
+- create correct symlinks for PATH_FAILED events (bnc#797799)
+- Increase dev_loss_tmo prior to fast_io_fail (bnc#800353)
+- alua: Do not add preferred path priority for active/optimized
+  (bnc#802456)
+- Document 'infinity' as possible value for dev_loss_tmo
+  (bnc#802837,bnc#803262)
+- add path when transitioned from 'blocked' state (bnc#789008)
+- Handle blocked FC rports (bnc#787438)
+- Document rr_min_io_rq (bnc#774610)
+- Backport patches from mainline:
+  - don't set queue_if_no_path without multipathd
+  - Open stdout/stderr in read/write mode
+  - better argument type checking
+  - Use VECTOR_SIZE for vector_foreach_slot_after()
+  - Memory leak in add_map_without_path()
+  - Shorten timeout for alua prio callout
+  - handle offlined path
+  - set ACT_RESIZE when the size has changed
+  - check header file instead of intalled lib
+  - kpartx: verify GUID partition entry size
+
+-------------------------------------------------------------------
 Mon Nov 26 16:28:01 CET 2012 - hare@suse.de
 
 - Add definition for HSV3[46]0 to multipath.conf.defaults (bnc#783184)
