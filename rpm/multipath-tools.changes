@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Jul 12 09:54:16 CEST 2013 - hare@suse.de
+
+- Specify checker_timeout in seconds (bnc#824913)
+- correctly display 'timeout' checker status
+- fix setting of fast_io_fail_tmo (bnc#824148)
+- reset queue_if_no_path if flush failed (bnc#828868)
+- Fix compilation warnings
+
+-------------------------------------------------------------------
 Mon Jun  3 14:47:33 CEST 2013 - hare@suse.de
 
 - Fix stackoverflow with libudev (bnc#821419)
