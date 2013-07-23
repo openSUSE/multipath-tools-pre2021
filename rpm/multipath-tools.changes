@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jul 23 10:15:27 CEST 2013 - hare@suse.de
+
+- Document 'wwids_file' and 'reservation_key' (bnc#820899)
+
+-------------------------------------------------------------------
 Fri Jul 12 09:54:16 CEST 2013 - hare@suse.de
 
 - Specify checker_timeout in seconds (bnc#824913)
