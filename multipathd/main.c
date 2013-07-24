@@ -1117,6 +1117,8 @@ check_path (struct vectors * vecs, struct path * pp)
 	newstate = path_offline(pp);
 	if (newstate == PATH_UP)
 		newstate = get_state(pp, 1);
+	else
+		checker_clear_message(&pp->checker);
 
 	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
@@ -1157,7 +1159,9 @@ check_path (struct vectors * vecs, struct path * pp)
 	if (newstate != pp->state) {
 		int oldstate = pp->state;
 		pp->state = newstate;
-		LOG_MSG(1, checker_message(&pp->checker));
+
+		if (strlen(checker_message(&pp->checker)))
+			LOG_MSG(1, checker_message(&pp->checker));
 
 		/*
 		 * upon state change, reset the checkint
@@ -1224,7 +1228,7 @@ check_path (struct vectors * vecs, struct path * pp)
 			}
 		}
 	}
-	else if (newstate == PATH_DOWN)
+	else if (newstate == PATH_DOWN && strlen(checker_message(&pp->checker)))
 		LOG_MSG(2, checker_message(&pp->checker));
 
 	pp->state = newstate;
