@@ -902,6 +902,7 @@ path_offline (struct path * pp)
 {
 	struct udev_device * parent;
 	char buff[SCSI_STATE_SIZE];
+	int err;
 
 	if (pp->bus != SYSFS_BUS_SCSI)
 		return PATH_UP;
@@ -916,11 +917,16 @@ path_offline (struct path * pp)
 
 	if (!parent) {
 		condlog(1, "%s: failed to get sysfs information", pp->dev);
-		return PATH_DOWN;
+		return PATH_REMOVED;
 	}
 
-	if (sysfs_get_state(parent, buff, SCSI_STATE_SIZE))
-		return PATH_DOWN;
+	err = sysfs_get_state(parent, buff, SCSI_STATE_SIZE);
+	if (err <= 0) {
+		if (err == -ENXIO)
+			return PATH_REMOVED;
+		else
+			return PATH_DOWN;
+	}
 
 	condlog(3, "%s: path state = %s", pp->dev, buff);
 
@@ -1146,6 +1152,8 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	}
 
 	path_state = path_offline(pp);
+	if (path_state == PATH_REMOVED)
+		goto blank;
 
 	/*
 	 * fetch info not available through sysfs
