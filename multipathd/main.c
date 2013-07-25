@@ -1597,7 +1597,7 @@ child (void * param)
 	setup_thread_attr(&uevent_attr, 128 * 1024, 1);
 	setup_thread_attr(&waiter_attr, 32 * 1024, 1);
 
-	if (logsink) {
+	if (logsink == 1) {
 		setup_thread_attr(&log_attr, 64 * 1024, 0);
 		log_thread_start(&log_attr);
 		pthread_attr_destroy(&log_attr);
@@ -1753,7 +1753,7 @@ child (void * param)
 
 	condlog(2, "--------shut down-------");
 
-	if (logsink)
+	if (logsink == 1)
 		log_thread_stop();
 
 	/*
@@ -1853,7 +1853,7 @@ main (int argc, char *argv[])
 	if (!conf)
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":dv:k::")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dsv:k::")) != EOF ) {
 	switch(arg) {
 		case 'd':
 			logsink = 0;
@@ -1865,6 +1865,9 @@ main (int argc, char *argv[])
 				exit(1);
 
 			conf->verbosity = atoi(optarg);
+			break;
+		case 's':
+			logsink = -1;
 			break;
 		case 'k':
 			uxclnt(optarg);
@@ -1890,7 +1893,7 @@ main (int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!logsink)
+	if (logsink < 1)
 		err = 0;
 	else
 		err = daemonize();

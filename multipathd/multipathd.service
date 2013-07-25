@@ -8,7 +8,7 @@ Conflicts=shutdown.target
 [Service]
 Type=notify
 NotifyAccess=main
-ExecStart=/sbin/multipathd -d
+ExecStart=/sbin/multipathd -d -s
 ExecReload=/sbin/multipathd reconfigure
 
 [Install]
