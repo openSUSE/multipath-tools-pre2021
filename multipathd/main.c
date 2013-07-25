@@ -17,6 +17,7 @@
 #include <limits.h>
 #include <linux/oom.h>
 #include <libudev.h>
+#include <systemd/sd-daemon.h>
 #include <semaphore.h>
 #include <mpath_persist.h>
 
@@ -1604,7 +1605,7 @@ child (void * param)
 	}
 
 	running_state = DAEMON_START;
-
+	sd_notify(0, "STATUS=startup");
 	condlog(2, "--------start up--------");
 	condlog(2, "read " DEFAULT_CONFIGFILE);
 
@@ -1672,6 +1673,7 @@ child (void * param)
 	/*
 	 * fetch and configure both paths and multipaths
 	 */
+	sd_notify(0, "STATUS=configure");
 	running_state = DAEMON_CONFIGURE;
 
 	lock(vecs->lock);
@@ -1700,11 +1702,14 @@ child (void * param)
 	/* Ignore errors, we can live without */
 
 	running_state = DAEMON_RUNNING;
+	sd_notify(0, "READY=1\nSTATUS=running");
 
 	/*
 	 * exit path
 	 */
 	while(sem_wait(&exit_sem) != 0); /* Do nothing */
+
+	sd_notify(0, "STATUS=shutdown");
 	running_state = DAEMON_SHUTDOWN;
 	lock(vecs->lock);
 	if (conf->queue_without_daemon == QUE_NO_DAEMON_OFF)
