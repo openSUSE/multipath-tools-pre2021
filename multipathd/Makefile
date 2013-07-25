@@ -6,7 +6,7 @@ include ../Makefile.inc
 # basic flags setting
 #
 CFLAGS += -I$(multipathdir) -I$(mpathpersistdir)
-LDFLAGS += -lpthread -ldevmapper -lreadline -ludev -ldl \
+LDFLAGS += -lpthread -ldevmapper -lreadline -lsystemd-daemon -ludev -ldl \
 	   -L$(multipathdir) -lmultipath -L$(mpathpersistdir) -lmpathpersist
 
 #
@@ -37,6 +37,7 @@ install:
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(rcdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(unitdir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).service $(DESTDIR)$(unitdir)
+	$(INSTALL_PROGRAM) -m 644 $(EXEC).socket $(DESTDIR)$(unitdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
 
@@ -45,6 +46,7 @@ uninstall:
 	rm -f $(DESTDIR)$(rcdir)/$(EXEC)
 	rm -f $(DESTDIR)$(mandir)/$(EXEC).8.gz
 	rm -f $(DESTDIR)$(unitdir)/$(EXEC).service
+	rm -f $(DESTDIR)$(unitdir)/$(EXEC).socket
 
 clean:
 	rm -f core *.o $(EXEC) *.gz
