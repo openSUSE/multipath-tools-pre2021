@@ -1286,6 +1286,7 @@ checkerloop (void *ap)
 		lock(vecs->lock);
 		pthread_testcancel();
 		condlog(4, "tick");
+		sd_notify(0, "WATCHDOG=1");
 
 		if (vecs->pathvec) {
 			vector_foreach_slot (vecs->pathvec, pp, i) {
@@ -1585,7 +1586,8 @@ child (void * param)
 	pthread_attr_t log_attr, misc_attr, uevent_attr;
 	struct vectors * vecs;
 	struct multipath * mpp;
-	int i;
+	char *envp;
+	int i, checkint;
 	int rc, pid_rc;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -1658,6 +1660,17 @@ child (void * param)
 
 	conf->daemon = 1;
 	udev_set_sync_support(0);
+	envp = getenv("WATCHDOG_USEC");
+	if (envp && sscanf(envp, "%d", &checkint) == 1) {
+		/* Value is in microseconds */
+		checkint = checkint / 1000000;
+		if (checkint > conf->max_checkint)
+			conf->max_checkint = checkint;
+		conf->checkint = checkint;
+		condlog(3, "set checkint to %d max %d",
+			conf->checkint, conf->max_checkint);
+	}
+
 	/*
 	 * Start uevent listener early to catch events
 	 */

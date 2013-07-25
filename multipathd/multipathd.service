@@ -10,6 +10,7 @@ Type=notify
 NotifyAccess=main
 ExecStart=/sbin/multipathd -d -s
 ExecReload=/sbin/multipathd reconfigure
+WatchdogSec=5s
 
 [Install]
 WantedBy=sysinit.target
