@@ -6,9 +6,10 @@ DefaultDependencies=no
 Conflicts=shutdown.target
 
 [Service]
+Type=notify
+NotifyAccess=main
 ExecStart=/sbin/multipathd -d
 ExecReload=/sbin/multipathd reconfigure
-ExecStop=/sbin/multipathd shutdown
 
 [Install]
 WantedBy=sysinit.target
