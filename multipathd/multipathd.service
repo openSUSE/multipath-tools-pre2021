@@ -11,6 +11,7 @@ NotifyAccess=main
 ExecStart=/sbin/multipathd -d -s
 ExecReload=/sbin/multipathd reconfigure
 WatchdogSec=5s
+LimitCORE=infinity
 
 [Install]
 WantedBy=sysinit.target
