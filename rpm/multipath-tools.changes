@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Aug  5 09:30:24 CEST 2013 - hare@suse.de
+
+- Fix typo in retain_attached_hw_handler
+- do not print 'path is up' for removed paths (bnc#789239)
+- proactively remove path (bnc#789239)
+- do not call tur in sync mode if pthread_cancel fails (bnc#832796)
+
+-------------------------------------------------------------------
 Tue Jul 23 10:15:27 CEST 2013 - hare@suse.de
 
 - Document 'wwids_file' and 'reservation_key' (bnc#820899)
