@@ -1101,7 +1101,7 @@ int update_path_groups(struct multipath *mpp, struct vectors *vecs, int refresh)
 	return 0;
 }
 
-void
+int
 check_path (struct vectors * vecs, struct path * pp)
 {
 	int newstate;
@@ -1110,10 +1110,10 @@ check_path (struct vectors * vecs, struct path * pp)
 	int oldchkrstate = pp->chkrstate;
 
 	if (!pp->mpp)
-		return;
+		return 0;
 
 	if (pp->tick && --pp->tick)
-		return; /* don't check this path yet */
+		return 0; /* don't check this path yet */
 
 	/*
 	 * provision a next check soonest,
@@ -1128,7 +1128,7 @@ check_path (struct vectors * vecs, struct path * pp)
 	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
 		pathinfo(pp, conf->hwtable, 0);
-		return;
+		return 1;
 	}
 	/*
 	 * Async IO in flight. Keep the previous path state
@@ -1136,7 +1136,7 @@ check_path (struct vectors * vecs, struct path * pp)
 	 */
 	if (newstate == PATH_PENDING) {
 		pp->tick = 1;
-		return;
+		return 0;
 	}
 	/*
 	 * Synchronize with kernel state
@@ -1174,7 +1174,7 @@ check_path (struct vectors * vecs, struct path * pp)
 			pp->mpp->failback_tick = 0;
 
 			pp->mpp->stat_path_failures++;
-			return;
+			return 1;
 		}
 
 		if(newstate == PATH_UP || newstate == PATH_GHOST){
@@ -1259,6 +1259,7 @@ check_path (struct vectors * vecs, struct path * pp)
 			 (chkr_new_path_up && followover_should_failback(pp)))
 			switch_pathgroup(pp->mpp);
 	}
+	return 1;
 }
 
 static void *
@@ -1281,6 +1282,11 @@ checkerloop (void *ap)
 	}
 
 	while (1) {
+		struct timeval diff_time, start_time, end_time;
+		int num_paths = 0;
+
+		if (gettimeofday(&start_time, NULL) != 0)
+			start_time.tv_sec = 0;
 		pthread_cleanup_push(cleanup_lock, &vecs->lock);
 		lock(vecs->lock);
 		pthread_testcancel();
@@ -1289,7 +1295,7 @@ checkerloop (void *ap)
 
 		if (vecs->pathvec) {
 			vector_foreach_slot (vecs->pathvec, pp, i) {
-				check_path(vecs, pp);
+				num_paths += check_path(vecs, pp);
 			}
 		}
 		if (vecs->mpvec) {
@@ -1305,6 +1311,14 @@ checkerloop (void *ap)
 		}
 
 		lock_cleanup_pop(vecs->lock);
+		if (start_time.tv_sec &&
+		    gettimeofday(&end_time, NULL) == 0 &&
+		    num_paths) {
+			timersub(&end_time, &start_time, &diff_time);
+			condlog(3, "checked %d path%s in %lu.%06lu secs",
+				num_paths, num_paths > 1 ? "s" : "",
+				diff_time.tv_sec, diff_time.tv_usec);
+		}
 		sleep(1);
 	}
 	return NULL;
