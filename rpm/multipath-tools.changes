@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Sep 18 14:27:56 CEST 2013 - hare@suse.de
+
+- Add 'Datacore Virtual Disk' to internal hardware table
+  (bnc#802837)
+
+-------------------------------------------------------------------
 Fri Jul 12 10:03:27 CEST 2013 - hare@suse.de
 
 - reset queue_if_no_path if flush failed (bnc#828868)
