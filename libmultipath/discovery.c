@@ -504,6 +504,43 @@ sysfs_get_transport_id(struct sysfs_device *dev, struct path *pp)
 }
 
 int
+sysfs_get_fc_rport_state (struct path *pp, char *buff, size_t len)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	int retval;
+
+	if (pp->bus != SYSFS_BUS_SCSI) {
+		condlog(4, "%s: no FC settings on non-SCSI device", pp->dev);
+		return 0;
+	}
+
+	if (!pp->sysdev) {
+		condlog(3, "%s: no sysfs device set", pp->dev);
+		return -ENXIO;
+	}
+	condlog(4, "%s: using rport-%d:%d-%d for target%d:%d:%d", pp->dev,
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.transport_id,
+		pp->sg_id.host_no, pp->sg_id.channel, pp->sg_id.scsi_id);
+
+	if (safe_sprintf(attr_path,
+			"/class/fc_remote_ports/rport-%d:%d-%d",
+			 pp->sg_id.host_no, pp->sg_id.channel,
+			 pp->sg_id.transport_id)) {
+		condlog(1, "attr_path too small");
+		return -ENOMEM;
+	}
+
+	retval = sysfs_attr_get_value(attr_path, "port_state",
+				      buff, len);
+	if (!retval) {
+		condlog(3, "%s: failed to read rport state from '%s'",
+			pp->dev, attr_path);
+		return -EBADF;
+	}
+	return 0;
+}
+
+int
 sysfs_set_fc_rport_state (struct path *pp, int blocked)
 {
 	char attr_path[SYSFS_PATH_SIZE];
@@ -900,9 +937,18 @@ path_offline (struct path * pp)
 {
 	struct sysfs_device * parent;
 	char buff[SCSI_STATE_SIZE];
+	enum path_check_state rport_state = PATH_UP;
 
 	if (pp->bus != SYSFS_BUS_SCSI)
 		return PATH_UP;
+
+	if ((pp->sg_id.proto_id == SCSI_PROTOCOL_FCP) &&
+	    !sysfs_get_fc_rport_state(pp, buff, SCSI_STATE_SIZE)) {
+		if (!strncmp(buff, "Blocked", 7)) {
+			condlog(3, "%s: rport blocked", pp->dev);
+			rport_state = PATH_PENDING;
+		}
+	}
 
 	pp->sysdev = sysfs_device_from_path(pp);
 	if (!pp->sysdev) {
@@ -933,7 +979,7 @@ path_offline (struct path * pp)
 	pp->offline = 0;
 	if (!strncmp(buff, "blocked", 7))
 		return PATH_PENDING;
-	else if (!strncmp(buff, "running", 7))
+	else if (!strncmp(buff, "running", 7) && rport_state == PATH_UP)
 		return PATH_UP;
 
 	return PATH_DOWN;
