@@ -328,8 +328,10 @@ size_t sysfs_attr_get_value(const char *devpath, const char *attr_name,
 	}
 	size = read(fd, attr_value, attr_len);
 	close(fd);
-	if (size < 0)
+	if (size <= 0) {
+		size = 0;
 		goto out;
+	}
 	if (size == attr_len) {
 		dbg("overflow in attribute '%s', truncating", path_full);
 		size--;

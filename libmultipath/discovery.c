@@ -336,7 +336,7 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 	 * As states other than 'Online' can't be used anyway
 	 * it should be sufficient to just check for 'Online' here.
 	 */
-	if (sysfs_attr_get_value(attr_path, "port_state", value, 16) < 0) {
+	if (!sysfs_attr_get_value(attr_path, "port_state", value, 16)) {
 		condlog(3, "%s: failed to read port_state, error %d",
 			mpp->alias, errno);
 		return 1;
@@ -346,7 +346,7 @@ update_rport_timeout(struct multipath *mpp, struct path *pp)
 			mpp->alias, value);
 		return 1;
 	}
-	if (sysfs_attr_get_value(attr_path, "dev_loss_tmo", value, 16) < 0) {
+	if (!sysfs_attr_get_value(attr_path, "dev_loss_tmo", value, 16)) {
 		condlog(0, "%s: failed to read dev_loss_tmo value, error %d",
 			mpp->alias, errno);
 		return 1;
@@ -533,7 +533,7 @@ sysfs_set_fc_rport_state (struct path *pp, int blocked)
 
 	retval = sysfs_attr_get_value(attr_path, "port_state",
 				      attr_value, NAME_SIZE);
-	if (retval < 0) {
+	if (!retval) {
 		condlog(1, "%s: failed to read rport state from '%s'",
 			pp->dev, attr_path);
 		return EBADF;
