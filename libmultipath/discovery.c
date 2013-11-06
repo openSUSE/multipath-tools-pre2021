@@ -1215,6 +1215,9 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		} else {
 			condlog(3, "%s: path inaccessible", pp->dev);
 			pp->state = path_state;
+			if (path_state == PATH_PENDING ||
+			    path_state == PATH_DOWN)
+				pp->priority = 0;
 		}
 	}
 
