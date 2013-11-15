@@ -545,6 +545,25 @@ def_log_checker_err_handler(vector strvec)
 }
 
 static int
+def_no_map_shutdown_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+	if (!buff)
+		return 1;
+
+	if (!strncmp(buff, "on", 2) || !strncmp(buff, "yes", 3) ||
+		 !strncmp(buff, "1", 1))
+		conf->no_map_shutdown = 1;
+	else
+		conf->no_map_shutdown = 0;
+
+	free(buff);
+	return 0;
+}
+
+static int
 def_reservation_key_handler(vector strvec)
 {
 	char *buff;
@@ -2714,6 +2733,18 @@ snprint_def_log_checker_err (char * buff, int len, void * data)
 }
 
 static int
+snprint_def_no_map_shutdown (char * buff, int len, void * data)
+{
+	switch (conf->no_map_shutdown) {
+	case 0:
+		return snprintf(buff, len, "\"no\"");
+	case 1:
+		return snprintf(buff, len, "\"yes\"");
+	}
+	return 0;
+}
+
+static int
 snprint_def_user_friendly_names (char * buff, int len, void * data)
 {
 	if (conf->user_friendly_names  == USER_FRIENDLY_NAMES_ON)
@@ -2850,6 +2881,7 @@ init_keywords(void)
 	install_keyword("reservation_key", &def_reservation_key_handler, &snprint_def_reservation_key);
 	install_keyword("retain_attached_hw_handler", &def_retain_hwhandler_handler, &snprint_def_retain_hwhandler_handler);
 	install_keyword("detect_prio", &def_detect_prio_handler, &snprint_def_detect_prio);
+	install_keyword("no_map_shutdown", &def_no_map_shutdown_handler, &snprint_def_no_map_shutdown);
 	__deprecated install_keyword("default_selector", &def_selector_handler, NULL);
 	__deprecated install_keyword("default_path_grouping_policy", &def_pgpolicy_handler, NULL);
 	__deprecated install_keyword("default_uid_attribute", &def_uid_attribute_handler, NULL);

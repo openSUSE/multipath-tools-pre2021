@@ -22,6 +22,10 @@ devmap reconfiguration, so that it can refresh its failed path list.
 .B \-d
 Foreground Mode. Don't daemonize, and print all messages to stdout and stderr.
 .TP 
+.B \-n
+Oneshot Mode; daemon will terminate if no multipath devices are found.
+Equivalent to set 'no_map_shutdown' to '1' in the configuration file.
+.TP 
 .B \-s
 Suppress timestamps. Do not prefix logging messages with a timestamp.
 .TP 

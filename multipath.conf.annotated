@@ -215,6 +215,15 @@
 #	user_friendly_names no
 #
 #	#
+#	# name    : no_map_shutdown
+#	# scope   : multipathd
+#	# desc    : If set to "yes" the multipath daemon will terminate
+#	#           if no multipath devices have been found.
+#	# values  : yes|no
+#	# default : no
+#	no_map_shutdown no
+#
+#	#
 #	# name    : mode
 #	# scope   : multipath & multipathd
 #	# desc    : The mode to use for the multipath device nodes, in octal.

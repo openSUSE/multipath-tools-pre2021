@@ -103,6 +103,7 @@ struct config {
 	int fast_io_fail;
 	unsigned int dev_loss;
 	int log_checker_err;
+	int no_map_shutdown;
 	int allow_queueing;
 	uid_t uid;
 	gid_t gid;

@@ -8,7 +8,7 @@ Conflicts=shutdown.target
 [Service]
 Type=notify
 NotifyAccess=main
-ExecStart=/sbin/multipathd -d -s
+ExecStart=/sbin/multipathd -d -s -n
 ExecReload=/sbin/multipathd reconfigure
 WatchdogSec=5s
 LimitCORE=infinity

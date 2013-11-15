@@ -1025,11 +1025,11 @@ followover_should_failback(struct path * pp)
 	return 1;
 }
 
-static void
+static int
 defered_failback_tick (vector mpvec)
 {
 	struct multipath * mpp;
-	unsigned int i;
+	unsigned int i, mpp_count = 0;
 
 	vector_foreach_slot (mpvec, mpp, i) {
 		/*
@@ -1041,7 +1041,9 @@ defered_failback_tick (vector mpvec)
 			if (!mpp->failback_tick && need_switch_pathgroup(mpp, 1))
 				switch_pathgroup(mpp);
 		}
+		mpp_count++;
 	}
+	return mpp_count;
 }
 
 static void
@@ -1283,7 +1285,7 @@ checkerloop (void *ap)
 
 	while (1) {
 		struct timeval diff_time, start_time, end_time;
-		int num_paths = 0;
+		int num_paths = 0, num_maps = 0;
 
 		if (gettimeofday(&start_time, NULL) != 0)
 			start_time.tv_sec = 0;
@@ -1299,7 +1301,7 @@ checkerloop (void *ap)
 			}
 		}
 		if (vecs->mpvec) {
-			defered_failback_tick(vecs->mpvec);
+			num_maps = defered_failback_tick(vecs->mpvec);
 			retry_count_tick(vecs->mpvec);
 		}
 		if (count)
@@ -1318,6 +1320,11 @@ checkerloop (void *ap)
 			condlog(3, "checked %d path%s in %lu.%06lu secs",
 				num_paths, num_paths > 1 ? "s" : "",
 				diff_time.tv_sec, diff_time.tv_usec);
+		}
+		if (!num_maps && conf->no_map_shutdown) {
+			condlog(3, "terminating, no multipath devices");
+			exit_daemon();
+			break;
 		}
 		sleep(1);
 	}
@@ -1890,7 +1897,7 @@ main (int argc, char *argv[])
 	if (!conf)
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":dsv:k::")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dnsv:k::")) != EOF ) {
 	switch(arg) {
 		case 'd':
 			logsink = 0;
@@ -1902,6 +1909,9 @@ main (int argc, char *argv[])
 				exit(1);
 
 			conf->verbosity = atoi(optarg);
+			break;
+		case 'n':
+			conf->no_map_shutdown = 1;
 			break;
 		case 's':
 			logsink = -1;
