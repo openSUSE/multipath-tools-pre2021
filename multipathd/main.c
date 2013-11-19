@@ -1638,15 +1638,18 @@ child (void * param)
 	condlog(2, "--------start up--------");
 	condlog(2, "read " DEFAULT_CONFIGFILE);
 
-	if (load_config(DEFAULT_CONFIGFILE, udev))
+	if (load_config(DEFAULT_CONFIGFILE, udev)) {
+		sd_notify(0, "STATUS=failed to read configfile\nERRNO=1");
 		exit(1);
 
 	if (init_checkers()) {
 		condlog(0, "failed to initialize checkers");
+		sd_notify(0, "ERRNO=1");
 		exit(1);
 	}
 	if (init_prio()) {
 		condlog(0, "failed to initialize prioritizers");
+		sd_notify(0, "ERRNO=1");
 		exit(1);
 	}
 
@@ -1683,9 +1686,10 @@ child (void * param)
 	}
 
 	vecs = gvecs = init_vecs();
-	if (!vecs)
+	if (!vecs) {
+		sd_notify(0, "ERRNO=1");
 		exit(1);
-
+	}
 	setscheduler();
 	set_oom_adj();
 
@@ -1707,11 +1711,13 @@ child (void * param)
 	 */
 	if ((rc = pthread_create(&uevent_thr, &uevent_attr, ueventloop, udev))) {
 		condlog(0, "failed to create uevent thread: %d", rc);
+		sd_notify(0, "ERRNO=1");
 		exit(1);
 	}
 	pthread_attr_destroy(&uevent_attr);
 	if ((rc = pthread_create(&uxlsnr_thr, &misc_attr, uxlsnrloop, vecs))) {
 		condlog(0, "failed to create cli listener: %d", rc);
+		sd_notify(0, "ERRNO=1");
 		exit(1);
 	}
 	/*
@@ -1733,10 +1739,12 @@ child (void * param)
 	 */
 	if ((rc = pthread_create(&check_thr, &misc_attr, checkerloop, vecs))) {
 		condlog(0,"failed to create checker loop thread: %d", rc);
+		sd_notify(0, "ERRNO=1");
 		exit(1);
 	}
 	if ((rc = pthread_create(&uevq_thr, &misc_attr, uevqloop, vecs))) {
 		condlog(0, "failed to create uevent dispatcher: %d", rc);
+		sd_notify(0, "ERRNO=1");
 		exit(1);
 	}
 	pthread_attr_destroy(&misc_attr);
@@ -1813,7 +1821,7 @@ child (void * param)
 #ifdef _DEBUG_
 	dbg_free_final(NULL);
 #endif
-
+	sd_notify(0, "ERRNO=0");
 	exit(0);
 }
 
