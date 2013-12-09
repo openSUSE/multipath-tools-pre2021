@@ -1433,6 +1433,9 @@ reconfigure (struct vectors * vecs)
 	vecs->pathvec = NULL;
 	conf = NULL;
 
+	/* Re-read any timezone changes */
+	tzset();
+
 	if (!load_config(DEFAULT_CONFIGFILE, udev)) {
 		dm_drv_version(conf->version, TGT_MPATH);
 		conf->verbosity = old->verbosity;
