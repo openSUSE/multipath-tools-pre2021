@@ -30,6 +30,7 @@ install: $(EXEC) $(EXEC).8
 	$(INSTALL_PROGRAM) -m 755 kpartx_id $(DESTDIR)$(libudevdir)
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(libudevdir)/rules.d
 	$(INSTALL_PROGRAM) -m 644 kpartx.rules $(DESTDIR)$(libudevdir)/rules.d/66-kpartx.rules
+	$(INSTALL_PROGRAM) -m 644 kpartx-compat.rules $(DESTDIR)$(libudevdir)/rules.d/67-kpartx-compat.rules
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(mandir)
 	$(INSTALL_PROGRAM) -m 644 $(EXEC).8.gz $(DESTDIR)$(mandir)
 
