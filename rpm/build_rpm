@@ -1,0 +1,149 @@
+#!/bin/bash
+#
+# Build a multipath-tools source rpm
+#
+
+RPM="multipath-tools"
+BRANCH="sles12"
+BASEVER="0.5.0"
+DESTDIR=
+TMPDIR=
+OBS_PRJ=SUSE:SLE-12:GA
+OBS_BRANCH=home:hreinecke:branches
+OSC="osc -A https://api.suse.de --no-keyring"
+uncommitted_changes=0
+
+while [ $# -gt 0 ] ; do
+    case "$1" in
+	-c|--clean)
+	    remove_destdir=1;
+	    shift;
+	    ;;
+        -d)
+            DESTDIR=$2;
+            shift 2;
+            ;;
+        --destdir)
+            DESTDIR=${$1#*=};
+            shift;
+            ;;
+        -b)
+            BRANCH=$2;
+            shift 2;
+            ;;
+        --branch=)
+            BRANCH=${1##*=};
+            shift;
+            ;;
+	-o|--use-osc)
+	    use_osc=1;
+	    shift;
+	    ;;
+        -f|--force)
+            force=1;
+	    update=;
+            shift;
+            ;;
+	-m|--maintenance)
+	    OBS=SUSE:SLE-12:Update:Test
+	    shift;
+	    ;;
+        -u|--update)
+            update=1;
+	    force=;
+            shift;
+            ;;
+        --uncommitted-changes)
+            uncommitted_changes=1
+            shift;
+            ;;
+        *)
+            echo "Usage: build_rpm [-c|-f|-o|-u] [-d dir|--destdir=DIR] " \
+                 "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes]"
+            exit 1;
+            ;;
+    esac
+done
+
+VERSION=$(sed -n 's/Version: *\(.*\)/\1/p' rpm/$RPM.spec)
+
+if ! which git > /dev/null ; then
+    echo "git not found, cannot continue"
+    exit 1
+fi
+
+if [ -d "$DESTDIR" ] ; then
+    if [ -z "$force" ] && [ -z "$update" ] ; then
+        echo "directory $DESTDIR exists, cannot continue"
+        exit 1
+    elif [ -z "$update" ] ; then
+        if ! rm -rf "$DESTDIR" ; then
+            echo "Cannot remove directory $DESTDIR"
+            exit 1
+        fi
+    fi
+else
+    DESTDIR=$(mktemp -d --tmpdir $RPM-XXXXXXXX)
+    if [ ! -d "$DESTDIR" ] ; then
+	echo "Cannot create directory $DESTDIR"
+	exit 1
+    fi
+fi
+
+if ! git branch | grep -q "$BRANCH" ; then
+    echo "Branch \"$BRANCH\" does not exist"
+    exit 1
+else
+    echo "Checking out from $BRANCH"
+fi
+
+if [ -n "$use_osc" ] ; then
+    pushd $DESTDIR
+    if ! $OSC meta pkg $OBS_BRANCH:$OBS_PRJ $RPM > /dev/null 2>&1 ; then
+	$OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM
+    fi
+    $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ multipath-tools
+    TMPDIR=${DESTDIR}
+    DESTDIR="${DESTDIR}/multipath-tools"
+    popd
+fi
+
+git archive --format=tar --prefix=$RPM-$VERSION/ "$VERSION" \
+    | bzip2 > $DESTDIR/$RPM-$VERSION.tar.bz2
+git diff $VERSION..$BRANCH | bzip2 > $DESTDIR/$RPM-$VERSION-$BRANCH.diff.bz2
+
+git show $BRANCH:rpm/$RPM.spec > $DESTDIR/$RPM.spec
+git show $BRANCH:rpm/$RPM.changes > $DESTDIR/$RPM.changes
+
+
+#
+# if the user specified
+if (( $uncommitted_changes )) ; then
+    echo "WARNING: Including uncommitted changes for testing." >&2
+    echo "         Don't submit the package to Autobuild!"     >&2
+
+    patchname=$RPM-$(date -u +%Y-%M-%d_%T_%Z).diff
+    git diff $BRANCH > $DESTDIR/$patchname
+
+    sed -i "/Patch0:.*$/a\
+Patch1:\t\t$patchname" $DESTDIR/rpm/$RPM.spec
+    sed -i "/%patch0 -p1/a\
+%patch1 -p1" $DESTDIR/rpm/$RPM.spec
+fi
+
+echo "$RPM src rpm copied to $DESTDIR"
+
+if [ -n "$use_osc" ] ; then
+    pushd $DESTDIR
+    osc ar
+    osc ci --message="Checked in from git branch $BRANCH"
+    osc sr
+    popd
+fi
+
+if [ -n "$remove_destdir" ] ; then
+    rm -rf $DESTDIR
+    if [ "$TMPDIR" ] ; then
+	rm -rf $TMPDIR
+    fi
+fi
