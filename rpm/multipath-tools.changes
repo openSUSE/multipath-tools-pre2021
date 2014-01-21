@@ -1,4 +1,45 @@
 -------------------------------------------------------------------
+Wed Mar 12 16:36:56 CET 2014 - hare@suse.de
+
+- Update FSF address
+- Add 11-dm-mpath.rules (bnc#867968)
+- Link against libsystemd instead of libsystemd-daemon
+
+-------------------------------------------------------------------
+Fri Feb 28 15:53:24 CET 2014 - hare@suse.de
+
+- Fixup spec file to correct rules permissions
+
+-------------------------------------------------------------------
+Fri Feb 28 12:45:19 CET 2014 - hare@suse.de
+
+- Fixup 40-multipath.rules installation
+
+-------------------------------------------------------------------
+Wed Feb 26 14:38:49 CET 2014 - hare@suse.de
+
+- Add 40-multipath.rules for dracut support
+
+-------------------------------------------------------------------
+Fri Feb 14 14:55:28 CET 2014 - hare@suse.de
+
+- Install kpartx rules with correct prefix for dracut
+- filter for missing property in get_refwwid() (bnc#862250)
+- Double uevent stacksize yet again (bnc#855379)
+- do not fail discovery on individual devices (bnc#860850)
+- Prefer deprecated 'getuid' callout (bnc#861534)
+- Skip paths with empty wwid (bnc#861534)
+- correctly terminate string in strlcpy() (bnc#861534)
+- Don't chop const strings
+- Fixup typo in Makefile
+- display uevent sequence number on 'show daemon'
+
+-------------------------------------------------------------------
+Tue Jan 21 16:32:33 CET 2014 - hare@suse.de
+
+- Fixup build issues
+
+-------------------------------------------------------------------
 Tue Jan 21 13:58:15 CET 2014 - hare@suse.de
 
 - Update to official version 0.5.0
