@@ -28,6 +28,10 @@ ENV{DM_MPATH}=="?*", ENV{DM_PART}!="?*", \
 ENV{DM_WWN}=="?*", ENV{DM_PART}!="?*", \
 	SYMLINK+="disk/by-id/wwn-$env{DM_WWN}"
 
+# Create persistent links for dmraid tables
+ENV{DM_UUID}=="DMRAID-*|dmraid-*", \
+	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}"
+
 # Create persistent links for partitions
 ENV{DM_PART}=="?*", \
         SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}-part$env{DM_PART}"
@@ -48,7 +52,7 @@ ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", \
 # Create dm tables for partitions
 ENV{DM_ACTION}=="PATH_FAILED", ENV{DM_NR_VALID_PATHS}=="0", \
 	GOTO="kpartx_end"
-ENV{DM_STATE}!="SUSPENDED", ENV{DM_UUID}=="mpath-*", \
+ENV{DM_STATE}!="SUSPENDED", ENV{DM_UUID}=="mpath-*|DMRAID-*|dmraid-*", \
         RUN+="/sbin/kpartx -u -p -part /dev/$name"
 
 LABEL="kpartx_end"
