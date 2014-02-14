@@ -35,7 +35,14 @@ while [ $# -gt 0 ] ; do
             BRANCH=${1##*=};
             shift;
             ;;
+	-i|--use-isc)
+	    use_osc=1;
+	    shift;
+	    ;;
 	-o|--use-osc)
+	    OBS_PRJ=Base:System
+	    OBS_BRANCH=home:hreinecke:branches
+	    OSC="osc --no-keyring"
 	    use_osc=1;
 	    shift;
 	    ;;
@@ -45,7 +52,8 @@ while [ $# -gt 0 ] ; do
             shift;
             ;;
 	-m|--maintenance)
-	    OBS=SUSE:SLE-12:Update:Test
+	    use_osc=1
+	    OBS_PRJ=SUSE:SLE-12:Update:Test
 	    shift;
 	    ;;
         -u|--update)
@@ -58,7 +66,7 @@ while [ $# -gt 0 ] ; do
             shift;
             ;;
         *)
-            echo "Usage: build_rpm [-c|-f|-o|-u] [-d dir|--destdir=DIR] " \
+            echo "Usage: build_rpm [-c|-f|-i|-o|-u] [-d dir|--destdir=DIR] " \
                  "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes]"
             exit 1;
             ;;
