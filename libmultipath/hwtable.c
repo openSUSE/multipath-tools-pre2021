@@ -221,6 +221,12 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 		.prio_args     = NULL,
 	},
+	{
+		/* HP Virtual Media, always blacklist */
+		.vendor        = "HP",
+		.product       = ".*",
+		.bl_product    = "Virtual.*",
+	},
 	/*
 	 * DDN controller family
 	 *
