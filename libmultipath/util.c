@@ -113,7 +113,7 @@ size_t strlcpy(char *dst, const char *src, size_t size)
 		bytes++;
 	}
 
-	if (bytes == size)
+	if (bytes <= size)
 		*q = '\0';
 	return bytes;
 }
