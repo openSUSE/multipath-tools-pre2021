@@ -1,4 +1,25 @@
 -------------------------------------------------------------------
+Fri Feb 14 10:59:47 CET 2014 - hare@suse.de
+
+- Remove trailing spaces from sysfs attributes (bnc#839593)
+- Allow whitespaces in CLI commands (bnc#846575)
+- Improve logging for orphan_path
+- Set priority to '0' for PATH_BLOCKED or PATH_DOWN (bnc#831608)
+- multipathd: Update manpage (bnc#834871)
+- Do not issue a table reload on every check (bnc#854244)
+- Use RTPG data in RDAC checker (bnc#854244)
+- Reset timezone information on reconfigure (bnc#830511)
+- Double uevent stacksize yet again (bnc#855379)
+- Do not fail discovery on individual devices (bnc#860850)
+- Filter for missing property in get_refwwid (bnc#862250)
+- Do not flush multipath tables on shutdown (bnc#854025)
+- Prefer deprecated 'getuid' callout (bnc#861534)
+- Skip paths with empty wwid (bnc#861534)
+- Correctly terminate string in strlcpy (bnc#861534)
+- Include defaults for HP P6300 (bnc#845987)
+- Update NetApp defaults (bnc#846662)
+
+-------------------------------------------------------------------
 Mon Aug  5 09:30:24 CEST 2013 - hare@suse.de
 
 - Fix typo in retain_attached_hw_handler
