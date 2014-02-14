@@ -126,10 +126,12 @@ case "$1" in
 	rc_status -v
 	;;
     stop)
-	echo -n "Removing multipath targets:"
+	# Nothing to be done here; removing targets
+	# might hang the system (bnc#854025)
+	# echo -n "Removing multipath targets:"
 
 	# Flush all existing maps
-	$PROGRAM -F
+	# $PROGRAM -F
 
 	rc_failed 0
 	rc_status -v
