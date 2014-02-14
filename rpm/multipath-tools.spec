@@ -101,10 +101,6 @@ make CC="%__cc" OPTFLAGS="$RPM_OPT_FLAGS" LIB=%{_lib} SYSTEMDPATH=%{_sysdir}
 
 %install
 make DESTDIR=$RPM_BUILD_ROOT LIB=%{_lib} SYSTEMDPATH=%{_sysdir} install
-# Compability with older versions
-mkdir -p $RPM_BUILD_ROOT/%{_sysdir}/udev/rules.d
-mv $RPM_BUILD_ROOT/etc/udev/rules.d/kpartx.rules $RPM_BUILD_ROOT/%{_sysdir}/udev/rules.d/66-kpartx.rules
-mv $RPM_BUILD_ROOT/etc/udev/rules.d/kpartx-compat.rules $RPM_BUILD_ROOT/%{_sysdir}/udev/rules.d/67-kpartx-compat.rules
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 rm $RPM_BUILD_ROOT/%_lib/libmpathpersist.so
 
