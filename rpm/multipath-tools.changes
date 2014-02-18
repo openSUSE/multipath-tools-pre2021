@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb 18 12:19:17 CET 2014 - hare@suse.de
+
+- Save 'root_mpath' variable in mkinitrd (bnc#854243)
+
+-------------------------------------------------------------------
 Fri Feb 14 10:59:47 CET 2014 - hare@suse.de
 
 - Remove trailing spaces from sysfs attributes (bnc#839593)
