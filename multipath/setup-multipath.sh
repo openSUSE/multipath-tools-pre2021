@@ -62,3 +62,5 @@ if use_script multipath; then
 fi
 
 save_var root_mpath
+# make the variable visible also in boot-multipathd.sh
+curscript=multipathd.sh save_var root_mpath
