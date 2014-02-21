@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Feb 21 12:38:15 CET 2014 - hare@suse.de
+
+- Blacklist HP Virtual devices (bnc#862250)
+
+-------------------------------------------------------------------
 Tue Feb 18 12:19:17 CET 2014 - hare@suse.de
 
 - Save 'root_mpath' variable in mkinitrd (bnc#854243)
