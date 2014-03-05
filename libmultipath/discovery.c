@@ -314,6 +314,40 @@ find_session_id(struct sysfs_device *dev, struct path *pp)
 	return session;
 }
 
+static int
+find_usb_host_id(struct path *pp)
+{
+	char attr_path[SYSFS_PATH_SIZE];
+	char *dir, *base;
+	int host = -1;
+
+	if (safe_sprintf(attr_path,
+			 "/class/scsi_host/host%i",
+			 pp->sg_id.host_no)) {
+		condlog(0, "attr_path too small for target");
+		return -1;
+	}
+
+	if (sysfs_resolve_link(attr_path, SYSFS_PATH_SIZE))
+		return -1;
+
+	condlog(4, "host%d -> path %s", pp->sg_id.host_no, attr_path);
+	dir = attr_path;
+	do {
+		base = basename(dir);
+		dir = dirname(dir);
+
+		if (sscanf((const char *)base, "usb%d", &host) == 1)
+			break;
+	} while (strcmp((const char *)dir, "/"));
+
+	if (host < 0)
+		return -1;
+
+	condlog(4, "host%d -> USB host %d", pp->sg_id.host_no, host);
+	return host;
+}
+
 int
 update_rport_timeout(struct multipath *mpp, struct path *pp)
 {
@@ -478,7 +512,7 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 static int
 sysfs_get_transport_id(struct sysfs_device *dev, struct path *pp)
 {
-	int rport_id, session_id;
+	int rport_id, session_id, usb_host;
 
 	rport_id = find_rport_id(pp);
 	if (rport_id != -1) {
@@ -491,6 +525,13 @@ sysfs_get_transport_id(struct sysfs_device *dev, struct path *pp)
 		pp->sg_id.transport_id = session_id;
 		pp->sg_id.proto_id = SCSI_PROTOCOL_ISCSI;
 		return sysfs_get_iscsi_targetname(pp);
+	}
+	usb_host = find_usb_host_id(pp);
+	if (usb_host != -1) {
+		pp->sg_id.transport_id = -1;
+		pp->sg_id.proto_id = SCSI_PROTOCOL_UNSPEC;
+		pp->bus = SYSFS_BUS_USB;
+		return 1;
 	}
 	if (!sysfs_get_sas_address(dev, pp->tgt_node_name, NODE_NAME_SIZE)) {
 		pp->sg_id.transport_id = -1;
@@ -823,7 +864,10 @@ scsi_sysfs_pathinfo (struct path * pp, struct sysfs_device * parent)
 		condlog(3, "%s: tgt_node_name = %s",
 			pp->dev, pp->tgt_node_name);
 	}
-
+	if (pp->bus == SYSFS_BUS_USB) {
+		condlog(3, "%s: skip USB device", pp->dev);
+		return 1;
+	}
 	return 0;
 }
 
