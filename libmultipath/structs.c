@@ -427,17 +427,21 @@ add_feature (char **f, char *n)
 		return 0;
 
 	/* Check if feature is already present */
-	if (strstr(*f, n))
-		return 0;
+	if (*f) {
+		if (strstr(*f, n))
+			return 0;
 
-	/* Get feature count */
-	c = strtoul(*f, &e, 10);
-	if (*f == e)
-		/* parse error */
-		return 1;
+		/* Get feature count */
+		c = strtoul(*f, &e, 10);
+		if (*f == e)
+			/* parse error */
+			return 1;
 
-	/* Check if we need to increase feature count space */
-	l = strlen(*f) + strlen(n) + 1;
+		/* Check if we need to increase feature count space */
+		l = strlen(*f) + strlen(n) + 1;
+	} else {
+		l = strlen(n) + 1;
+	}
 
 	/* Count new features */
 	if ((c % 10) == 9)
@@ -470,7 +474,11 @@ add_feature (char **f, char *n)
 	snprintf(p, l + 2, "%0d ", c);
 
 	/* Copy the feature string */
-	p = strchr(*f, ' ');
+	if (*f)
+		p = strchr(*f, ' ');
+	else
+		p = NULL;
+
 	if (p) {
 		while (*p == ' ')
 			p++;
