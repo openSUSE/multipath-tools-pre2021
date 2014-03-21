@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 13 00:56:11 CET 2014 - ro@suse.de
+
+- downgrade device-mapper requirement to 1.2.78 until 1.2.82
+  is available anywhere 
+
+-------------------------------------------------------------------
 Wed Mar 12 16:36:56 CET 2014 - hare@suse.de
 
 - Update FSF address

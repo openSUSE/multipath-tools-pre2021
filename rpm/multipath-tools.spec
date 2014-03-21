@@ -24,7 +24,7 @@ BuildRequires:  readline-devel
 BuildRequires:  systemd-devel
 BuildRequires:  udev
 Url:            http://christophe.varoqui.free.fr/
-Requires:       device-mapper
+Requires:       device-mapper >= 1.2.78
 Requires:       kpartx
 PreReq:         %insserv_prereq %fillup_prereq coreutils grep
 Version:        0.5.0
