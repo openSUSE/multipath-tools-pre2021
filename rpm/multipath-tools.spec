@@ -22,6 +22,7 @@ BuildRequires:  libaio-devel
 BuildRequires:  libudev-devel
 BuildRequires:  readline-devel
 BuildRequires:  systemd-devel
+BuildRequires:  udev
 Url:            http://christophe.varoqui.free.fr/
 Requires:       device-mapper
 Requires:       kpartx
@@ -147,7 +148,8 @@ fi
 %defattr(-,root,root)
 %doc AUTHOR COPYING README ChangeLog
 %doc multipath.conf*
-%dir /%{_sysdir}/udev/rules.d
+%{_udevrulesdir}/11-dm-mpath.rules
+%{_udevrulesdir}/40-multipath.rules
 /%{_lib}/libmultipath.so.0
 /%{_lib}/libmpathpersist.so.0
 /%{_lib}/multipath
@@ -171,9 +173,8 @@ fi
 %files -n kpartx
 %defattr(-,root,root)
 /sbin/kpartx
-%dir /%{_sysdir}/udev
-%config /%{_sysdir}/udev/rules.d/66-kpartx.rules
-%config /%{_sysdir}/udev/rules.d/67-kpartx-compat.rules
+%{_udevrulesdir}/66-kpartx.rules
+%{_udevrulesdir}/67-kpartx-compat.rules
 /%{_sysdir}/udev/kpartx_id
 %{_mandir}/man8/kpartx.8*
 
