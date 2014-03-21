@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Mar 21 12:28:10 CET 2014 - hare@suse.de
+
+- Fixup ordering cycle with systemd (bnc#863218)
+- Rebase git repository to match with upstream
+- Revert 'display uevent sequence number'; not required anymore
+
+-------------------------------------------------------------------
 Thu Mar 13 00:56:11 CET 2014 - ro@suse.de
 
 - downgrade device-mapper requirement to 1.2.78 until 1.2.82
