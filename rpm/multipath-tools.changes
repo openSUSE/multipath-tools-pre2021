@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Mar 24 17:43:46 CET 2014 - hare@suse.de
+
+- Fix crash on parsing multipath.con (bnc#868443)
+
+-------------------------------------------------------------------
 Fri Feb 21 12:38:15 CET 2014 - hare@suse.de
 
 - Blacklist HP Virtual devices (bnc#862250)
