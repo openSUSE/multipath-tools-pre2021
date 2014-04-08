@@ -4,9 +4,10 @@ SUBSYSTEM!="block", GOTO="end_mpath"
 ENV{MPATH_SBIN_PATH}="/sbin"
 TEST!="$env{MPATH_SBIN_PATH}/multipath", ENV{MPATH_SBIN_PATH}="/usr/sbin"
 
-SUBSYSTEM=="block", ACTION=="add", KERNEL!="dm-*", ENV{DEVTYPE}!="partition", \
+SUBSYSTEM=="block", ACTION=="add|change", KERNEL!="dm-*", \
 	ENV{DM_MULTIPATH_DEVICE_PATH}!="1", \
 	PROGRAM=="$env{MPATH_SBIN_PATH}/multipath -c $tempnode", \
-	ENV{DM_MULTIPATH_DEVICE_PATH}="1"
+	ENV{DM_MULTIPATH_DEVICE_PATH}="1" \
+	ENV{SYSTEMD_READY}="0"
 
 LABEL="end_mpath"
