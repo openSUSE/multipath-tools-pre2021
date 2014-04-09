@@ -83,9 +83,6 @@ path_discover (vector pathvec, struct config * conf,
 	if (!devname)
 		return PATHINFO_FAILED;
 
-	if (filter_property(conf, udevice) > 0)
-		return PATHINFO_SKIPPED;
-
 	if (filter_devnode(conf->blist_devnode, conf->elist_devnode,
 			   (char *)devname) > 0)
 		return PATHINFO_SKIPPED;
@@ -1135,9 +1132,12 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 
 	if ((mask & DI_WWID) && !strlen(pp->wwid))
 		get_uid(pp);
-	if (mask & DI_BLACKLIST && mask & DI_WWID) {
-		if (!strlen(pp->wwid) ||
-		    filter_wwid(conf->blist_wwid, conf->elist_wwid,
+	if (mask & DI_BLACKLIST && mask & DI_WWID &&
+	    strlen(pp->wwid)) {
+		if (filter_property(conf, pp->udev) > 0) {
+			return PATHINFO_SKIPPED;
+		}
+		if (filter_wwid(conf->blist_wwid, conf->elist_wwid,
 				pp->wwid) > 0) {
 			return PATHINFO_SKIPPED;
 		}
@@ -1151,8 +1151,6 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		if (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF) {
 			if (!strlen(pp->wwid))
 				get_uid(pp);
-			if (!strlen(pp->wwid))
-				return PATHINFO_SKIPPED;
 			get_prio(pp);
 		}
 	}
