@@ -1997,9 +1997,10 @@ main (int argc, char *argv[])
 		exit(0);
 	}
 
-	if (logsink < 1)
+	if (logsink < 1) {
 		err = 0;
-	else
+		daemon_pid = getpid();
+	} else
 		err = daemonize();
 
 	if (err < 0)
