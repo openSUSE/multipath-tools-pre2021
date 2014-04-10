@@ -1138,7 +1138,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 			return PATHINFO_SKIPPED;
 		}
 		if (filter_wwid(conf->blist_wwid, conf->elist_wwid,
-				pp->wwid) > 0) {
+				pp->wwid, pp->dev) > 0) {
 			return PATHINFO_SKIPPED;
 		}
 	}
