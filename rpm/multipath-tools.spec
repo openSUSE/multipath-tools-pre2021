@@ -149,7 +149,7 @@ fi
 %doc AUTHOR COPYING README ChangeLog
 %doc multipath.conf*
 %{_udevrulesdir}/11-dm-mpath.rules
-%{_udevrulesdir}/40-multipath.rules
+%{_udevrulesdir}/56-multipath.rules
 /%{_lib}/libmultipath.so.0
 /%{_lib}/libmpathpersist.so.0
 /%{_lib}/multipath

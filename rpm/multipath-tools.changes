@@ -1,4 +1,25 @@
 -------------------------------------------------------------------
+Fri Apr 11 12:23:29 CEST 2014 - hare@suse.de
+
+- Install multipath rule under 56-multipath.rules (bnc#873151)
+- Implement option '-u' for uevents (bnc#873151)
+- Remove trailing linefeed from sysfs attributes
+- Make checker_put() and prio_put() idempotent
+- Implement 'list path' CLI command
+- Disable reassign maps per default
+- Allow for NULL path when printing information
+- Fixup wwid blacklist printing
+- Use SCSI_IDENT_.* as the default property whitelist (bnc#872929)
+- Do not call 'blkid' in kpartx.rules
+- Allow empty wwids during discovery (bnc#872712)
+- Always set verbosity to '0' when checking devices (bnc#867840)
+- Fixup multipath rules for booting (bnc#870764)
+- Fixup dependencies in multipathd.service (bnc#872712)
+- Do not print empty device strings during discovery (bnc#872712)
+- Use multipath wwid if path wwid is empty (bnc#872712)
+- Set the correct PID when running in debug mode
+
+-------------------------------------------------------------------
 Fri Mar 21 12:28:10 CET 2014 - hare@suse.de
 
 - Fixup ordering cycle with systemd (bnc#863218)
