@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <libudev.h>
+#include <syslog.h>
 
 #include <checkers.h>
 #include <prio.h>
@@ -276,6 +277,7 @@ configure (void)
 		int failed = get_refwwid(conf->dev, conf->dev_type, pathvec,
 					 &refwwid);
 		if (!refwwid) {
+			condlog(3, "%s: failed to get wwid", conf->dev);
 			if (failed == 2 && conf->dry_run == 2)
 				printf("%s is not a valid multipath device path\n", conf->dev);
 			else
@@ -429,11 +431,11 @@ main (int argc, char *argv[])
 	int r = 1;
 
 	udev = udev_new();
-
+	logsink = 0;
 	if (load_config(DEFAULT_CONFIGFILE, udev))
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":dchl::FfM:v:p:b:BrtqwW")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dchl::FfM:v:p:b:BrtquwW")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
 			break;
@@ -498,6 +500,10 @@ main (int argc, char *argv[])
 		case 'h':
 			usage(argv[0]);
 			exit(0);
+		case 'u':
+			conf->dry_run = 2;
+			conf->dev_type = DEV_UEVENT;
+			break;
 		case 'w':
 			conf->dry_run = 3;
 			break;
@@ -534,9 +540,15 @@ main (int argc, char *argv[])
 			goto out;
 
 		strncpy(conf->dev, argv[optind], FILE_NAME_SIZE);
-		conf->dev_type = get_dev_type(conf->dev);
+		if (conf->dev_type != DEV_UEVENT)
+			conf->dev_type = get_dev_type(conf->dev);
 	}
 	conf->daemon = 0;
+	if (conf->dev_type == DEV_UEVENT) {
+		openlog("multipath", 0, LOG_DAEMON);
+		setlogmask(LOG_UPTO(conf->verbosity + 3));
+		logsink = 1;
+	}
 
 	if (conf->max_fds) {
 		struct rlimit fd_limit;
@@ -611,6 +623,9 @@ out:
 
 	cleanup_prio();
 	cleanup_checkers();
+
+	if (conf->dev_type == DEV_UEVENT)
+		closelog();
 
 out_free_config:
 	/*
