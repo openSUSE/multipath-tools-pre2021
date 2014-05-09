@@ -184,8 +184,10 @@ get_hotplug_device(void)
 	snprintf(device, off + 1, "%s", devname);
 	snprintf(device + off, len + 1, "%s", mapname);
 
-	if (strlen(device) != (off + len))
+	if (strlen(device) != (off + len)) {
+		free(device);
 		return NULL;
+	}
 
 	return device;
 }
