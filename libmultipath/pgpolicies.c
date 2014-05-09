@@ -342,7 +342,7 @@ group_by_prio (struct multipath * mp)
 			goto out;
 
 		if (store_path(pgp->paths, VECTOR_SLOT(mp->paths, 0)))
-				goto out;
+			goto out;
 
 		vector_del_slot(mp->paths, 0);
 
@@ -374,6 +374,7 @@ group_by_prio (struct multipath * mp)
 	mp->paths = NULL;
 	return 0;
 out:
+	free_pathgroup(pgp, KEEP_PATHS);
 	free_pgvec(mp->pg, KEEP_PATHS);
 	mp->pg = NULL;
 	return 1;
