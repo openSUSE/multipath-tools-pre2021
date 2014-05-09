@@ -118,14 +118,14 @@ int iet_prio(const char *dev, char * args)
 					if (ip!=NULL && strncmp(ip, preferredip, strlen(ip)) == 0) {
 						// high prio
 						free(ip);
+						free(device);
 						closedir(dir_p);
 						return 20;
 					}
 					free(ip);
 				}
 				free(device);
-			}
-			else {
+			} else {
 				printf("error\n");
 			}
 		}
