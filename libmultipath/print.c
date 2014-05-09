@@ -1321,11 +1321,12 @@ snprint_devices (char * buff, int len, struct vectors *vecs)
 
 	struct path * pp;
 
+	if ((len - fwd - threshold) <= 0)
+		return len;
+
 	if (!(blkdir = opendir("/sys/block")))
 		return 1;
 
-	if ((len - fwd - threshold) <= 0)
-		return len;
 	fwd += snprintf(buff + fwd, len - fwd, "available block devices:\n");
 
 	strcpy(devpath,"/sys/block/");
