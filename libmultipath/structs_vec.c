@@ -378,8 +378,13 @@ add_map_without_path (struct vectors * vecs, char * alias)
 {
 	struct multipath * mpp = alloc_multipath();
 
-	if (!mpp || !alias)
+	if (!mpp)
 		return NULL;
+
+	if (!alias) {
+		free_multipath(mpp, KEEP_PATHS);
+		return NULL;
+	}
 
 	mpp->alias = STRDUP(alias);
 
