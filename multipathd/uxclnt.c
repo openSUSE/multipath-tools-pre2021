@@ -130,6 +130,6 @@ int uxclnt(char * inbuf)
 		process_req(fd, inbuf);
 	else
 		process(fd);
-
+	close(fd);
 	return 0;
 }
