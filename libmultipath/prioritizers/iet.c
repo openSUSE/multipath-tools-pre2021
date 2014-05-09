@@ -59,10 +59,13 @@ char *find_regex(char * string, char * regex)
 				if (result) {
 					strncpy(result, &string[start], size);
 					result[size] = '\0';
+					free(pmatch);
 					return result;
 				}
+			} else {
+				free(pmatch);
+				return NULL;
 			}
-			else return NULL;
 		}
 	}
 	return NULL;
