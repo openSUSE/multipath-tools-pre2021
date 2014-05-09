@@ -245,6 +245,8 @@ get_user_friendly_alias(char *wwid, char *file, char *prefix,
 	id = lookup_binding(f, wwid, &alias, prefix);
 	if (id < 0) {
 		fclose(f);
+		if (alias)
+			free(alias);
 		return NULL;
 	}
 
@@ -252,6 +254,8 @@ get_user_friendly_alias(char *wwid, char *file, char *prefix,
 		condlog(0, "cannot fflush bindings file stream : %s",
 			strerror(errno));
 		fclose(f);
+		if (alias)
+			free(alias);
 		return NULL;
 	}
 
