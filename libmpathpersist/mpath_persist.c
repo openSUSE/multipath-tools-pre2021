@@ -170,9 +170,14 @@ int mpath_persistent_reserve_in (int fd, int rq_servact, struct prin_resp *resp,
 	 * allocate core vectors to store paths and multipaths
 	 */
 	curmp = vector_alloc ();
+	if (!curmp) {
+		condlog (0, "%s: vector allocation failed.", alias);
+		ret = MPATH_PR_DMMP_ERROR;
+		goto out;
+	}
 	pathvec = vector_alloc ();
-
-	if (!curmp || !pathvec){
+	if (!pathvec){
+		vector_free(curmp);
 		condlog (0, "%s: vector allocation failed.", alias);
 		ret = MPATH_PR_DMMP_ERROR;
 		goto out;
