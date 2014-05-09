@@ -99,6 +99,7 @@ static int
 reassign_maps_handler(vector strvec)
 {
 	char * buff;
+	int rc = 0;
 
 	buff = set_value(strvec);
 	if (!strcmp(buff, "yes"))
@@ -106,9 +107,9 @@ reassign_maps_handler(vector strvec)
 	else if (!strcmp(buff, "no"))
 		conf->reassign_maps = 0;
 	else
-		return 1;
-
-	return 0;
+		rc = 1;
+	FREE(buff);
+	return rc;
 }
 
 static int
