@@ -77,7 +77,8 @@ int execute_program(char *path, char *value, int len)
 		null_fd = open("/dev/null", O_WRONLY);
 		if (null_fd > 0) {
 			close(STDERR_FILENO);
-			retval = dup(null_fd);
+			if (dup(null_fd) < 0)
+				condlog(0, "error dup stderr: %m");
 			close(null_fd);
 		}
 
