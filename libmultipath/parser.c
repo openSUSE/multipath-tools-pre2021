@@ -328,8 +328,10 @@ read_value_block(void)
 			for (i = 0; i < VECTOR_SIZE(vec); i++) {
 				str = VECTOR_SLOT(vec, i);
 				dup = (char *) MALLOC(strlen(str) + 1);
-				if (!dup)
+				if (!dup) {
+					free_strvec(vec);
 					goto out;
+				}
 				memcpy(dup, str, strlen(str));
 
 				if (!vector_alloc_slot(elements)) {
