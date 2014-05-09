@@ -198,7 +198,7 @@ extract_hwe_from_path(struct multipath * mpp)
 
 	condlog(3, "%s: searching paths for valid hwe", mpp->alias);
 
-	if (mpp && mpp->pg) {
+	if (mpp->pg) {
 		vector_foreach_slot(mpp->pg, pgp, i) {
 			if (pgp->status == PGSTATE_ACTIVE ||
 			    pgp->status == PGSTATE_ENABLED) {
