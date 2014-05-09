@@ -47,5 +47,6 @@ int update_prflag(char * arg1, char * arg2, int noisy)
 	}
 
 	free(reply);
+	close(fd);
 	return ret;
 }
