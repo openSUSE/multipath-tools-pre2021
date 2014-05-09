@@ -786,6 +786,7 @@ print_multipath_topology (struct multipath * mpp, int verbosity)
 		}
 	} while (resize);
 	printf("%s", buff);
+	FREE(buff);
 }
 
 extern int
