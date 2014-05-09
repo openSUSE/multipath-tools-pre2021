@@ -1367,8 +1367,10 @@ configure (struct vectors * vecs, int start_waiters)
 		else
 			pp->checkint = conf->checkint;
 	}
-	if (map_discovery(vecs))
+	if (map_discovery(vecs)) {
+		vector_free(mpvec);
 		return 1;
+	}
 
 	/*
 	 * create new set of maps & push changed ones into dm
