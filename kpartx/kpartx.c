@@ -177,8 +177,10 @@ get_hotplug_device(void)
 	len = strlen(mapname);
 
 	/* Dirname + mapname + \0 */
-	if (!(device = (char *)malloc(sizeof(char) * (off + len + 1))))
+	if (!(device = (char *)malloc(sizeof(char) * (off + len + 1)))) {
+		free(mapname);
 		return NULL;
+	}
 
 	/* Create new device name. */
 	snprintf(device, off + 1, "%s", devname);
