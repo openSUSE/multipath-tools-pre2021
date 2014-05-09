@@ -89,7 +89,7 @@ ssize_t sysfs_attr_get_value(struct udev_device *dev, const char *attr_name,
 		condlog(4, "overflow while reading from %s", devpath);
 		size = 0;
 	}
-
+	value[value_len - 1] = '\0';
 	close(fd);
 	return size;
 }
