@@ -16,7 +16,7 @@ int pidfile_create(const char *pidFile, pid_t pid)
 {
 	char buf[20];
 	struct flock lock;
-	int fd, value;
+	int fd, value, rc = 1;
 
 	if((fd = open(pidFile, O_WRONLY | O_CREAT,
 		       (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH))) < 0) {
@@ -60,8 +60,8 @@ int pidfile_create(const char *pidFile, pid_t pid)
 			"error was [%s]", pidFile, strerror(errno));
 		goto fail;
 	}
-	return 0;
+	rc = 0;
 fail:
 	close(fd);
-	return 1;
+	return rc;
 }
