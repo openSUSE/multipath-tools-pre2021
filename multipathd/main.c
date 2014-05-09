@@ -1375,15 +1375,23 @@ configure (struct vectors * vecs, int start_waiters)
 	/*
 	 * create new set of maps & push changed ones into dm
 	 */
-	if (coalesce_paths(vecs, mpvec, NULL, 1))
+	if (coalesce_paths(vecs, mpvec, NULL, 1)) {
+		vector_foreach_slot(mpvec, mpp, i) {
+			vector_del_slot(mpvec, i);
+			free_multipath(mpp, KEEP_PATHS);
+		}
+		vector_free(mpvec);
 		return 1;
+	}
 
 	/*
 	 * may need to remove some maps which are no longer relevant
 	 * e.g., due to blacklist changes in conf file
 	 */
-	if (coalesce_maps(vecs, mpvec))
+	if (coalesce_maps(vecs, mpvec)) {
+		vector_free(mpvec);
 		return 1;
+	}
 
 	dm_lib_release();
 
