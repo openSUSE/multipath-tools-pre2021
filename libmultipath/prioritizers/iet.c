@@ -83,8 +83,7 @@ int iet_prio(const char *dev, char * args)
 		return 0;
 	}
 	// check if args format is OK
-	if (sscanf(args, "preferredip=%s", preferredip) ==1) {}
-	else {
+	if (sscanf(args, "preferredip=%s", preferredip) !=1) {
 		dc_log(0, "unexpected prio_args format");
 		return 0;
 	}
@@ -103,31 +102,41 @@ int iet_prio(const char *dev, char * args)
 
 	// loop to find device in /dev/disk/by-path
 	while( NULL != (dir_entry_p = readdir(dir_p))) {
-		if (dir_entry_p->d_name[0] != '.') {
-			char path[BUFFERSIZE] = "/dev/disk/by-path/";
-			strcat(path,dir_entry_p->d_name);
-			ssize_t nchars = readlink(path, buffer, sizeof(buffer)-1);
-			if (nchars != -1) {
-				char *device;
-				device = find_regex(buffer,"(sd[a-z]+)");
-				// if device parsed is the right one
-				if (device!=NULL && strncmp(device, dev, strlen(device)) == 0) {
-					char *ip;
-					ip = find_regex(dir_entry_p->d_name,"([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})");
-					// if prefferedip and ip fetched matches
-					if (ip!=NULL && strncmp(ip, preferredip, strlen(ip)) == 0) {
-						// high prio
-						free(ip);
-						free(device);
-						closedir(dir_p);
-						return 20;
-					}
+		char path[BUFFERSIZE] = "/dev/disk/by-path/";
+		ssize_t nchars;
+
+		if (dir_entry_p->d_name[0] == '.')
+			continue;
+
+		if (strlen(dir_entry_p->d_name) > BUFFERSIZE - 18) {
+			dc_log(0, "by-path link too large");
+			continue;
+		}
+		strcat(path, dir_entry_p->d_name);
+		memset(buffer, 0, sizeof(buffer));
+		nchars = readlink(path, buffer, sizeof(buffer));
+		buffer[BUFFERSIZE - 1] = '\0';
+		if (nchars != -1) {
+			char *device;
+			device = find_regex(buffer,"(sd[a-z]+)");
+			// if device parsed is the right one
+			if (device != NULL &&
+			    strncmp(device, dev, strlen(device)) == 0) {
+				char *ip;
+				ip = find_regex(dir_entry_p->d_name,"([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})");
+				// if prefferedip and ip fetched matches
+				if (ip!=NULL && strncmp(ip, preferredip, strlen(ip)) == 0) {
+					// high prio
 					free(ip);
+					free(device);
+					closedir(dir_p);
+					return 20;
 				}
-				free(device);
-			} else {
-				printf("error\n");
+				free(ip);
 			}
+			free(device);
+		} else {
+			printf("error\n");
 		}
 	}
 	// nothing found, low prio
