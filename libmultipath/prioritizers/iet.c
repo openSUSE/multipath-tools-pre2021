@@ -36,38 +36,38 @@ char *find_regex(char * string, char * regex)
 {
 	int err;
 	regex_t preg;
+	int match;
+	size_t nmatch = 0;
+	regmatch_t *pmatch = NULL;
+	char *result = NULL;
+
 	err = regcomp(&preg, regex, REG_EXTENDED);
 
-	if (err == 0) {
-		int match;
-		size_t nmatch = 0;
-		regmatch_t *pmatch = NULL;
-		nmatch = preg.re_nsub;
-		pmatch = malloc(sizeof(*pmatch) * nmatch);
+	if (err != 0)
+		return NULL;
 
-		if (pmatch) {
-			match = regexec(&preg, string, nmatch, pmatch, 0);
-			regfree(&preg);
+	nmatch = preg.re_nsub;
+	pmatch = malloc(sizeof(*pmatch) * nmatch);
+	if (!pmatch) {
+		regfree(&preg);
+		return NULL;
+	}
 
-			if (match == 0) {
-				char *result = NULL;
-				int start = pmatch[0].rm_so;
-				int end = pmatch[0].rm_eo;
-				size_t size = end - start;
-				result = malloc (sizeof(*result) * (size + 1));
+	match = regexec(&preg, string, nmatch, pmatch, 0);
+	regfree(&preg);
 
-				if (result) {
-					strncpy(result, &string[start], size);
-					result[size] = '\0';
-					free(pmatch);
-					return result;
-				}
-			} else {
-				free(pmatch);
-				return NULL;
-			}
+	if (match == 0) {
+		int start = pmatch[0].rm_so;
+		int end = pmatch[0].rm_eo;
+		size_t size = end - start;
+		result = malloc (sizeof(*result) * (size + 1));
+
+		if (result) {
+			strncpy(result, &string[start], size);
+			result[size] = '\0';
 		}
 	}
+	free(pmatch);
 	return NULL;
 }
 
