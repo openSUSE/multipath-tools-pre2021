@@ -150,8 +150,11 @@ void prio_get (struct prio * dst, char * name, char * args)
 	}
 
 	strncpy(dst->name, src->name, PRIO_NAME_LEN);
-	if (args)
+	dst->name[PRIO_NAME_LEN - 1] = '\0';
+	if (args) {
 		strncpy(dst->args, args, PRIO_ARGS_LEN);
+		dst->args[PRIO_ARGS_LEN - 1] = '\0';
+	}
 	dst->getprio = src->getprio;
 	dst->handle = NULL;
 
