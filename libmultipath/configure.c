@@ -162,7 +162,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 		if (cmpp) {
 			condlog(2, "%s: rename %s to %s", mpp->wwid,
 				cmpp->alias, mpp->alias);
-			strncpy(mpp->alias_old, cmpp->alias, WWID_SIZE);
+			mpp->alias_old = strdup(cmpp->alias);
 			mpp->action = ACT_RENAME;
 			return;
 		}
@@ -407,6 +407,8 @@ domap (struct multipath * mpp, char * params)
 
 	case ACT_RENAME:
 		r = dm_rename(mpp->alias_old, mpp->alias);
+		FREE(mpp->alias_old);
+		mpp->alias_old = NULL;
 		break;
 
 	default:
@@ -653,6 +655,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 				continue;
 
 			strncpy(alias, mpp->alias, WWID_SIZE);
+			alias[WWID_SIZE - 1] = '\0';
 
 			if ((j = find_slot(newmp, (void *)mpp)) != -1)
 				vector_del_slot(newmp, j);
