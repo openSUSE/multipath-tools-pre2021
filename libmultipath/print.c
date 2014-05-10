@@ -1325,7 +1325,7 @@ snprint_devices (char * buff, int len, struct vectors *vecs)
 		return len;
 
 	if (!(blkdir = opendir("/sys/block")))
-		return 1;
+		return 0;
 
 	fwd += snprintf(buff + fwd, len - fwd, "available block devices:\n");
 
@@ -1344,8 +1344,10 @@ snprint_devices (char * buff, int len, struct vectors *vecs)
 		if (S_ISDIR(statbuf.st_mode) == 0)
 			continue;
 
-		if ((len - fwd - threshold)  <= 0)
+		if ((len - fwd - threshold)  <= 0) {
+			closedir(blkdir);
 			return len;
+		}
 
 		fwd += snprintf(buff + fwd, len - fwd, "    %s", devptr);
 		pp = find_path_by_dev(vecs->pathvec, devptr);
