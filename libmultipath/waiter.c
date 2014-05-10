@@ -22,14 +22,18 @@
 
 pthread_attr_t waiter_attr;
 
-struct event_thread *alloc_waiter (void)
+struct event_thread *alloc_waiter (char *mapname)
 {
 
 	struct event_thread *wp;
 
 	wp = (struct event_thread *)MALLOC(sizeof(struct event_thread));
 	memset(wp, 0, sizeof(struct event_thread));
-
+	wp->mapname = strdup(mapname);
+	if (!wp->mapname) {
+		FREE(wp);
+		wp = NULL;
+	}
 	return wp;
 }
 
@@ -39,7 +43,7 @@ void free_waiter (void *data)
 
 	if (wp->dmt)
 		dm_task_destroy(wp->dmt);
-
+	FREE(wp->mapname);
 	FREE(wp);
 }
 
@@ -179,12 +183,11 @@ int start_waiter_thread (struct multipath *mpp, struct vectors *vecs)
 	if (!mpp)
 		return 0;
 
-	wp = alloc_waiter();
+	wp = alloc_waiter(mpp->alias);
 
 	if (!wp)
 		goto out;
 
-	strncpy(wp->mapname, mpp->alias, WWID_SIZE);
 	wp->vecs = vecs;
 
 	if (pthread_create(&wp->thread, &waiter_attr, waitevent, wp)) {

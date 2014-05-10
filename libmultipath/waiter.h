@@ -7,11 +7,11 @@ struct event_thread {
 	struct dm_task *dmt;
 	pthread_t thread;
 	int event_nr;
-	char mapname[WWID_SIZE];
+	char *mapname;
 	struct vectors *vecs;
 };
 
-struct event_thread * alloc_waiter (void);
+struct event_thread * alloc_waiter (char *mapname);
 void free_waiter (void *data);
 void stop_waiter_thread (struct multipath *mpp, struct vectors *vecs);
 int start_waiter_thread (struct multipath *mpp, struct vectors *vecs);
