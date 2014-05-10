@@ -333,7 +333,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 				if (!pp)
 					goto out1;
 
-				strncpy(pp->dev_t, word, BLK_DEV_SIZE);
+				strncpy(pp->dev_t, word, BLK_DEV_SIZE - 1);
 
 				/* Only call this in multipath client mode */
 				if (!conf->daemon && store_path(pathvec, pp))
