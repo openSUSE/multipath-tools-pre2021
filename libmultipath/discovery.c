@@ -1101,9 +1101,9 @@ get_uid (struct path * pp)
 		if ((!value || strlen(value) == 0) && conf->dry_run == 2)
 			value = getenv(pp->uid_attribute);
 		if (value && strlen(value)) {
-			size_t len = WWID_SIZE;
+			size_t len = WWID_SIZE - 1;
 
-			if (strlen(value) + 1 > WWID_SIZE) {
+			if (strlen(value) > len) {
 				condlog(0, "%s: wwid overflow", pp->dev);
 			} else {
 				len = strlen(value);
