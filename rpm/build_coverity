@@ -1,0 +1,27 @@
+#!/bin/bash
+
+COV_DIR=cov-int
+COV_PRJ=multipath-tools
+
+GIT_COMMIT=$(git show --abbrev-commit | head -1 | cut -d ' ' -f 2)
+GIT_BRANCH=$(git branch | sed -n 's/\* \(.*\)/\1/p')
+
+COV_BUILD="${COV_PRJ}-${GIT_BRANCH}-${GIT_COMMIT}.tar.gz"
+
+export PATH=$PATH:/opt/Coverity/cov-analysis-linux64-7.0.2/bin
+
+make clean
+mkdir $COV_DIR
+cov-build -dir $COV_DIR make
+
+tar czvf ${COV_BUILD} $COV_DIR
+
+rm -rf $COV_DIR
+
+curl --form project=hreinecke/multipath-tools \
+  --form token=FOQkfTQmD0qeo-EVK2tQFQ \
+  --form email=hare@suse.de \
+  --form file=@${COV_BUILD} \
+  --form version=0.4.9 \
+  --form description="${GIT_BRANCH} ${GIT_COMMIT}" \
+  http://scan5.coverity.com/cgi-bin/upload.py
