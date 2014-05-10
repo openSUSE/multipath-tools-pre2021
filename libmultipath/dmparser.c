@@ -348,15 +348,19 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp)
 			 * Update wwid for multipaths which are not setup
 			 * in the get_dm_mpvec() code path
 			 */
-			if (!strlen(mpp->wwid))
+			if (!strlen(mpp->wwid)) {
 				strncpy(mpp->wwid, pp->wwid, WWID_SIZE);
+				mpp->wwid[WWID_SIZE - 1] = '\0';
+			}
 
 			/*
 			 * Update wwid for paths which may not have been
 			 * active at the time the getuid callout was run
 			 */
-			else if (!strlen(pp->wwid))
+			else if (!strlen(pp->wwid)) {
 				strncpy(pp->wwid, mpp->wwid, WWID_SIZE);
+				pp->wwid[WWID_SIZE - 1] = '\0';
+			}
 
 			pgp->id ^= (long)pp;
 			pp->pgindex = i + 1;
