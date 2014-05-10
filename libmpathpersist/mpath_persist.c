@@ -474,6 +474,7 @@ int mpath_prout_reg(struct multipath *mpp,int rq_servact, int rq_scope,
 				continue;
 			}
 			strncpy(thread[count].param.dev, pp->dev, FILE_NAME_SIZE);
+			thread[count].param.dev[FILE_NAME_SIZE - 1] = '\0';
 
 			if (count && (thread[count].param.paramp->sa_flags & MPATH_F_SPEC_I_PT_MASK)){
 				/*
@@ -589,6 +590,7 @@ int send_prout_activepath(char * dev, int rq_servact, int rq_scope,
 
 	memset(&thread, 0, sizeof(thread));
 	strncpy(param.dev, dev, FILE_NAME_SIZE);
+	param.dev[FILE_NAME_SIZE - 1] = '\0';
 	/* Initialize and set thread joinable attribute */
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -657,6 +659,7 @@ int mpath_prout_rel(struct multipath *mpp,int rq_servact, int rq_scope,
 			}
 			
 			strncpy(thread[count].param.dev, pp->dev, FILE_NAME_SIZE);
+			thread[count].param.dev[FILE_NAME_SIZE - 1] = '\0';
 			condlog (3, "%s: sending pr out command to %s", mpp->wwid, pp->dev);
 			rc = pthread_create (&thread[count].id, &attr, mpath_prout_pthread_fn,
 					(void *) (&thread[count].param));
