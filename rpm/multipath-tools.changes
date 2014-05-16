@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri May 16 10:26:03 CEST 2014 - hare@suse.de
+
+- Fix segfault when fast_io_fail_tmo is empty in config file
+- Crafted ordering of child paths for round robin path selector
+  (bnc#870465)
+- multipath: enable sync support (bnc#872297)
+- Whitelist devices in multipath.rules (bnc#877281)
+
+-------------------------------------------------------------------
 Fri Apr 11 12:23:29 CEST 2014 - hare@suse.de
 
 - Install multipath rule under 56-multipath.rules (bnc#873151)
