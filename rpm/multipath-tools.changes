@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue May 20 12:36:57 CEST 2014 - hare@suse.de
+
+- Fix race condition with systemd (bnc#878809)
+
+-------------------------------------------------------------------
 Fri May 16 10:26:03 CEST 2014 - hare@suse.de
 
 - Fix segfault when fast_io_fail_tmo is empty in config file
