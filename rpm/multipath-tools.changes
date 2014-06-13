@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Jun 13 10:51:48 CEST 2014 - hare@suse.de
+
+- 11-dm-mpath.rules: Import blkid values if all paths are down
+  (bnc#875233)
+- kpartx.rules: Skip kpartx for multipath events (bnc#875233)
+
+-------------------------------------------------------------------
 Tue May 20 12:36:57 CEST 2014 - hare@suse.de
 
 - Fix race condition with systemd (bnc#878809)
