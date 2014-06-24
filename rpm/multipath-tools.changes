@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Tue Jun 24 09:45:57 CEST 2014 - hare@suse.de
+
+- Fixup race condition with udev (bnc#883878)
+- Cleanup foreground operation handling in multipathd
+- Fix some minor issues in path reordering code (bnc#870465)
+- Patches from upstream:
+  * Use existing user friendly names if possible
+  * kpartx: fix extended partition size for >512b sectors
+  * Mismatch between allocation length and transfer length in
+    rdac prio
+  * Mismatch between allocation length and transfer length in
+    emc_clariion prio.
+
+-------------------------------------------------------------------
 Fri Jun 13 10:51:48 CEST 2014 - hare@suse.de
 
 - 11-dm-mpath.rules: Import blkid values if all paths are down
