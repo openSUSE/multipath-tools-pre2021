@@ -126,6 +126,7 @@ struct config {
 	int reassign_maps;
 	int retain_hwhandler;
 	int detect_prio;
+	int force_sync;
 	unsigned int version[3];
 
 	char * dev;
