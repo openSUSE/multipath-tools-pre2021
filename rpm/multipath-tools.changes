@@ -1,4 +1,23 @@
 -------------------------------------------------------------------
+Fri Jul  4 09:14:11 CEST 2014 - hare@suse.de
+
+- multipath: use option '-i' when called from udev (bnc#885628)
+- multipath: add option '-i' to ignore wwids file (bnc#885628)
+- Update hwtable for EMC XtremIO (bnc#880510)
+- Remove unused variable 'aas' from alua prioritzer
+- Patches from upstream:
+  * Add multipath.conf force_sync option
+  * make prioritizers use checker_timeout, if set
+  * Improve multipath.conf syntax checking
+  * orphan paths on failed add
+  * Add missing interactive commands to multipathd man page
+  * Make multipathd orphan paths that were removed externally
+  * allow users to add wwids to /etc/multipath/wwids with -a
+  * change conf->dry_run to conf->cmd
+  * Return the correct size buffer in set_value()
+  * Fix memory issues in path reordering failure code paths
+
+-------------------------------------------------------------------
 Tue Jun 24 09:45:57 CEST 2014 - hare@suse.de
 
 - Fixup race condition with udev (bnc#883878)
