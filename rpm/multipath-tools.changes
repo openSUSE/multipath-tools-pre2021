@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jul  9 11:46:23 CEST 2014 - hare@suse.de
+
+- multipath: Check for running daemon when called with '-u'
+  (bnc#886154)
+
+-------------------------------------------------------------------
 Fri Jul  4 09:14:11 CEST 2014 - hare@suse.de
 
 - multipath: use option '-i' when called from udev (bnc#885628)
