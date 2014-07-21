@@ -100,6 +100,7 @@ fi
 
 if ! git branch | grep -q "$BRANCH" ; then
     echo "Branch \"$BRANCH\" does not exist"
+    rmdir ${DESTDIR}
     exit 1
 else
     echo "Checking out from $BRANCH"
@@ -108,11 +109,21 @@ fi
 if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
     if ! $OSC meta pkg $OBS_BRANCH:$OBS_PRJ $RPM > /dev/null 2>&1 ; then
-	$OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM
+	if ! $OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM ; then
+	    echo "Failed to branch package $RPM from $OBS_PRJ"
+	    popd > /dev/null
+	    rmdir ${DESTDIR}
+	    exit 1
+	fi
     fi
-    $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ multipath-tools
+    if  ! $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ $RPM ; then
+	echo "Failed to checkout package $RPM from $OBS_PRJ"
+	popd > /dev/null
+	rmdir ${DESTDIR}
+	exit 1
+    fi
     TMPDIR=${DESTDIR}
-    DESTDIR="${DESTDIR}/multipath-tools"
+    DESTDIR="${DESTDIR}/${RPM}"
     popd
 fi
 
