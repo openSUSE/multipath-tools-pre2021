@@ -1227,7 +1227,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		get_uid(pp);
 	if (mask & DI_BLACKLIST && mask & DI_WWID &&
 	    strlen(pp->wwid)) {
-		if (filter_property(conf, pp->udev) > 0) {
+		if (pp->uid_attribute && filter_property(conf, pp->udev) > 0) {
 			return PATHINFO_SKIPPED;
 		}
 		if (filter_wwid(conf->blist_wwid, conf->elist_wwid,
