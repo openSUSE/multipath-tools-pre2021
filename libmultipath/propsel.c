@@ -399,9 +399,6 @@ select_getuid (struct path * pp)
 			pp->dev, pp->uid_attribute);
 		return 0;
 	}
-	pp->uid_attribute = STRDUP(DEFAULT_UID_ATTRIBUTE);
-	condlog(3, "%s: uid_attribute = %s (internal default)",
-		pp->dev, pp->uid_attribute);
 	return 0;
 }
 

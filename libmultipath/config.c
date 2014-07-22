@@ -562,7 +562,6 @@ load_config (char * file, struct udev *udev)
 	conf->retain_hwhandler = DEFAULT_RETAIN_HWHANDLER;
 	conf->detect_prio = DEFAULT_DETECT_PRIO;
 	conf->force_sync = 0;
-	conf->uid_attribute = set_default(DEFAULT_UID_ATTRIBUTE);
 
 	/*
 	 * preload default hwtable
