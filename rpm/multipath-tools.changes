@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Wed Jul 23 12:35:44 CEST 2014 - hare@suse.de
+
+- recovery_tmo for iSCSI sessions not updated (bnc#883808)
+- Only filter for udev property if uid_attribute is present
+- Read wwid from sysfs vpg_pg83 attribute
+- Update multipath.conf.5 to clarify wwid generation
+- kpartx: Fixup persistent name generation (bnc#887582)
+- Revert 'return PATH_DOWN for quiesced paths'
+- Do not treat 'transport-offline' paths as 'offline' (bnc#888378)
+
+-------------------------------------------------------------------
 Wed Jul  9 11:46:23 CEST 2014 - hare@suse.de
 
 - multipath: Check for running daemon when called with '-u'
