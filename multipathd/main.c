@@ -1399,32 +1399,40 @@ checkerloop (void *ap)
 
 		if (gettimeofday(&start_time, NULL) != 0)
 			start_time.tv_sec = 0;
-		pthread_cleanup_push(cleanup_lock, &vecs->lock);
-		lock(vecs->lock);
-		pthread_testcancel();
 		condlog(4, "tick");
 #ifdef USE_SYSTEMD
 		if (use_watchdog)
 			sd_notify(0, "WATCHDOG=1");
 #endif
 		if (vecs->pathvec) {
+			pthread_cleanup_push(cleanup_lock, &vecs->lock);
+			lock(vecs->lock);
+			pthread_testcancel();
 			vector_foreach_slot (vecs->pathvec, pp, i) {
 				num_paths += check_path(vecs, pp);
 			}
+			lock_cleanup_pop(vecs->lock);
 		}
 		if (vecs->mpvec) {
+			pthread_cleanup_push(cleanup_lock, &vecs->lock);
+			lock(vecs->lock);
+			pthread_testcancel();
 			defered_failback_tick(vecs->mpvec);
 			retry_count_tick(vecs->mpvec);
+			lock_cleanup_pop(vecs->lock);
 		}
 		if (count)
 			count--;
 		else {
+			pthread_cleanup_push(cleanup_lock, &vecs->lock);
+			lock(vecs->lock);
+			pthread_testcancel();
 			condlog(4, "map garbage collection");
 			mpvec_garbage_collector(vecs);
 			count = MAPGCINT;
+			lock_cleanup_pop(vecs->lock);
 		}
 
-		lock_cleanup_pop(vecs->lock);
 		if (start_time.tv_sec &&
 		    gettimeofday(&end_time, NULL) == 0 &&
 		    num_paths) {
