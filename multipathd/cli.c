@@ -1,8 +1,11 @@
 /*
  * Copyright (c) 2005 Christophe Varoqui
  */
+#include <pthread.h>
 #include <memory.h>
 #include <vector.h>
+#include <structs.h>
+#include <structs_vec.h>
 #include <parser.h>
 #include <util.h>
 #include <version.h>
@@ -99,6 +102,19 @@ set_handler_callback (unsigned long fp, int (*fn)(void *, char **, int *, void *
 	if (!h)
 		return 1;
 	h->fn = fn;
+	h->locked = 1;
+	return 0;
+}
+
+int
+set_unlocked_handler_callback (unsigned long fp,int (*fn)(void *, char **, int *, void *))
+{
+	struct handler * h = find_handler(fp);
+
+	if (!h)
+		return 1;
+	h->fn = fn;
+	h->locked = 0;
 	return 0;
 }
 
@@ -396,7 +412,15 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data)
 	/*
 	 * execute handler
 	 */
-	r = h->fn(cmdvec, reply, len, data);
+	if (h->locked) {
+		struct vectors * vecs = (struct vectors *)data;
+		pthread_cleanup_push(cleanup_lock, &vecs->lock);
+		lock(vecs->lock);
+		pthread_testcancel();
+		r = h->fn(cmdvec, reply, len, data);
+		lock_cleanup_pop(vecs->lock);
+	} else
+		r = h->fn(cmdvec, reply, len, data);
 	free_keys(cmdvec);
 
 	return r;

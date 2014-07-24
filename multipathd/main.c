@@ -745,10 +745,6 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 	*len = 0;
 	vecs = (struct vectors *)trigger_data;
 
-	pthread_cleanup_push(cleanup_lock, &vecs->lock);
-	lock(vecs->lock);
-	pthread_testcancel();
-
 	r = parse_cmd(str, reply, len, vecs);
 
 	if (r > 0) {
@@ -763,7 +759,6 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 	}
 	/* else if (r < 0) leave *reply alone */
 
-	lock_cleanup_pop(vecs->lock);
 	return r;
 }
 
@@ -875,16 +870,16 @@ uxlsnrloop (void * ap)
 	set_handler_callback(LIST+PATHS+FMT, cli_list_paths_fmt);
 	set_handler_callback(LIST+PATH, cli_list_path);
 	set_handler_callback(LIST+MAPS, cli_list_maps);
-	set_handler_callback(LIST+STATUS, cli_list_status);
-	set_handler_callback(LIST+DAEMON, cli_list_daemon);
+	set_unlocked_handler_callback(LIST+STATUS, cli_list_status);
+	set_unlocked_handler_callback(LIST+DAEMON, cli_list_daemon);
 	set_handler_callback(LIST+MAPS+STATUS, cli_list_maps_status);
 	set_handler_callback(LIST+MAPS+STATS, cli_list_maps_stats);
 	set_handler_callback(LIST+MAPS+FMT, cli_list_maps_fmt);
 	set_handler_callback(LIST+MAPS+TOPOLOGY, cli_list_maps_topology);
 	set_handler_callback(LIST+TOPOLOGY, cli_list_maps_topology);
 	set_handler_callback(LIST+MAP+TOPOLOGY, cli_list_map_topology);
-	set_handler_callback(LIST+CONFIG, cli_list_config);
-	set_handler_callback(LIST+BLACKLIST, cli_list_blacklist);
+	set_unlocked_handler_callback(LIST+CONFIG, cli_list_config);
+	set_unlocked_handler_callback(LIST+BLACKLIST, cli_list_blacklist);
 	set_handler_callback(LIST+DEVICES, cli_list_devices);
 	set_handler_callback(LIST+WILDCARDS, cli_list_wildcards);
 	set_handler_callback(ADD+PATH, cli_add_path);
@@ -904,8 +899,8 @@ uxlsnrloop (void * ap)
 	set_handler_callback(RESTOREQ+MAP, cli_restore_queueing);
 	set_handler_callback(DISABLEQ+MAPS, cli_disable_all_queueing);
 	set_handler_callback(RESTOREQ+MAPS, cli_restore_all_queueing);
-	set_handler_callback(QUIT, cli_quit);
-	set_handler_callback(SHUTDOWN, cli_shutdown);
+	set_unlocked_handler_callback(QUIT, cli_quit);
+	set_unlocked_handler_callback(SHUTDOWN, cli_shutdown);
 	set_handler_callback(GETPRSTATUS+MAP, cli_getprstatus);
 	set_handler_callback(SETPRSTATUS+MAP, cli_setprstatus);
 	set_handler_callback(UNSETPRSTATUS+MAP, cli_unsetprstatus);
