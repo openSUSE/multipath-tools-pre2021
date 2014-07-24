@@ -262,7 +262,11 @@ uev_add_map (struct uevent * uev, struct vectors * vecs)
 			return 1;
 		}
 	}
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
 	rc = ev_add_map(uev->kernel, alias, vecs);
+	lock_cleanup_pop(vecs->lock);
 	FREE(alias);
 	return rc;
 }
@@ -352,13 +356,18 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 		goto out;
 	}
 
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
 	orphan_paths(vecs->pathvec, mpp);
 	remove_map_and_stop_waiter(mpp, vecs, 1);
+	lock_cleanup_pop(vecs->lock);
 out:
 	FREE(alias);
 	return 0;
 }
 
+/* Called from CLI handler */
 int
 ev_remove_map (char * devname, char * alias, int minor, struct vectors * vecs)
 {
@@ -394,7 +403,11 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 		return 1;
 	}
 
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
 	pp = find_path_by_dev(vecs->pathvec, uev->kernel);
+	lock_cleanup_pop(vecs->lock);
 	if (pp) {
 		condlog(0, "%s: spurious uevent, path already in pathvec",
 			uev->kernel);
@@ -406,10 +419,14 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 			ret = pathinfo(pp, conf->hwtable,
 				       DI_ALL | DI_BLACKLIST);
 			if (ret == 2) {
+				pthread_cleanup_push(cleanup_lock, &vecs->lock);
+				lock(vecs->lock);
+				pthread_testcancel();
 				i = find_slot(vecs->pathvec, (void *)pp);
 				if (i != -1)
 					vector_del_slot(vecs->pathvec, i);
 				free_path(pp);
+				lock_cleanup_pop(vecs->lock);
 				return 0;
 			} else if (ret == 1) {
 				condlog(0, "%s: failed to reinitialize path",
@@ -421,19 +438,35 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 		/*
 		 * get path vital state
 		 */
-		ret = store_pathinfo(vecs->pathvec, conf->hwtable,
-				     uev->udev, DI_ALL, &pp);
+		ret = alloc_path_with_pathinfo(conf->hwtable, uev->udev,
+					       DI_ALL, &pp);
 		if (!pp) {
 			if (ret == 2)
 				return 0;
-			condlog(0, "%s: failed to store path info",
+			condlog(3, "%s: failed to get path info", uev->kernel);
+			return 1;
+		}
+		pthread_cleanup_push(cleanup_lock, &vecs->lock);
+		lock(vecs->lock);
+		pthread_testcancel();
+		ret = store_path(vecs->pathvec, pp);
+		lock_cleanup_pop(vecs->lock);
+		if (ret) {
+			condlog(0, "%s: failed to store path info, "
+				"dropping event",
 				uev->kernel);
+			free_path(pp);
 			return 1;
 		}
 		pp->checkint = conf->checkint;
 	}
 
-	return ev_add_path(pp, vecs);
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
+	ret = ev_add_path(pp, vecs);
+	lock_cleanup_pop(vecs->lock);
+	return ret;
 }
 
 /*
@@ -485,8 +518,7 @@ rescan:
 		verify_paths(mpp, vecs, NULL);
 		mpp->flush_on_last_del = FLUSH_UNDEF;
 		mpp->action = ACT_RELOAD;
-	}
-	else {
+	} else {
 		if (!pp->size) {
 			condlog(0, "%s: failed to create new map,"
 				" device size is 0 ", pp->dev);
@@ -506,12 +538,12 @@ rescan:
 			 */
 			start_waiter = 1;
 		}
-		else
+		if (!start_waiter)
 			goto fail; /* leave path added to pathvec */
 	}
 
-	/* persistent reseravtion check*/
-	mpath_pr_event_handle(pp);	
+	/* persistent reservation check*/
+	mpath_pr_event_handle(pp);
 
 	/*
 	 * push the map to the device-mapper
@@ -539,7 +571,7 @@ retry:
 		 * deal with asynchronous uevents :((
 		 */
 		if (mpp->action == ACT_RELOAD && retries-- > 0) {
-			condlog(0, "%s: uev_add_path sleep", mpp->alias);
+			condlog(0, "%s: ev_add_path sleep", mpp->alias);
 			sleep(1);
 			update_mpp_paths(mpp, vecs->pathvec);
 			goto rescan;
@@ -568,8 +600,7 @@ retry:
 		condlog(2, "%s [%s]: path added to devmap %s",
 			pp->dev, pp->dev_t, mpp->alias);
 		return 0;
-	}
-	else
+	} else
 		goto fail;
 
 fail_map:
@@ -583,17 +614,26 @@ static int
 uev_remove_path (struct uevent *uev, struct vectors * vecs)
 {
 	struct path *pp;
+	int ret;
 
 	condlog(2, "%s: remove path (uevent)", uev->kernel);
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
 	pp = find_path_by_dev(vecs->pathvec, uev->kernel);
-
+	lock_cleanup_pop(vecs->lock);
 	if (!pp) {
 		/* Not an error; path might have been purged earlier */
 		condlog(0, "%s: path already removed", uev->kernel);
 		return 0;
 	}
 
-	return ev_remove_path(pp, vecs);
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
+	ret = ev_remove_path(pp, vecs);
+	lock_cleanup_pop(vecs->lock);
+	return ret;
 }
 
 int
@@ -701,7 +741,11 @@ uev_update_path (struct uevent *uev, struct vectors * vecs)
 
 		condlog(2, "%s: update path write_protect to '%d' (uevent)",
 			uev->kernel, ro);
+		pthread_cleanup_push(cleanup_lock, &vecs->lock);
+		lock(vecs->lock);
+		pthread_testcancel();
 		pp = find_path_by_dev(vecs->pathvec, uev->kernel);
+		lock_cleanup_pop(vecs->lock);
 		if (!pp) {
 			condlog(0, "%s: spurious uevent, path not found",
 				uev->kernel);
@@ -795,10 +839,6 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	if (uev_discard(uev->devpath))
 		return 0;
 
-	pthread_cleanup_push(cleanup_lock, &vecs->lock);
-	lock(vecs->lock);
-	pthread_testcancel();
-
 	/*
 	 * device map event
 	 * Add events are ignored here as the tables
@@ -837,7 +877,6 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	}
 
 out:
-	lock_cleanup_pop(vecs->lock);
 	return r;
 }
 
