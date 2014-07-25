@@ -1,4 +1,28 @@
 -------------------------------------------------------------------
+Fri Jul 25 10:53:27 CEST 2014 - hare@suse.de
+
+- Patches from upstream:
+  * enable gcc format-security check
+  * Accept "*" as a valid regular expression
+  * check info.exists to get valid value
+  * Don't forget to reload table when both reload and rename
+    is required
+  * libmultipath: Simplify read_line()
+  * libmultipath: Zero-terminate sysfs_attr_get_value() result
+  * libmultipath: Print line number for which parsing failed
+  * libmultipath: Accept "*" as a valid regular expression
+  * multipath: Wrong sysfs attribute used for iSCSI settings
+    (bnc#883808)
+- Check for valid DM_DEVICE_INFO before proceeding
+  (bnc#888453)
+- Scalability fixes (bnc#880356):
+  * Separate out uevent parsing functions
+  * Use poll() when receiving uevents
+  * multipathd: push down lock in checkerloop()
+  * Allow specific CLI commands to run unlocked
+  * Push down vector lock during uevent processing
+
+-------------------------------------------------------------------
 Wed Jul 23 12:35:44 CEST 2014 - hare@suse.de
 
 - recovery_tmo for iSCSI sessions not updated (bnc#883808)
