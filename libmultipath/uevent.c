@@ -558,7 +558,7 @@ int uevent_listen(struct udev *udev)
 			events++;
 			continue;
 		}
-		if (errno) {
+		if (fdcount < 0) {
 			if (errno != EINTR)
 				condlog(2, "error receiving "
 					"uevent message: %m");
