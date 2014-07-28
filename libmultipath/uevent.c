@@ -539,8 +539,10 @@ int uevent_listen(struct udev *udev)
 		struct timespec poll_timeout;
 		int fdcount;
 
+		memset(&ev_poll, 0, sizeof(struct pollfd));
 		ev_poll.fd = fd;
 		ev_poll.events = POLLIN;
+		memset(&poll_timeout, 0, sizeof(struct timespec));
 		poll_timeout.tv_sec = timeout;
 		errno = 0;
 		fdcount = ppoll(&ev_poll, 1, &poll_timeout, &mask);
@@ -560,8 +562,10 @@ int uevent_listen(struct udev *udev)
 		}
 		if (fdcount < 0) {
 			if (errno != EINTR)
-				condlog(2, "error receiving "
+				condlog(0, "error receiving "
 					"uevent message: %m");
+			err = -errno;
+			break;
 		}
 		if (!list_empty(&uevlisten_tmp)) {
 			/*
