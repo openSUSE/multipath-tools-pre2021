@@ -3,6 +3,7 @@ Mon Jul 28 10:18:43 CEST 2014 - hare@suse.de
 
 - Fixup wrong check for errno in uevent_listen()
   (bnc#889165)
+- Terminate uevent listener on ppoll() error (bnc#889165)
 
 -------------------------------------------------------------------
 Fri Jul 25 10:53:27 CEST 2014 - hare@suse.de
