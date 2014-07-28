@@ -26,6 +26,8 @@ wait_for_events
 # check for multipath parameter in /proc/cmdline
 mpath_status=$(get_param multipath)
 
+wait_for_events
+
 mpath_list=$(sed -n '/multipath/p' /proc/modules)
 if [ -z "$mpath_list" ] ; then
   mpath_status=off
