@@ -793,7 +793,7 @@ cli_suspend(void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
-	int r = dm_simplecmd_noflush(DM_DEVICE_SUSPEND, param);
+	int r = dm_simplecmd_noflush(DM_DEVICE_SUSPEND, param, 0);
 
 	condlog(2, "%s: suspend (operator)", param);
 
@@ -814,7 +814,7 @@ cli_resume(void * v, char ** reply, int * len, void * data)
 {
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, MAP);
-	int r = dm_simplecmd_noflush(DM_DEVICE_RESUME, param);
+	int r = dm_simplecmd_noflush(DM_DEVICE_RESUME, param, 0);
 
 	condlog(2, "%s: resume (operator)", param);
 

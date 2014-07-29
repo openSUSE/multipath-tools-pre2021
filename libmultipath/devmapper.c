@@ -204,6 +204,10 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
 	int r = 0;
 	int udev_wait_flag = (need_sync && (task == DM_DEVICE_RESUME ||
 					    task == DM_DEVICE_REMOVE));
+
+#ifdef LIBDM_API_COOKIE
+	uint32_t cookie = 0;
+#endif
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create (task)))
@@ -219,10 +223,22 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
 		dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
 
-	if (udev_wait_flag && !dm_task_set_cookie(dmt, &conf->cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
+#ifdef LIBDM_API_COOKIE
+	if (udev_wait_flag && !dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+		dm_udev_complete(cookie);
 		goto out;
+	}
+#endif
 	r = dm_task_run (dmt);
 
+#ifdef LIBDM_API_COOKIE
+	if (udev_wait_flag) {
+		if (!r)
+			dm_udev_complete(cookie);
+		else
+			udev_wait(cookie);
+	}
+#endif
 	out:
 	dm_task_destroy (dmt);
 	return r;
@@ -234,8 +250,8 @@ dm_simplecmd_flush (int task, const char *name, int needsync) {
 }
 
 extern int
-dm_simplecmd_noflush (int task, const char *name) {
-	return dm_simplecmd(task, name, 1, 1);
+dm_simplecmd_noflush (int task, const char *name, int needsync) {
+	return dm_simplecmd(task, name, 1, needsync);
 }
 
 extern int
@@ -244,6 +260,9 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	int r = 0;
 	struct dm_task *dmt;
 	char *prefixed_uuid = NULL;
+#ifdef LIBDM_API_COOKIE
+	uint32_t cookie = 0;
+#endif
 
 	if (!(dmt = dm_task_create (task)))
 		return 0;
@@ -283,11 +302,23 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 
 	dm_task_no_open_count(dmt);
 
+#ifdef LIBDM_API_COOKIE
 	if (task == DM_DEVICE_CREATE &&
-	    !dm_task_set_cookie(dmt, &conf->cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
+	    !dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+		dm_udev_complete(cookie);
 		goto freeout;
+	}
+#endif
 	r = dm_task_run (dmt);
 
+#ifdef LIBDM_API_COOKIE
+	if (task == DM_DEVICE_CREATE) {
+		if (!r)
+			dm_udev_complete(cookie);
+		else
+			udev_wait(cookie);
+	}
+#endif
 	freeout:
 	if (prefixed_uuid)
 		FREE(prefixed_uuid);
@@ -725,7 +756,7 @@ dm_suspend_and_flush_map (const char * mapname)
 		return 0;
 	}
 	condlog(2, "failed to remove multipath map %s", mapname);
-	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname);
+	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 1);
 	if (queue_if_no_path)
 		s = dm_queue_if_no_path((char *)mapname, 1);
 	return 1;
@@ -1268,6 +1299,9 @@ dm_rename (char * old, char * new)
 {
 	int r = 0;
 	struct dm_task *dmt;
+#ifdef LIBDM_API_COOKIE
+	uint32_t cookie;
+#endif
 
 	if (dm_rename_partmaps(old, new))
 		return r;
@@ -1283,12 +1317,20 @@ dm_rename (char * old, char * new)
 
 	dm_task_no_open_count(dmt);
 
-	if (!dm_task_set_cookie(dmt, &conf->cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
+#ifdef LIBDM_API_COOKIE
+	if (!dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+		dm_udev_complete(cookie);
 		goto out;
-	if (!dm_task_run(dmt))
-		goto out;
+	}
+#endif
+	r = dm_task_run(dmt);
 
-	r = 1;
+#ifdef LIBDM_API_COOKIE
+	if (!r)
+		dm_udev_complete(cookie);
+	else
+		udev_wait(cookie);
+#endif
 out:
 	dm_task_destroy(dmt);
 	return r;
@@ -1355,7 +1397,7 @@ int dm_reassign_table(const char *name, char *old, char *new)
 			condlog(3, "%s: failed to reassign targets", name);
 			goto out_reload;
 		}
-		dm_simplecmd_noflush(DM_DEVICE_RESUME, name);
+		dm_simplecmd_noflush(DM_DEVICE_RESUME, name, 1);
 	}
 	r = 1;
 

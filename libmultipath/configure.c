@@ -394,7 +394,7 @@ domap (struct multipath * mpp, char * params)
 		if (!r)
 			r = dm_addmap_reload_ro(mpp, params);
 		if (r)
-			r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias);
+			r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias, 0);
 		break;
 
 	case ACT_RESIZE:
