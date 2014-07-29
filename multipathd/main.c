@@ -494,15 +494,10 @@ ev_add_path (struct path * pp, struct vectors * vecs)
 	mpp = pp->mpp = find_mp_by_wwid(vecs->mpvec, pp->wwid);
 rescan:
 	if (mpp) {
-		if ((!pp->size) || (mpp->size != pp->size)) {
-			if (!pp->size)
-				condlog(0, "%s: failed to add new path %s, "
-					"device size is 0",
-					mpp->alias, pp->dev);
-			else
-				condlog(0, "%s: failed to add new path %s, "
-					"device size mismatch",
-					mpp->alias, pp->dev);
+		if (mpp->size != pp->size) {
+			condlog(0, "%s: failed to add new path %s, "
+				"device size mismatch",
+				mpp->alias, pp->dev);
 			int i = find_slot(vecs->pathvec, (void *)pp);
 			if (i != -1)
 				vector_del_slot(vecs->pathvec, i);
@@ -519,16 +514,6 @@ rescan:
 		mpp->flush_on_last_del = FLUSH_UNDEF;
 		mpp->action = ACT_RELOAD;
 	} else {
-		if (!pp->size) {
-			condlog(0, "%s: failed to create new map,"
-				" device size is 0 ", pp->dev);
-			int i = find_slot(vecs->pathvec, (void *)pp);
-			if (i != -1)
-				vector_del_slot(vecs->pathvec, i);
-			free_path(pp);
-			return 1;
-		}
-
 		condlog(4,"%s: creating new map", pp->dev);
 		if ((mpp = add_map_with_path(vecs, pp, 1))) {
 			mpp->action = ACT_CREATE;
