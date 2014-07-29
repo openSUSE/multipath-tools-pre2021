@@ -441,6 +441,10 @@ main(int argc, char **argv){
 					r++;
 					continue;
 				}
+#ifdef LIBDM_API_COOKIE
+				if (udev_sync)
+					dm_udev_wait(cookie);
+#endif
 				if (verbose)
 					printf("del devmap : %s\n", partname);
 			}
@@ -500,6 +504,11 @@ main(int argc, char **argv){
 						partname);
 					r++;
 				}
+#ifdef LIBDM_API_COOKIE
+				if (udev_sync)
+					dm_udev_wait(cookie);
+#endif
+
 				dm_devn(partname, &slices[j].major,
 					&slices[j].minor);
 
@@ -558,7 +567,10 @@ main(int argc, char **argv){
 						dm_simplecmd(DM_DEVICE_RESUME,
 							     partname, 1,
 							     &cookie, MPATH_UDEV_RELOAD_FLAG);
-
+#ifdef LIBDM_API_COOKIE
+					if (udev_sync)
+						dm_udev_wait(cookie);
+#endif
 					dm_devn(partname, &slices[j].major,
 						&slices[j].minor);
 
@@ -616,9 +628,7 @@ main(int argc, char **argv){
 		}
 		printf("loop deleted : %s\n", device);
 	}
-#ifdef LIBDM_API_COOKIE
-	dm_udev_wait(cookie);
-#endif
+
 	dm_lib_release();
 	dm_lib_exit();
 

@@ -208,6 +208,7 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync, uint16_t 
 	int r = 0;
 	int udev_wait_flag = (need_sync && (task == DM_DEVICE_RESUME ||
 					    task == DM_DEVICE_REMOVE));
+	uint32_t cookie = 0;
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create (task)))
@@ -223,10 +224,12 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync, uint16_t 
 		dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
 
-	if (udev_wait_flag && !dm_task_set_cookie(dmt, &conf->cookie, ((conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0) | udev_flags))
+	if (udev_wait_flag && !dm_task_set_cookie(dmt, &cookie, ((conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0) | udev_flags))
 		goto out;
 	r = dm_task_run (dmt);
 
+	if (udev_wait_flag)
+		udev_wait(cookie);
 	out:
 	dm_task_destroy (dmt);
 	return r;
@@ -248,6 +251,7 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	int r = 0;
 	struct dm_task *dmt;
 	char *prefixed_uuid = NULL;
+	uint32_t cookie = 0;
 
 	if (!(dmt = dm_task_create (task)))
 		return 0;
@@ -288,9 +292,11 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	dm_task_no_open_count(dmt);
 
 	if (task == DM_DEVICE_CREATE &&
-	    !dm_task_set_cookie(dmt, &conf->cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
+	    !dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
 		goto freeout;
 	r = dm_task_run (dmt);
+
+	udev_wait(cookie);
 
 	freeout:
 	if (prefixed_uuid)
@@ -309,7 +315,8 @@ dm_addmap_create (struct multipath *mpp, char * params) {
 	for (ro = 0; ro <= 1; ro++) {
 		int err;
 
-		if (dm_addmap(DM_DEVICE_CREATE, TGT_MPATH, mpp, params, 1, ro))
+		if (dm_addmap(DM_DEVICE_CREATE, TGT_MPATH,
+			      mpp, params, 1, ro))
 			return 1;
 		/*
 		 * DM_DEVICE_CREATE is actually DM_DEV_CREATE + DM_TABLE_LOAD.
@@ -715,7 +722,7 @@ dm_suspend_and_flush_map (const char * mapname)
 	if (s)
 		queue_if_no_path = 0;
 	else
-		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0, 0);
+		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 1, 0);
 
 	if (!dm_flush_map(mapname)) {
 		condlog(4, "multipath map %s removed", mapname);
@@ -1220,6 +1227,7 @@ dm_rename (char * old, char * new)
 {
 	int r = 0;
 	struct dm_task *dmt;
+	uint32_t cookie;
 
 	if (dm_rename_partmaps(old, new))
 		return r;
@@ -1235,14 +1243,17 @@ dm_rename (char * old, char * new)
 
 	dm_task_no_open_count(dmt);
 
-	if (!dm_task_set_cookie(dmt, &conf->cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
+	if (!dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
 		goto out;
 	if (!dm_task_run(dmt))
 		goto out;
 
+	udev_wait(cookie);
+
 	r = 1;
 out:
 	dm_task_destroy(dmt);
+
 	return r;
 }
 
