@@ -512,10 +512,11 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 		if (mpp->fast_io_fail >= tmo) {
 			snprintf(value, 16, "%u", mpp->fast_io_fail + 1);
 		}
-	} else if (mpp->dev_loss > 600) {
-		condlog(3, "%s: limiting dev_loss_tmo to 600, since "
-			"fast_io_fail is not set", rport_id);
-		snprintf(value, 16, "%u", 600);
+	} else if (mpp->dev_loss > DEFAULT_DEV_LOSS_TMO) {
+		condlog(3, "%s: limiting dev_loss_tmo to %d, since "
+			"fast_io_fail is not set",
+			rport_id, DEFAULT_DEV_LOSS_TMO);
+		snprintf(value, 16, "%u", DEFAULT_DEV_LOSS_TMO);
 	} else {
 		snprintf(value, 16, "%u", mpp->dev_loss);
 	}
@@ -582,7 +583,7 @@ sysfs_set_session_tmo(struct multipath *mpp, struct path *pp)
 	condlog(4, "target%d:%d:%d -> %s", pp->sg_id.host_no,
 		pp->sg_id.channel, pp->sg_id.scsi_id, session_id);
 
-	if (mpp->dev_loss) {
+	if (mpp->dev_loss != DEFAULT_DEV_LOSS_TMO) {
 		condlog(3, "%s: ignoring dev_loss_tmo on iSCSI", pp->dev);
 	}
 	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET) {
@@ -624,7 +625,7 @@ sysfs_set_nexus_loss_tmo(struct multipath *mpp, struct path *pp)
 	condlog(4, "target%d:%d:%d -> %s", pp->sg_id.host_no,
 		pp->sg_id.channel, pp->sg_id.scsi_id, end_dev_id);
 
-	if (mpp->dev_loss) {
+	if (mpp->dev_loss != DEFAULT_DEV_LOSS_TMO) {
 		snprintf(value, 11, "%u", mpp->dev_loss);
 		if (sysfs_attr_set_value(sas_dev, "I_T_nexus_loss_timeout",
 					 value, 11) <= 0)
@@ -650,11 +651,11 @@ sysfs_set_scsi_tmo (struct multipath *mpp)
 			no_path_retry_tmo = MAX_DEV_LOSS_TMO;
 		if (no_path_retry_tmo > dev_loss_tmo)
 			dev_loss_tmo = no_path_retry_tmo;
-		condlog(3, "%s: update dev_loss_tmo to %d",
+		condlog(3, "%s: update dev_loss_tmo to %u",
 			mpp->alias, dev_loss_tmo);
 	} else if (mpp->no_path_retry == NO_PATH_RETRY_QUEUE) {
 		dev_loss_tmo = MAX_DEV_LOSS_TMO;
-		condlog(3, "%s: update dev_loss_tmo to %d",
+		condlog(3, "%s: update dev_loss_tmo to %u",
 			mpp->alias, dev_loss_tmo);
 	}
 	mpp->dev_loss = dev_loss_tmo;

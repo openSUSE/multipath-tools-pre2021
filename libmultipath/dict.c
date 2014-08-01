@@ -70,7 +70,7 @@ def_dev_loss_handler(vector strvec)
 	if (strlen(buff) == 8 && !strcmp(buff, "infinity"))
 		conf->dev_loss = MAX_DEV_LOSS_TMO;
 	else if (sscanf(buff, "%u", &conf->dev_loss) != 1)
-		conf->dev_loss = 0;
+		conf->dev_loss = DEFAULT_DEV_LOSS_TMO;
 
 	FREE(buff);
 	return 0;
@@ -1012,7 +1012,7 @@ hw_dev_loss_handler(vector strvec)
 	if (strlen(buff) == 8 && !strcmp(buff, "infinity"))
 		hwe->dev_loss = MAX_DEV_LOSS_TMO;
 	else if (sscanf(buff, "%u", &hwe->dev_loss) != 1)
-		hwe->dev_loss = 0;
+		hwe->dev_loss = DEFAULT_DEV_LOSS_TMO;
 
 	FREE(buff);
 	return 0;
@@ -2140,7 +2140,7 @@ static int
 snprint_hw_dev_loss(char * buff, int len, void * data)
 {
 	struct hwentry * hwe = (struct hwentry *)data;
-	if (!hwe->dev_loss)
+	if (hwe->dev_loss == DEFAULT_DEV_LOSS_TMO)
 		return 0;
 	if (hwe->dev_loss == conf->dev_loss)
 		return 0;
@@ -2469,7 +2469,7 @@ snprint_def_fast_io_fail(char * buff, int len, void * data)
 static int
 snprint_def_dev_loss(char * buff, int len, void * data)
 {
-	if (!conf->dev_loss)
+	if (conf->dev_loss == DEFAULT_DEV_LOSS_TMO)
 		return 0;
 	if (conf->dev_loss >= MAX_DEV_LOSS_TMO)
 		return snprintf(buff, len, "\"infinity\"");
