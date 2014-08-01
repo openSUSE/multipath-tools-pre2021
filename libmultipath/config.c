@@ -560,6 +560,7 @@ load_config (char * file, struct udev *udev)
 	conf->max_checkint = MAX_CHECKINT(conf->checkint);
 	conf->pgfailback = DEFAULT_FAILBACK;
 	conf->fast_io_fail = DEFAULT_FAST_IO_FAIL;
+	conf->dev_loss = DEFAULT_DEV_LOSS_TMO;
 	conf->retain_hwhandler = DEFAULT_RETAIN_HWHANDLER;
 	conf->detect_prio = DEFAULT_DETECT_PRIO;
 
