@@ -2531,7 +2531,9 @@ static int
 snprint_def_uid_attribute (char * buff, int len, void * data)
 {
 	if (!conf->uid_attribute)
-		return snprintf(buff, len, "\"%s\"", DEFAULT_UID_ATTRIBUTE);
+		return 0;
+	if (!strcmp(conf->uid_attribute, DEFAULT_UID_ATTRIBUTE))
+		return 0;
 
 	return snprintf(buff, len, "\"%s\"", conf->uid_attribute);
 }

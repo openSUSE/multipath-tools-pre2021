@@ -387,13 +387,14 @@ select_getuid (struct path * pp)
 			pp->dev, pp->getuid);
 		return 0;
 	}
-	if (pp->hwe && pp->hwe->uid_attribute) {
+	if (pp->hwe && pp->hwe->uid_attribute &&
+	    strlen(pp->hwe->uid_attribute)) {
 		pp->uid_attribute = pp->hwe->uid_attribute;
 		condlog(3, "%s: uid_attribute = %s (controller setting)",
 			pp->dev, pp->uid_attribute);
 		return 0;
 	}
-	if (conf->uid_attribute) {
+	if (conf->uid_attribute && strlen(conf->uid_attribute)) {
 		pp->uid_attribute = conf->uid_attribute;
 		condlog(3, "%s: uid_attribute = %s (config file default)",
 			pp->dev, pp->uid_attribute);

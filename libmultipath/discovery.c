@@ -773,11 +773,11 @@ get_geometry(struct path *pp)
 static int
 get_vpd (struct udev_device *parent, int pg, char * str, int maxlen)
 {
-	int len = -ENODATA, buff_len = MX_ALLOC_LEN;
-	unsigned char _buff[MX_ALLOC_LEN + 1] = {0};
-	unsigned char *buff = _buff;
+	int len = -ENODATA, buff_len;
+	unsigned char buff[4096];
 
-	if (sysfs_get_vpd(parent, pg, buff, MX_ALLOC_LEN) <= 0) {
+	memset(buff, 0x0, 4096);
+	if (sysfs_get_vpd(parent, pg, buff, 4096) <= 0) {
 		condlog(3, "failed to get vpd pg%02x", pg);
 		return -EIO;
 	}
@@ -788,14 +788,9 @@ get_vpd (struct udev_device *parent, int pg, char * str, int maxlen)
 		return -ENODATA;
 	}
 	buff_len = (buff[2] << 8) + buff[3] + 4;
-	if (buff_len > MX_ALLOC_LEN) {
-		buff = MALLOC(buff_len);
-		if (!buff) {
-			condlog(3, "vpd pg%02x page truncated", pg);
-			buff = _buff;
-			buff_len = MX_ALLOC_LEN;
-		}
-	}
+	if (buff_len > 4096)
+		condlog(3, "vpd pg%02x page truncated", pg);
+
 	if (pg == 0x80) {
 		char *p = NULL;
 		len = buff[3] + (buff[2] << 8);
@@ -949,8 +944,6 @@ get_vpd (struct udev_device *parent, int pg, char * str, int maxlen)
 	} else
 		len = -ENOSYS;
 
-	if (buff != _buff)
-		FREE(buff);
 	return len;
 }
 
@@ -1338,6 +1331,51 @@ get_prio (struct path * pp)
 }
 
 static int
+get_udev_uid(struct path * pp, char *uid_attribute)
+{
+	ssize_t len;
+	const char *value;
+
+	value = udev_device_get_property_value(pp->udev,
+					       uid_attribute);
+	if ((!value || strlen(value) == 0) && conf->cmd == CMD_VALID_PATH)
+		value = getenv(uid_attribute);
+	if (value && strlen(value)) {
+		if (strlen(value) + 1 > WWID_SIZE) {
+			condlog(0, "%s: wwid overflow", pp->dev);
+			len = WWID_SIZE;
+		} else {
+			len = strlen(value);
+		}
+		strncpy(pp->wwid, value, len);
+	} else {
+		condlog(3, "%s: no %s attribute", pp->dev,
+			uid_attribute);
+		len = -EINVAL;
+	}
+	return len;
+}
+
+static int
+get_vpd_uid(struct path * pp)
+{
+	struct udev_device *parent = pp->udev;
+
+	while (parent) {
+		const char *subsys = udev_device_get_subsystem(parent);
+		if (subsys && !strncmp(subsys, "scsi", 4))
+			break;
+		parent = udev_device_get_parent(parent);
+	}
+
+	if (!parent) {
+		condlog(3, "%s: no scsi device found in sysfs", pp->dev);
+		return -ENXIO;
+	}
+	return get_vpd(parent, 0x83, pp->wwid, WWID_SIZE);
+}
+
+static int
 get_uid (struct path * pp)
 {
 	char *c;
@@ -1369,44 +1407,18 @@ get_uid (struct path * pp)
 		} else
 			len = strlen(pp->wwid);
 		origin = "callout";
-	} else if (!pp->uid_attribute) {
-		struct udev_device *parent = pp->udev;
-
-		while (parent) {
-			const char *subsys = udev_device_get_subsystem(parent);
-			if (subsys && !strncmp(subsys, "scsi", 4))
-				break;
-			parent = udev_device_get_parent(parent);
-		}
-
-		if (parent) {
-			len = get_vpd(parent, 0x83,
-				      pp->wwid, WWID_SIZE);
-			origin = "sysfs";
-		} else {
-			condlog(3, "%s: no scsi device found in sysfs", pp->dev);
-		}
 	} else {
-		const char *value;
-
-		value = udev_device_get_property_value(pp->udev,
-						       pp->uid_attribute);
-		if ((!value || strlen(value) == 0) &&
-		    conf->cmd == CMD_VALID_PATH)
-			value = getenv(pp->uid_attribute);
-		if (value && strlen(value)) {
-			if (strlen(value) + 1 > WWID_SIZE) {
-				condlog(0, "%s: wwid overflow", pp->dev);
-				len = WWID_SIZE;
-			} else {
-				len = strlen(value);
-			}
-			strncpy(pp->wwid, value, len);
+		if (pp->uid_attribute) {
+			len = get_udev_uid(pp, pp->uid_attribute);
 			origin = "udev";
 		} else {
-			condlog(3, "%s: no %s attribute", pp->dev,
-				pp->uid_attribute);
-			len = -EINVAL;
+			len = get_vpd_uid(pp);
+			if (len > 0)
+				origin = "sysfs";
+			else {
+				len = get_udev_uid(pp, DEFAULT_UID_ATTRIBUTE);
+				origin = "udev";
+			}
 		}
 	}
 	if ( len < 0 ) {
