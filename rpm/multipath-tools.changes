@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Tue Aug  5 12:34:04 CEST 2014 - hare@suse.de
+
+- Skip unhandled device types (bnc#881125)
+- use 'uid_attribute' per default when generating WWID (bnc#881125)
+- Use a default dev_loss_tmo of 600 (bnc#889927)
+- Fixup device-mapper 'cookie' handling (bnc#886743)
+- Remove last argument from verify_paths()
+- Add paths with a size of '0' as 'ghost' paths
+- Remove sysfs_get_dev()
+- Use glibc 'major' and 'minor' macros
+- Whitespace cleanup in mpath_persist
+
+-------------------------------------------------------------------
 Mon Jul 28 10:18:43 CEST 2014 - hare@suse.de
 
 - Fixup wrong check for errno in uevent_listen()
