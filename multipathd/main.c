@@ -2014,7 +2014,7 @@ main (int argc, char *argv[])
 			logsink = -1;
 			break;
 		case 'k':
-			uxclnt(optarg);
+			uxclnt(optarg, DEFAULT_UXSOCK_TIMEOUT);
 			exit(0);
 		default:
 			;
@@ -2033,7 +2033,7 @@ main (int argc, char *argv[])
 			optind++;
 		}
 		c += snprintf(c, s + CMDSIZE - c, "\n");
-		uxclnt(s);
+		uxclnt(s, DEFAULT_UXSOCK_TIMEOUT);
 		exit(0);
 	}
 
