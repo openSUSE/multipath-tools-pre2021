@@ -719,6 +719,7 @@ uev_update_path (struct uevent *uev, struct vectors * vecs)
 
 	if (ro >= 0) {
 		struct path * pp;
+		struct multipath *mpp = NULL;
 
 		condlog(2, "%s: update path write_protect to '%d' (uevent)",
 			uev->kernel, ro);
@@ -726,17 +727,19 @@ uev_update_path (struct uevent *uev, struct vectors * vecs)
 		lock(vecs->lock);
 		pthread_testcancel();
 		pp = find_path_by_dev(vecs->pathvec, uev->kernel);
+		if (pp)
+			mpp = pp->mpp;
 		lock_cleanup_pop(vecs->lock);
 		if (!pp) {
 			condlog(0, "%s: spurious uevent, path not found",
 				uev->kernel);
 			return 1;
 		}
-		if (pp->mpp) {
-			retval = reload_map(vecs, pp->mpp, 0);
+		if (mpp) {
+			retval = reload_map(vecs, mpp, 0);
 
 			condlog(2, "%s: map %s reloaded (retval %d)",
-				uev->kernel, pp->mpp->alias, retval);
+				uev->kernel, mpp->alias, retval);
 		}
 
 	}
