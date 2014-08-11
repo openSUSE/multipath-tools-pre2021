@@ -1,4 +1,20 @@
 -------------------------------------------------------------------
+Tue Aug 12 10:47:21 CEST 2014 - hare@suse.de
+
+- Fixup structure misalignment in config.h (bnc#890747)
+- Do not print empty multipaths section
+- Fixup 'uxsock_timeout' handling
+
+-------------------------------------------------------------------
+Mon Aug 11 17:03:25 CEST 2014 - hare@suse.de
+
+- Close memory leak in print_multipath_topology
+- Implement 'uxsock_timeout' keyword (bnc#890551)
+- Return error when receiving CLI packet (bnc#890551)
+- multipath: do not print state 'orphan' for option '-l' (bnc#890551)
+- Fix race conditions during uevent processing (bnc#890994)
+
+-------------------------------------------------------------------
 Tue Aug  5 12:34:04 CEST 2014 - hare@suse.de
 
 - Skip unhandled device types (bnc#881125)
