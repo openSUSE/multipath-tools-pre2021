@@ -126,6 +126,7 @@ struct config {
 	int retain_hwhandler;
 	int detect_prio;
 	int force_sync;
+	int uxsock_timeout;
 	unsigned int version[3];
 
 	char * dev;

@@ -417,6 +417,15 @@ only one checker will run at a time.  This is useful in the case where many
 multipathd checkers running in parallel causes significant CPU pressure. The
 Default is
 .I no
+.TP
+.B uxsock_timeout
+CLI receive timeout in milliseconds. For larger systems CLI commands
+might timeout before the multipathd lock is released and the CLI command
+can be processed. This will result in errors like
+'timeout receiving packet' to be returned from CLI commands.
+In these cases it is recommended to increase the CLI timeout to avoid
+those issues. The default is
+.I 1000
 .
 .SH "blacklist section"
 The
