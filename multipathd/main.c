@@ -606,18 +606,14 @@ uev_remove_path (struct uevent *uev, struct vectors * vecs)
 	lock(vecs->lock);
 	pthread_testcancel();
 	pp = find_path_by_dev(vecs->pathvec, uev->kernel);
+	if (pp)
+		ret = ev_remove_path(pp, vecs);
 	lock_cleanup_pop(vecs->lock);
 	if (!pp) {
 		/* Not an error; path might have been purged earlier */
 		condlog(0, "%s: path already removed", uev->kernel);
 		return 0;
 	}
-
-	pthread_cleanup_push(cleanup_lock, &vecs->lock);
-	lock(vecs->lock);
-	pthread_testcancel();
-	ret = ev_remove_path(pp, vecs);
-	lock_cleanup_pop(vecs->lock);
 	return ret;
 }
 
