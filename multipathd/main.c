@@ -392,7 +392,7 @@ static int
 uev_add_path (struct uevent *uev, struct vectors * vecs)
 {
 	struct path *pp;
-	int ret, i;
+	int ret = 0, i;
 
 	condlog(2, "%s: add path (uevent)", uev->kernel);
 	if (strstr(uev->kernel, "..") != NULL) {
@@ -407,64 +407,61 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 	lock(vecs->lock);
 	pthread_testcancel();
 	pp = find_path_by_dev(vecs->pathvec, uev->kernel);
-	lock_cleanup_pop(vecs->lock);
 	if (pp) {
 		condlog(0, "%s: spurious uevent, path already in pathvec",
 			uev->kernel);
 		if (pp->mpp)
-			return 0;
-		if (!strlen(pp->wwid)) {
+			ret = 0;
+		else if (!strlen(pp->wwid)) {
+			condlog(3, "%s: reinitialize path", uev->kernel);
 			udev_device_unref(pp->udev);
 			pp->udev = udev_device_ref(uev->udev);
 			ret = pathinfo(pp, conf->hwtable,
 				       DI_ALL | DI_BLACKLIST);
 			if (ret == 2) {
-				pthread_cleanup_push(cleanup_lock, &vecs->lock);
-				lock(vecs->lock);
-				pthread_testcancel();
+				condlog(3, "%s: remove blacklisted path",
+					uev->kernel);
 				i = find_slot(vecs->pathvec, (void *)pp);
 				if (i != -1)
 					vector_del_slot(vecs->pathvec, i);
 				free_path(pp);
-				lock_cleanup_pop(vecs->lock);
-				return 0;
-			} else if (ret == 1) {
+				ret = 0;
+			} else if (ret == 1)
 				condlog(0, "%s: failed to reinitialize path",
 					uev->kernel);
-				return 1;
-			}
 		}
-	} else {
-		/*
-		 * get path vital state
-		 */
-		ret = alloc_path_with_pathinfo(conf->hwtable, uev->udev,
-					       DI_ALL, &pp);
-		if (!pp) {
-			if (ret == 2)
-				return 0;
-			condlog(3, "%s: failed to get path info", uev->kernel);
-			return 1;
-		}
-		pthread_cleanup_push(cleanup_lock, &vecs->lock);
-		lock(vecs->lock);
-		pthread_testcancel();
-		ret = store_path(vecs->pathvec, pp);
-		lock_cleanup_pop(vecs->lock);
-		if (ret) {
-			condlog(0, "%s: failed to store path info, "
-				"dropping event",
-				uev->kernel);
-			free_path(pp);
-			return 1;
-		}
-		pp->checkint = conf->checkint;
+		if (!ret)
+			ret = ev_add_path(pp, vecs);
 	}
+	lock_cleanup_pop(vecs->lock);
+	if (pp)
+		return ret;
 
+	/*
+	 * get path vital state
+	 */
+	ret = alloc_path_with_pathinfo(conf->hwtable, uev->udev,
+				       DI_ALL, &pp);
+	if (!pp) {
+		if (ret == 2)
+			return 0;
+		condlog(3, "%s: failed to get path info", uev->kernel);
+		return 1;
+	}
 	pthread_cleanup_push(cleanup_lock, &vecs->lock);
 	lock(vecs->lock);
 	pthread_testcancel();
-	ret = ev_add_path(pp, vecs);
+	ret = store_path(vecs->pathvec, pp);
+	if (!ret) {
+		pp->checkint = conf->checkint;
+		ret = ev_add_path(pp, vecs);
+	} else {
+		condlog(0, "%s: failed to store path info, "
+			"dropping event",
+			uev->kernel);
+		free_path(pp);
+		ret = 1;
+	}
 	lock_cleanup_pop(vecs->lock);
 	return ret;
 }
