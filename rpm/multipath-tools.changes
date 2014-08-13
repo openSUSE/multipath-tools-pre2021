@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Aug 13 20:04:34 CEST 2014 - hare@suse.de
+
+- Do not remove paths without uevent (bnc#890998)
+
+-------------------------------------------------------------------
 Tue Aug 12 10:47:21 CEST 2014 - hare@suse.de
 
 - Fixup structure misalignment in config.h (bnc#890747)
