@@ -20,6 +20,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/poll.h>
+#include <sys/time.h>
 #include <signal.h>
 #include <checkers.h>
 #include <memory.h>
@@ -29,6 +30,7 @@
 #include <structs_vec.h>
 #include <uxsock.h>
 #include <defaults.h>
+#include <config.h>
 
 #include "main.h"
 #include "cli.h"
@@ -89,6 +91,23 @@ void free_polls (void)
 {
 	if (polls)
 		FREE(polls);
+}
+
+void check_timeout(struct timeval start_time, char *inbuf)
+{
+	struct timeval diff_time, end_time;
+
+	if (start_time.tv_sec && gettimeofday(&end_time, NULL) == 0) {
+		timersub(&end_time, &start_time, &diff_time);
+		unsigned long msecs;
+
+		msecs = diff_time.tv_sec * 1000 +
+			diff_time.tv_usec / 1000;
+		if (msecs > conf->uxsock_timeout)
+			condlog(2, "cli cmd '%s' timeout reached "
+				"after %lu.%06lu secs", inbuf,
+				diff_time.tv_sec, diff_time.tv_usec);
+	}
 }
 
 void uxsock_cleanup(void *arg)
@@ -158,8 +177,13 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 			struct client *next = c->next;
 
 			if (polls[i].revents & POLLIN) {
+				struct timeval start_time;
+
+				if (gettimeofday(&start_time, NULL) != 0)
+					start_time.tv_sec = 0;
+
 				if (recv_packet(c->fd, &inbuf, &len,
-						DEFAULT_UXSOCK_TIMEOUT) != 0) {
+						conf->uxsock_timeout) != 0) {
 					dead_client(c);
 				} else {
 					inbuf[len - 1] = 0;
@@ -176,6 +200,7 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 						FREE(reply);
 						reply = NULL;
 					}
+					check_timeout(start_time, inbuf);
 					FREE(inbuf);
 				}
 			}

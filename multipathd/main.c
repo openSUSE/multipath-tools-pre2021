@@ -418,7 +418,7 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 			pp->udev = udev_device_ref(uev->udev);
 			ret = pathinfo(pp, conf->hwtable,
 				       DI_ALL | DI_BLACKLIST);
-			if (ret == 2) {
+			if (ret == PATHINFO_SKIPPED) {
 				condlog(3, "%s: remove blacklisted path",
 					uev->kernel);
 				i = find_slot(vecs->pathvec, (void *)pp);
@@ -426,7 +426,7 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 					vector_del_slot(vecs->pathvec, i);
 				free_path(pp);
 				ret = 0;
-			} else if (ret == 1)
+			} else if (ret == PATHINFO_FAILED)
 				condlog(0, "%s: failed to reinitialize path",
 					uev->kernel);
 		}
@@ -443,9 +443,14 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 	ret = alloc_path_with_pathinfo(conf->hwtable, uev->udev,
 				       DI_ALL, &pp);
 	if (!pp) {
-		if (ret == 2)
+		if (ret == PATHINFO_SKIPPED)
 			return 0;
 		condlog(3, "%s: failed to get path info", uev->kernel);
+		return 1;
+	}
+	if (!strlen(pp->wwid)) {
+		condlog(3, "%s: Failed to get path wwid", uev->kernel);
+		free_path(pp);
 		return 1;
 	}
 	pthread_cleanup_push(cleanup_lock, &vecs->lock);
@@ -1494,6 +1499,8 @@ reconfigure (struct vectors * vecs)
 	struct config * old = conf;
 	int retval = 1;
 
+	running_state = DAEMON_CONFIGURE;
+
 	/*
 	 * free old map and path vectors ... they use old conf state
 	 */
@@ -1517,6 +1524,8 @@ reconfigure (struct vectors * vecs)
 		free_config(old);
 		retval = 0;
 	}
+
+	running_state = DAEMON_RUNNING;
 
 	return retval;
 }
