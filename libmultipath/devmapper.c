@@ -224,12 +224,18 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync, uint16_t 
 		dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
 
-	if (udev_wait_flag && !dm_task_set_cookie(dmt, &cookie, ((conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0) | udev_flags))
+	if (udev_wait_flag && !dm_task_set_cookie(dmt, &cookie, ((conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0) | udev_flags)) {
+		dm_udev_complete(cookie);
 		goto out;
+	}
 	r = dm_task_run (dmt);
 
-	if (udev_wait_flag)
-		udev_wait(cookie);
+	if (udev_wait_flag) {
+		if (!r)
+			dm_udev_complete(cookie);
+		else
+			udev_wait(cookie);
+	}
 	out:
 	dm_task_destroy (dmt);
 	return r;
@@ -241,8 +247,8 @@ dm_simplecmd_flush (int task, const char *name, int needsync, uint16_t udev_flag
 }
 
 extern int
-dm_simplecmd_noflush (int task, const char *name, uint16_t udev_flags) {
-	return dm_simplecmd(task, name, 1, 1, udev_flags);
+dm_simplecmd_noflush (int task, const char *name, int needsync, uint16_t udev_flags) {
+	return dm_simplecmd(task, name, 1, needsync, udev_flags);
 }
 
 extern int
@@ -292,12 +298,18 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	dm_task_no_open_count(dmt);
 
 	if (task == DM_DEVICE_CREATE &&
-	    !dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
+	    !dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+		dm_udev_complete(cookie);
 		goto freeout;
+	}
 	r = dm_task_run (dmt);
 
-	udev_wait(cookie);
-
+	if (task == DM_DEVICE_CREATE) {
+		if (!r)
+			dm_udev_complete(cookie);
+		else
+			udev_wait(cookie);
+	}
 	freeout:
 	if (prefixed_uuid)
 		FREE(prefixed_uuid);
@@ -729,7 +741,7 @@ dm_suspend_and_flush_map (const char * mapname)
 		return 0;
 	}
 	condlog(2, "failed to remove multipath map %s", mapname);
-	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 0);
+	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 1, 0);
 	if (queue_if_no_path)
 		s = dm_queue_if_no_path((char *)mapname, 1);
 	return 1;
@@ -1245,12 +1257,13 @@ dm_rename (char * old, char * new)
 
 	if (!dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0))
 		goto out;
-	if (!dm_task_run(dmt))
-		goto out;
+	r = dm_task_run(dmt);
 
-	udev_wait(cookie);
+	if (!r)
+		dm_udev_complete(cookie);
+	else
+		udev_wait(cookie);
 
-	r = 1;
 out:
 	dm_task_destroy(dmt);
 
@@ -1318,7 +1331,7 @@ int dm_reassign_table(const char *name, char *old, char *new)
 			condlog(3, "%s: failed to reassign targets", name);
 			goto out_reload;
 		}
-		dm_simplecmd_noflush(DM_DEVICE_RESUME, name, MPATH_UDEV_RELOAD_FLAG);
+		dm_simplecmd_noflush(DM_DEVICE_RESUME, name, 1, MPATH_UDEV_RELOAD_FLAG);
 	}
 	r = 1;
 
