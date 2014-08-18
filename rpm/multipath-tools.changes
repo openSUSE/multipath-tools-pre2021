@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Aug 18 16:24:05 CEST 2014 - hare@suse.de
+
+- Fixup device-mapper cookie handling yet again (bnc#890902)
+- Allow zero-sized devices during configuration
+- multipathd: issue warning on CLI command timeout (bnc#891189)
+
+-------------------------------------------------------------------
 Wed Aug 13 20:04:34 CEST 2014 - hare@suse.de
 
 - Do not remove paths without uevent (bnc#890998)
