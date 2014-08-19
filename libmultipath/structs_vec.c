@@ -428,6 +428,9 @@ add_map_with_path (struct vectors * vecs,
 {
 	struct multipath * mpp;
 
+	if (!strlen(pp->wwid))
+		return NULL;
+
 	if (!(mpp = alloc_multipath()))
 		return NULL;
 
