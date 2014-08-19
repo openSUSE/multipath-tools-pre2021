@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Aug 19 12:33:19 CEST 2014 - hare@suse.de
+
+- Use strlen() when checking for valid wwid
+- kpartx: zero out cookie (bnc#890902)
+- multipathd: Check for empty wwid when processing events
+  (bnc#892214)
+
+-------------------------------------------------------------------
 Mon Aug 18 16:24:05 CEST 2014 - hare@suse.de
 
 - Fixup device-mapper cookie handling yet again (bnc#890902)
