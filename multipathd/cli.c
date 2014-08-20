@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2005 Christophe Varoqui
  */
+#include <sys/time.h>
 #include <pthread.h>
 #include <memory.h>
 #include <vector.h>
@@ -386,11 +387,13 @@ genhelp_handler (void)
 }
 
 int
-parse_cmd (char * cmd, char ** reply, int * len, void * data)
+parse_cmd (char * cmd, char ** reply, int * len, void * data, int timeout )
 {
 	int r;
 	struct handler * h;
 	vector cmdvec = NULL;
+	struct timespec tmo;
+	struct timeval now;
 
 	r = get_cmdvec(cmd, &cmdvec);
 
@@ -412,12 +415,27 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data)
 	/*
 	 * execute handler
 	 */
+	if (gettimeofday(&now, NULL) == 0) {
+		tmo.tv_sec = now.tv_sec + timeout;
+		tmo.tv_nsec = now.tv_usec * 1000;
+	} else {
+		tmo.tv_sec = 0;
+	}
 	if (h->locked) {
 		struct vectors * vecs = (struct vectors *)data;
+
 		pthread_cleanup_push(cleanup_lock, &vecs->lock);
-		lock(vecs->lock);
-		pthread_testcancel();
-		r = h->fn(cmdvec, reply, len, data);
+		if (tmo.tv_sec) {
+			vecs->lock.depth++;
+			r = pthread_mutex_timedlock(vecs->lock.mutex, &tmo);
+		} else {
+			lock(vecs->lock);
+			r = 0;
+		}
+		if (r == 0) {
+			pthread_testcancel();
+			r = h->fn(cmdvec, reply, len, data);
+		}
 		lock_cleanup_pop(vecs->lock);
 	} else
 		r = h->fn(cmdvec, reply, len, data);

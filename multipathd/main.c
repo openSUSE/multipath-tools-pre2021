@@ -774,10 +774,13 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 	*len = 0;
 	vecs = (struct vectors *)trigger_data;
 
-	r = parse_cmd(str, reply, len, vecs);
+	r = parse_cmd(str, reply, len, vecs, conf->uxsock_timeout / 1000);
 
 	if (r > 0) {
-		*reply = STRDUP("fail\n");
+		if (r == ETIMEDOUT)
+			*reply = STRDUP("timeout\n");
+		else
+			*reply = STRDUP("fail\n");
 		*len = strlen(*reply) + 1;
 		r = 1;
 	}
@@ -2043,7 +2046,7 @@ main (int argc, char *argv[])
 		case 'k':
 			if (load_config(DEFAULT_CONFIGFILE, udev_new()))
 				exit(1);
-			uxclnt(optarg, conf->uxsock_timeout);
+			uxclnt(optarg, conf->uxsock_timeout + 100);
 			exit(0);
 		default:
 			;
@@ -2064,7 +2067,7 @@ main (int argc, char *argv[])
 			optind++;
 		}
 		c += snprintf(c, s + CMDSIZE - c, "\n");
-		uxclnt(s, conf->uxsock_timeout);
+		uxclnt(s, conf->uxsock_timeout + 100);
 		exit(0);
 	}
 
