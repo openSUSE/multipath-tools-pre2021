@@ -1797,7 +1797,7 @@ child (void * param)
 	set_oom_adj();
 
 	conf->daemon = 1;
-	udev_set_sync_support(0);
+	dm_udev_set_sync_support(0);
 #ifdef USE_SYSTEMD
 	envp = getenv("WATCHDOG_USEC");
 	if (envp && sscanf(envp, "%lu", &checkint) == 1) {
