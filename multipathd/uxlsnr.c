@@ -44,7 +44,7 @@ struct client {
 };
 
 LIST_HEAD(clients);
-static unsigned num_clients;
+pthread_mutex_t client_lock = PTHREAD_MUTEX_INITIALIZER;
 struct pollfd *polls;
 volatile sig_atomic_t reconfig_sig = 0;
 volatile sig_atomic_t log_reset_sig = 0;
@@ -64,14 +64,15 @@ static void new_client(int ux_sock)
 	if (fd == -1)
 		return;
 
-	/* put it in our linked list */
 	c = (struct client *)MALLOC(sizeof(*c));
 	memset(c, 0, sizeof(*c));
 	INIT_LIST_HEAD(&c->node);
 	c->fd = fd;
 
+	/* put it in our linked list */
+	pthread_mutex_lock(&client_lock);
 	list_add_tail(&c->node, &clients);
-	num_clients++;
+	pthread_mutex_unlock(&client_lock);
 }
 
 /*
@@ -79,11 +80,12 @@ static void new_client(int ux_sock)
  */
 static void dead_client(struct client *c)
 {
+	pthread_mutex_lock(&client_lock);
+	list_del_init(&c->node);
+	pthread_mutex_unlock(&client_lock);
 	close(c->fd);
 	c->fd = -1;
-	list_del_init(&c->node);
 	FREE(c);
-	num_clients--;
 }
 
 void free_polls (void)
@@ -141,9 +143,14 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 	sigdelset(&mask, SIGUSR1);
 	while (1) {
 		struct client *c, *tmp;
-		int i, poll_count;
+		int i, poll_count, num_clients;
 
 		/* setup for a poll */
+		pthread_mutex_lock(&client_lock);
+		num_clients = 0;
+		list_for_each_entry(c, &clients, node) {
+			num_clients++;
+		}
 		polls = REALLOC(polls, (1+num_clients) * sizeof(*polls));
 		polls[0].fd = ux_sock;
 		polls[0].events = POLLIN;
@@ -153,10 +160,9 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 		list_for_each_entry(c, &clients, node) {
 			polls[i].fd = c->fd;
 			polls[i].events = POLLIN;
-			if (i > num_clients)
-				break;
 			i++;
 		}
+		pthread_mutex_unlock(&client_lock);
 
 		/* most of our life is spent in this call */
 		poll_count = ppoll(polls, i, &sleep_time, &mask);
@@ -181,12 +187,14 @@ void * uxsock_listen(int (*uxsock_trigger)(char *, char **, int *, void *),
 				struct timeval start_time;
 
 				c = NULL;
+				pthread_mutex_lock(&client_lock);
 				list_for_each_entry(tmp, &clients, node) {
 					if (tmp->fd == polls[i].fd) {
 						c = tmp;
 						break;
 					}
 				}
+				pthread_mutex_unlock(&client_lock);
 				if (!c) {
 					condlog(3, "cli%d: invalid fd %d",
 						i, polls[i].fd);
