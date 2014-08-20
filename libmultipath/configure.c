@@ -701,7 +701,7 @@ deadmap (struct multipath * mpp)
 	return 1; /* dead */
 }
 
-int check_daemon(void)
+int check_daemon(int timeout)
 {
 	int fd;
 	char *reply;
@@ -714,7 +714,7 @@ int check_daemon(void)
 
 	if (send_packet(fd, "show daemon", 12) != 0)
 		goto out;
-	if (recv_packet(fd, &reply, &len, conf->uxsock_timeout) != 0)
+	if (recv_packet(fd, &reply, &len, timeout) != 0)
 		goto out;
 
 	if (strstr(reply, "shutdown"))
@@ -848,7 +848,8 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		if (r == DOMAP_DRY)
 			continue;
 
-		if (!conf->daemon && !conf->allow_queueing && !check_daemon()) {
+		if (!conf->daemon && !conf->allow_queueing &&
+		    !check_daemon(uxsock_timeout)) {
 			if (mpp->no_path_retry != NO_PATH_RETRY_UNDEF &&
 			    mpp->no_path_retry != NO_PATH_RETRY_FAIL)
 				condlog(3, "%s: multipathd not running, unset "

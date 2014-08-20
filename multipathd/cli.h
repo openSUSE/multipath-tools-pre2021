@@ -90,7 +90,7 @@ int alloc_handlers (void);
 int add_handler (unsigned long fp, int (*fn)(void *, char **, int *, void *));
 int set_handler_callback (unsigned long fp, int (*fn)(void *, char **, int *, void *));
 int set_unlocked_handler_callback (unsigned long fp, int (*fn)(void *, char **, int *, void *));
-int parse_cmd (char * cmd, char ** reply, int * len, void *);
+int parse_cmd (char * cmd, char ** reply, int * len, void *, int);
 int load_keys (void);
 char * get_keyparam (vector v, unsigned long code);
 void free_keys (vector vec);

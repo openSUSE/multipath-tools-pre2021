@@ -170,6 +170,8 @@ struct config {
 	vector elist_property;
 };
 
+extern int uxsock_timeout;
+
 struct config * conf;
 
 struct hwentry * find_hwe (vector hwtable, char * vendor, char * product, char *revision);
