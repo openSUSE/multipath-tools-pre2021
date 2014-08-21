@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Thu Aug 21 12:16:53 CEST 2014 - hare@suse.de
+
+- Revert to ACT_RELOAD in domap() if the map exists
+- multipathd: asynchronous configuration (bnc#891189)
+- multipathd: timeout CLI commands when waiting for lock
+  (bnc#891189)
+- Remove dm_udev_XXX wrapper functions
+- uxlsnr: use typedef for trigger function
+- multipathd: lock cli client list
+- multipathd: Use standard lists for CLI handling
+
+-------------------------------------------------------------------
 Tue Aug 19 12:33:19 CEST 2014 - hare@suse.de
 
 - Use strlen() when checking for valid wwid
