@@ -824,7 +824,8 @@ cli_reconfigure(void * v, char ** reply, int * len, void * data)
 
 	condlog(2, "reconfigure (operator)");
 
-	return reconfigure(vecs);
+	post_config_state(DAEMON_CONFIGURE);
+	return 0;
 }
 
 int

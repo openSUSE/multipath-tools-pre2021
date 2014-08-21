@@ -88,16 +88,32 @@ struct mpath_event_param
 unsigned int mpath_mx_alloc_len;
 
 int logsink;
-enum daemon_status running_state;
+enum daemon_status running_state = DAEMON_INIT;
 pid_t daemon_pid;
+pthread_mutex_t config_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t config_cond = PTHREAD_COND_INITIALIZER;
 
-static sem_t exit_sem;
 /*
  * global copy of vecs for use in sig handlers
  */
 struct vectors * gvecs;
 
 struct udev * udev;
+
+static void config_cleanup(void *arg)
+{
+	pthread_mutex_unlock(&config_lock);
+}
+
+void post_config_state(enum daemon_status state)
+{
+	pthread_mutex_lock(&config_lock);
+	if (state != running_state) {
+		running_state = state;
+		pthread_cond_broadcast(&config_cond);
+	}
+	pthread_mutex_unlock(&config_lock);
+}
 
 static int
 need_switch_pathgroup (struct multipath * mpp, int refresh)
@@ -827,6 +843,16 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	if (uev_discard(uev->devpath))
 		return 0;
 
+	pthread_cleanup_push(config_cleanup, NULL);
+	pthread_mutex_lock(&config_lock);
+	if (running_state != DAEMON_RUNNING)
+		pthread_cond_wait(&config_cond, &config_lock);
+	pthread_mutex_unlock(&config_lock);
+	pthread_cleanup_pop(1);
+
+	if (running_state == DAEMON_SHUTDOWN)
+		return 0;
+
 	/*
 	 * device map event
 	 * Add events are ignored here as the tables
@@ -914,7 +940,7 @@ uxlsnrloop (void * ap)
 	set_handler_callback(ADD+MAP, cli_add_map);
 	set_handler_callback(DEL+MAP, cli_del_map);
 	set_handler_callback(SWITCH+MAP+GROUP, cli_switch_group);
-	set_handler_callback(RECONFIGURE, cli_reconfigure);
+	set_unlocked_handler_callback(RECONFIGURE, cli_reconfigure);
 	set_handler_callback(SUSPEND+MAP, cli_suspend);
 	set_handler_callback(RESUME+MAP, cli_resume);
 	set_handler_callback(RESIZE+MAP, cli_resize);
@@ -943,7 +969,7 @@ uxlsnrloop (void * ap)
 void
 exit_daemon (void)
 {
-	sem_post(&exit_sem);
+	post_config_state(DAEMON_SHUTDOWN);
 }
 
 const char *
@@ -1501,8 +1527,6 @@ reconfigure (struct vectors * vecs)
 	struct config * old = conf;
 	int retval = 1;
 
-	running_state = DAEMON_CONFIGURE;
-
 	/*
 	 * free old map and path vectors ... they use old conf state
 	 */
@@ -1527,7 +1551,7 @@ reconfigure (struct vectors * vecs)
 		retval = 0;
 	}
 
-	running_state = DAEMON_RUNNING;
+	post_config_state(DAEMON_RUNNING);
 
 	return retval;
 }
@@ -1583,12 +1607,7 @@ handle_signals(void)
 {
 	if (reconfig_sig && running_state == DAEMON_RUNNING) {
 		condlog(2, "reconfigure (signal)");
-		pthread_cleanup_push(cleanup_lock,
-				&gvecs->lock);
-		lock(gvecs->lock);
-		pthread_testcancel();
-		reconfigure(gvecs);
-		lock_cleanup_pop(gvecs->lock);
+		post_config_state(DAEMON_CONFIGURE);
 	}
 	if (log_reset_sig) {
 		condlog(2, "reset log (signal)");
@@ -1721,7 +1740,6 @@ child (void * param)
 	char *envp;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
-	sem_init(&exit_sem, 0, 0);
 	signal_init();
 
 	udev = udev_new();
@@ -1736,7 +1754,7 @@ child (void * param)
 		pthread_attr_destroy(&log_attr);
 	}
 
-	running_state = DAEMON_START;
+	post_config_state(DAEMON_START);
 
 #ifdef USE_SYSTEMD
 	sd_notify(0, "STATUS=startup");
@@ -1831,15 +1849,7 @@ child (void * param)
 #ifdef USE_SYSTEMD
 	sd_notify(0, "STATUS=configure");
 #endif
-	running_state = DAEMON_CONFIGURE;
-
-	lock(vecs->lock);
-	if (configure(vecs, 1)) {
-		unlock(vecs->lock);
-		condlog(0, "failure during configuration");
-		goto failed;
-	}
-	unlock(vecs->lock);
+	post_config_state(DAEMON_CONFIGURE);
 
 	/*
 	 * start threads
@@ -1858,20 +1868,30 @@ child (void * param)
 	pid_rc = pidfile_create(DEFAULT_PIDFILE, daemon_pid);
 	/* Ignore errors, we can live without */
 
-	running_state = DAEMON_RUNNING;
 #ifdef USE_SYSTEMD
 	sd_notify(0, "READY=1\nSTATUS=running");
 #endif
 
-	/*
-	 * exit path
-	 */
-	while(sem_wait(&exit_sem) != 0); /* Do nothing */
+	while (running_state != DAEMON_SHUTDOWN) {
+		pthread_cleanup_push(config_cleanup, NULL);
+		pthread_mutex_lock(&config_lock);
+		if (running_state == DAEMON_RUNNING) {
+			pthread_cond_wait(&config_cond, &config_lock);
+		}
+		pthread_mutex_unlock(&config_lock);
+		pthread_cleanup_pop(0);
+		if (running_state == DAEMON_CONFIGURE) {
+			pthread_cleanup_push(cleanup_lock, &vecs->lock);
+			lock(vecs->lock);
+			pthread_testcancel();
+			reconfigure(vecs);
+			lock_cleanup_pop(vecs->lock);
+		}
+	}
 
 #ifdef USE_SYSTEMD
 	sd_notify(0, "STATUS=shutdown");
 #endif
-	running_state = DAEMON_SHUTDOWN;
 	lock(vecs->lock);
 	if (conf->queue_without_daemon == QUE_NO_DAEMON_OFF)
 		vector_foreach_slot(vecs->mpvec, mpp, i)
@@ -2006,7 +2026,6 @@ main (int argc, char *argv[])
 	int foreground = 0;
 
 	logsink = 1;
-	running_state = DAEMON_INIT;
 	dm_init();
 
 	if (getuid() != 0) {
