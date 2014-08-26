@@ -434,7 +434,9 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 			pp->udev = udev_device_ref(uev->udev);
 			ret = pathinfo(pp, conf->hwtable,
 				       DI_ALL | DI_BLACKLIST);
-			if (ret == PATHINFO_SKIPPED) {
+			if (!ret)
+				ret = ev_add_path(pp, vecs);
+			else if (ret == PATHINFO_SKIPPED) {
 				condlog(3, "%s: remove blacklisted path",
 					uev->kernel);
 				i = find_slot(vecs->pathvec, (void *)pp);
@@ -446,8 +448,6 @@ uev_add_path (struct uevent *uev, struct vectors * vecs)
 				condlog(0, "%s: failed to reinitialize path",
 					uev->kernel);
 		}
-		if (!ret)
-			ret = ev_add_path(pp, vecs);
 	}
 	lock_cleanup_pop(vecs->lock);
 	if (pp)
