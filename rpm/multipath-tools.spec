@@ -121,28 +121,19 @@ fi
 if dmsetup --target multipath table | grep -q multipath ; then
   %service_add_post multipathd.service
 fi
-[ -x /sbin/mkinitrd_setup ] && mkinitrd_setup
-if [ -e /var/lib/no_initrd_recreation_by_suspend ]; then
-  echo "Skipping recreation of existing initial ramdisks, due"
-  echo "to presence of /var/lib/no_initrd_recreation_by_suspend"
-elif [ -x /sbin/mkinitrd ]; then
-  /sbin/mkinitrd
-fi
+%{?regenerate_initrd_post}
 exit 0
 
 %preun
 %service_del_preun multipathd.service
 
 %postun
-[ -x /sbin/mkinitrd_setup ] && mkinitrd_setup
-if [ -e /var/lib/no_initrd_recreation_by_suspend ]; then
-  echo "Skipping recreation of existing initial ramdisks, due"
-  echo "to presence of /var/lib/no_initrd_recreation_by_suspend"
-elif [ -x /sbin/mkinitrd ]; then
-  /sbin/mkinitrd
-fi
+%{?regenerate_initrd_post}
 %service_del_postun multipathd.service
 %{run_ldconfig}
+
+%posttrans
+%{?regenerate_initrd_posttrans}
 
 %files
 %defattr(-,root,root)
