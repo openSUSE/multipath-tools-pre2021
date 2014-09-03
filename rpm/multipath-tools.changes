@@ -2,6 +2,9 @@
 Wed Sep  3 12:23:01 CEST 2014 - hare@suse.de
 
 - Fixup segfault due to double unlock
+- Skip USB devices during discovery (bnc#865577)
+- Ignore devices when sysfs_get_tgt_nodename fails (bnc#865577)
+- Use sysfs attribute vpd_pg80 to read serial number
 
 -------------------------------------------------------------------
 Wed Sep  3 08:27:29 CEST 2014 - hare@suse.de
