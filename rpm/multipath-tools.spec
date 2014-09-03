@@ -110,6 +110,7 @@ rm -rf $RPM_BUILD_ROOT;
 
 %pre
 [ -f /.buildenv ] && exit 0
+ln -sf /sbin/service /usr/sbin/rcmultipathd
 if [ -f /etc/init.d/multipathd ] && dmsetup --target multipath table | grep -q multipath ; then
   /etc/init.d/multipathd stop
   %service_add_pre multipathd.service
@@ -126,6 +127,7 @@ exit 0
 
 %preun
 %service_del_preun multipathd.service
+rm -f /usr/sbin/rcmultipathd
 
 %postun
 %{?regenerate_initrd_post}
