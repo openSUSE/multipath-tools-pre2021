@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Sep  3 08:27:29 CEST 2014 - hare@suse.de
+
+- Create rcmultipathd links (bnc#894513)
+- multipathd: fix segfault in checkerloop() (bnc#894513)
+- Use regenerate_posttrans rpm macros (bnc#892181)
+
+-------------------------------------------------------------------
 Fri Aug 29 12:00:49 CEST 2014 - hare@suse.de
 
 - Fixup segfault during uev_path_add() (bnc#892214)
