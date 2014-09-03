@@ -93,6 +93,10 @@ pid_t daemon_pid;
 pthread_mutex_t config_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t config_cond = PTHREAD_COND_INITIALIZER;
 
+#ifdef USE_SYSTEMD
+static int use_watchdog;
+#endif
+
 /*
  * global copy of vecs for use in sig handlers
  */
@@ -1397,7 +1401,7 @@ checkerloop (void *ap)
 			start_time.tv_sec = 0;
 		condlog(4, "tick");
 #ifdef USE_SYSTEMD
-		if (conf->watchdog)
+		if (use_watchdog)
 			sd_notify(0, "WATCHDOG=1");
 #endif
 		if (vecs->pathvec) {
@@ -1828,7 +1832,7 @@ child (void * param)
 			conf->checkint = conf->max_checkint / 4;
 		condlog(3, "enabling watchdog, interval %d max %d",
 			conf->checkint, conf->max_checkint);
-		conf->watchdog = conf->checkint;
+		use_watchdog = conf->checkint;
 	}
 #endif
 	/*
