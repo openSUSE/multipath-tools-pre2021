@@ -315,8 +315,9 @@ sysfs_get_tgt_nodename (struct path *pp, char * node)
 		snprintf(node, NODE_NAME_SIZE, "ata-%d.00", tgtid);
 		return 0;
 	}
+	/* Unknown SCSI transport. Keep fingers crossed */
 	pp->sg_id.proto_id = SCSI_PROTOCOL_UNSPEC;
-	return 1;
+	return 0;
 }
 
 static void
@@ -749,10 +750,11 @@ scsi_sysfs_pathinfo (struct path * pp)
 	/*
 	 * target node name
 	 */
-	if(!sysfs_get_tgt_nodename(pp, pp->tgt_node_name)) {
-		condlog(3, "%s: tgt_node_name = %s",
-			pp->dev, pp->tgt_node_name);
-	}
+	if(sysfs_get_tgt_nodename(pp, pp->tgt_node_name))
+		return 1;
+
+	condlog(3, "%s: tgt_node_name = %s",
+		pp->dev, pp->tgt_node_name);
 
 	return 0;
 }
