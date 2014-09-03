@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Sep  3 12:23:01 CEST 2014 - hare@suse.de
+
+- Fixup segfault due to double unlock
+
+-------------------------------------------------------------------
 Wed Sep  3 08:27:29 CEST 2014 - hare@suse.de
 
 - Create rcmultipathd links (bnc#894513)
