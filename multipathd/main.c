@@ -851,7 +851,6 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	pthread_mutex_lock(&config_lock);
 	if (running_state != DAEMON_RUNNING)
 		pthread_cond_wait(&config_cond, &config_lock);
-	pthread_mutex_unlock(&config_lock);
 	pthread_cleanup_pop(1);
 
 	if (running_state == DAEMON_SHUTDOWN)
@@ -1882,8 +1881,7 @@ child (void * param)
 		if (running_state == DAEMON_RUNNING) {
 			pthread_cond_wait(&config_cond, &config_lock);
 		}
-		pthread_mutex_unlock(&config_lock);
-		pthread_cleanup_pop(0);
+		pthread_cleanup_pop(1);
 		if (running_state == DAEMON_CONFIGURE) {
 			pthread_cleanup_push(cleanup_lock, &vecs->lock);
 			lock(vecs->lock);
