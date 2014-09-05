@@ -104,13 +104,13 @@ make CC="%__cc" OPTFLAGS="$RPM_OPT_FLAGS" LIB=%{_lib} SYSTEMDPATH=%{_sysdir}
 make DESTDIR=$RPM_BUILD_ROOT LIB=%{_lib} SYSTEMDPATH=%{_sysdir} install
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 rm $RPM_BUILD_ROOT/%_lib/libmpathpersist.so
+ln -sf /sbin/service /usr/sbin/rcmultipathd
 
 %clean
 rm -rf $RPM_BUILD_ROOT;
 
 %pre
 [ -f /.buildenv ] && exit 0
-ln -sf /sbin/service /usr/sbin/rcmultipathd
 if [ -f /etc/init.d/multipathd ] && dmsetup --target multipath table | grep -q multipath ; then
   /etc/init.d/multipathd stop
   %service_add_pre multipathd.service
@@ -127,7 +127,6 @@ exit 0
 
 %preun
 %service_del_preun multipathd.service
-rm -f /usr/sbin/rcmultipathd
 
 %postun
 %{?regenerate_initrd_post}
@@ -149,6 +148,7 @@ rm -f /usr/sbin/rcmultipathd
 /sbin/multipath
 /sbin/multipathd
 /sbin/mpathpersist
+/usr/sbin/rcmultipathd
 %attr (0700, root, root) /var/cache/multipath
 %dir /%{_sysdir}/systemd/system
 /%{_sysdir}/systemd/system/multipathd.service
