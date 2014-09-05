@@ -14,6 +14,15 @@ Wed Sep  3 08:27:29 CEST 2014 - hare@suse.de
 - Use regenerate_posttrans rpm macros (bnc#892181)
 
 -------------------------------------------------------------------
+Tue Sep  2 16:51:23 UTC 2014 - trenn@suse.de
+
+- Do not call mkinitrd in rpm macros directly, make use of
+  %{?regenerate_initrd_posttrans} and %{?regenerate_initrd_post}
+  instead to avoid rebuilding of initrd for each package that
+  needs initrd recreation. Only update initrd once per install/update
+  if needed
+
+-------------------------------------------------------------------
 Fri Aug 29 12:00:49 CEST 2014 - hare@suse.de
 
 - Fixup segfault during uev_path_add() (bnc#892214)
