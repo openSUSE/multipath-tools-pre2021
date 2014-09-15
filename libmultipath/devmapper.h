@@ -43,8 +43,6 @@ char * dm_get_name(char * uuid);
 int dm_reassign(const char * mapname);
 int dm_reassign_table(const char *name, char *old, char *new);
 int dm_setgeometry(struct multipath *mpp);
-void udev_wait(unsigned int c);
-void udev_set_sync_support(int c);
 
 #define VERSION_GE(v, minv) ( \
  (v[0] > minv[0]) || \
