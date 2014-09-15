@@ -9,6 +9,7 @@ Mon Sep 15 10:16:40 CEST 2014 - hare@suse.de
 - Ignore devices when sysfs_get_tgt_nodename fails (bnc#885395)
 - Skip USB devices during discovery (bnc#865577)
 - Revert commit 'Blacklist HP Virtual devices' (bnc#885395)
+- Backport cookie handling fixes (bnc#890188)
 
 -------------------------------------------------------------------
 Mon Mar 24 17:43:46 CET 2014 - hare@suse.de
