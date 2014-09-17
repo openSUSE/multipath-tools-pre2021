@@ -104,7 +104,8 @@ make CC="%__cc" OPTFLAGS="$RPM_OPT_FLAGS" LIB=%{_lib} SYSTEMDPATH=%{_sysdir}
 make DESTDIR=$RPM_BUILD_ROOT LIB=%{_lib} SYSTEMDPATH=%{_sysdir} install
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 rm $RPM_BUILD_ROOT/%_lib/libmpathpersist.so
-ln -sf /sbin/service /usr/sbin/rcmultipathd
+mkdir -p $RPM_BUILD_ROOT/usr/sbin
+ln -sf /sbin/service $RPM_BUILD_ROOT/usr/sbin/rcmultipathd
 
 %clean
 rm -rf $RPM_BUILD_ROOT;
