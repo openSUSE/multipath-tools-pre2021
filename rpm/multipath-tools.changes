@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Sep 17 14:04:47 CEST 2014 - hare@suse.de
+
+- Fix segfault in recv_packet (bnc#896678)
+
+-------------------------------------------------------------------
 Wed Sep  3 12:23:01 CEST 2014 - hare@suse.de
 
 - Fixup segfault due to double unlock
