@@ -94,7 +94,8 @@ void free_polls (void)
 		FREE(polls);
 }
 
-void check_timeout(struct timeval start_time, char *inbuf)
+void check_timeout(struct timeval start_time, char *inbuf,
+		   unsigned int timeout)
 {
 	struct timeval diff_time, end_time;
 
@@ -104,7 +105,7 @@ void check_timeout(struct timeval start_time, char *inbuf)
 
 		msecs = diff_time.tv_sec * 1000 +
 			diff_time.tv_usec / 1000;
-		if (msecs > conf->uxsock_timeout)
+		if (msecs > timeout)
 			condlog(2, "cli cmd '%s' timeout reached "
 				"after %lu.%06lu secs", inbuf,
 				diff_time.tv_sec, diff_time.tv_usec);
@@ -143,6 +144,14 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 	while (1) {
 		struct client *c, *tmp;
 		int i, poll_count, num_clients;
+		unsigned int timeout;
+
+		/*
+		 * Store configuration timeout;
+		 * configuration might change during
+		 * the call to 'reconfigure'.
+		 */
+		timeout = conf->uxsock_timeout;
 
 		/* setup for a poll */
 		pthread_mutex_lock(&client_lock);
@@ -203,7 +212,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 					start_time.tv_sec = 0;
 
 				if (recv_packet(c->fd, &inbuf, &len,
-						conf->uxsock_timeout) != 0) {
+						timeout) != 0) {
 					dead_client(c);
 				} else {
 					inbuf[len - 1] = 0;
@@ -220,7 +229,8 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 						FREE(reply);
 						reply = NULL;
 					}
-					check_timeout(start_time, inbuf);
+					check_timeout(start_time, inbuf,
+						      timeout);
 					FREE(inbuf);
 				}
 			}
