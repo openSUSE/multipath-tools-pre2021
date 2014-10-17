@@ -22,6 +22,8 @@
 #include "errno.h"
 #include <inttypes.h>
 
+int uxsock_timeout = DEFAULT_UXSOCK_TIMEOUT;
+
 /*
  * default block handlers
  */
@@ -711,20 +713,21 @@ def_force_sync_handler(vector strvec)
 static int
 def_uxsock_timeout_handler(vector strvec)
 {
-	unsigned int uxsock_timeout;
+	unsigned int timeout;
 	char *buff;
 
 	buff = set_value(strvec);
 	if (!buff)
 		return 1;
 
-	if (sscanf(buff, "%u", &uxsock_timeout) == 1 &&
-	    uxsock_timeout > DEFAULT_UXSOCK_TIMEOUT)
-		conf->uxsock_timeout = uxsock_timeout;
+	if (sscanf(buff, "%u", &timeout) == 1 &&
+	    timeout > DEFAULT_UXSOCK_TIMEOUT)
+		conf->uxsock_timeout = timeout;
 	else
 		conf->uxsock_timeout = DEFAULT_UXSOCK_TIMEOUT;
 
 	free(buff);
+	uxsock_timeout = conf->uxsock_timeout;
 	return 0;
 }
 

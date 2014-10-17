@@ -125,7 +125,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 {
 	int ux_sock;
 	size_t len;
-	int rlen, timeout;
+	int rlen;
 	char *inbuf;
 	char *reply;
 	sigset_t mask;
@@ -142,8 +142,6 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 		return NULL;
 	}
 
-	timeout = conf->uxsock_timeout;
-
 	pthread_cleanup_push(uxsock_cleanup, NULL);
 
 	polls = (struct pollfd *)MALLOC(0);
@@ -153,14 +151,6 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 	while (1) {
 		struct client *c, *tmp;
 		int i, poll_count, num_clients;
-
-		/*
-		 * Store configuration timeout;
-		 * configuration might change during
-		 * the call to 'reconfigure'.
-		 */
-		if (conf)
-			timeout = conf->uxsock_timeout;
 
 		/* setup for a poll */
 		pthread_mutex_lock(&client_lock);
@@ -221,7 +211,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 					start_time.tv_sec = 0;
 
 				if (recv_packet(c->fd, &inbuf, &len,
-						timeout) != 0) {
+						uxsock_timeout) != 0) {
 					dead_client(c);
 				} else {
 					inbuf[len - 1] = 0;
@@ -239,7 +229,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 						reply = NULL;
 					}
 					check_timeout(start_time, inbuf,
-						      timeout);
+						      uxsock_timeout);
 					FREE(inbuf);
 				}
 			}

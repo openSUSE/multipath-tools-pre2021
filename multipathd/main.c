@@ -794,7 +794,7 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 	*len = 0;
 	vecs = (struct vectors *)trigger_data;
 
-	r = parse_cmd(str, reply, len, vecs, conf->uxsock_timeout / 1000);
+	r = parse_cmd(str, reply, len, vecs, uxsock_timeout / 1000);
 
 	if (r > 0) {
 		if (r == ETIMEDOUT)
@@ -916,6 +916,7 @@ uevqloop (void * ap)
 
 	return NULL;
 }
+
 static void *
 uxlsnrloop (void * ap)
 {
@@ -2067,7 +2068,7 @@ main (int argc, char *argv[])
 		case 'k':
 			if (load_config(DEFAULT_CONFIGFILE, udev_new()))
 				exit(1);
-			uxclnt(optarg, conf->uxsock_timeout + 100);
+			uxclnt(optarg, uxsock_timeout + 100);
 			exit(0);
 		default:
 			;
@@ -2088,7 +2089,7 @@ main (int argc, char *argv[])
 			optind++;
 		}
 		c += snprintf(c, s + CMDSIZE - c, "\n");
-		uxclnt(s, conf->uxsock_timeout + 100);
+		uxclnt(s, uxsock_timeout + 100);
 		exit(0);
 	}
 
