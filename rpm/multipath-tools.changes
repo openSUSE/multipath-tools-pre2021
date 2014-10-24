@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Sep 22 11:02:53 CEST 2014 - hare@suse.de
+
+- Really fix segfault in recv_packet (bnc#896678)
+- Allow empty revision during discovery (bnc#896864)
+
+-------------------------------------------------------------------
 Wed Sep 17 14:04:47 CEST 2014 - hare@suse.de
 
 - Fix segfault in recv_packet (bnc#896678)
