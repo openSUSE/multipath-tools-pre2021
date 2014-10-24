@@ -125,15 +125,24 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 {
 	int ux_sock;
 	size_t len;
-	int rlen;
+	int rlen, timeout;
 	char *inbuf;
 	char *reply;
 	sigset_t mask;
 
 	ux_sock = ux_socket_listen(DEFAULT_SOCKET);
 
-	if (ux_sock == -1)
-		exit(1);
+	if (ux_sock == -1) {
+		condlog(1, "could not create uxsock: %d", errno);
+		return NULL;
+	}
+
+	if (!conf) {
+		condlog(1, "configuration changed");
+		return NULL;
+	}
+
+	timeout = conf->uxsock_timeout;
 
 	pthread_cleanup_push(uxsock_cleanup, NULL);
 
@@ -144,14 +153,14 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 	while (1) {
 		struct client *c, *tmp;
 		int i, poll_count, num_clients;
-		unsigned int timeout;
 
 		/*
 		 * Store configuration timeout;
 		 * configuration might change during
 		 * the call to 'reconfigure'.
 		 */
-		timeout = conf->uxsock_timeout;
+		if (conf)
+			timeout = conf->uxsock_timeout;
 
 		/* setup for a poll */
 		pthread_mutex_lock(&client_lock);
