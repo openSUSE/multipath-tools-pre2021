@@ -363,6 +363,10 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 		return 0;
 	}
 	minor = uevent_get_minor(uev);
+
+	pthread_cleanup_push(cleanup_lock, &vecs->lock);
+	lock(vecs->lock);
+	pthread_testcancel();
 	mpp = find_mp_by_minor(vecs->mpvec, minor);
 
 	if (!mpp) {
@@ -376,13 +380,10 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 		goto out;
 	}
 
-	pthread_cleanup_push(cleanup_lock, &vecs->lock);
-	lock(vecs->lock);
-	pthread_testcancel();
 	orphan_paths(vecs->pathvec, mpp);
 	remove_map_and_stop_waiter(mpp, vecs, 1);
-	lock_cleanup_pop(vecs->lock);
 out:
+	lock_cleanup_pop(vecs->lock);
 	FREE(alias);
 	return 0;
 }
