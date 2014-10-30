@@ -25,7 +25,7 @@
 #define SG_ERR_DRIVER_SENSE     0x08
 
 int sysfs_get_dev (struct sysfs_device * dev, char * buff, size_t len);
-int path_discovery (vector pathvec, struct config * conf, int flag);
+void path_discovery (vector pathvec, struct config * conf, int flag);
 
 int do_tur (char *);
 int path_offline (struct path *);

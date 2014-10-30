@@ -88,7 +88,7 @@ path_discover (vector pathvec, struct config * conf, char * devname, int flag)
 	return pathinfo(pp, conf->hwtable, flag);
 }
 
-int
+void
 path_discovery (vector pathvec, struct config * conf, int flag)
 {
 	DIR *blkdir;
@@ -96,10 +96,10 @@ path_discovery (vector pathvec, struct config * conf, int flag)
 	struct stat statbuf;
 	char devpath[PATH_MAX];
 	char *devptr;
-	int r = 0;
+	int num_paths = 0;
 
 	if (!(blkdir = opendir("/sys/block")))
-		return 1;
+		return;
 
 	strcpy(devpath,"/sys/block");
 	while ((blkdev = readdir(blkdir)) != NULL) {
@@ -119,11 +119,11 @@ path_discovery (vector pathvec, struct config * conf, int flag)
 
 		condlog(4, "Discover device %s", devpath);
 
-		r += path_discover(pathvec, conf, blkdev->d_name, flag);
+		if (path_discover(pathvec, conf, blkdev->d_name, flag) == 0)
+			num_paths++;
 	}
 	closedir(blkdir);
-	condlog(4, "Discovery status %d", r);
-	return r;
+	condlog(4, "Discovered %d paths", num_paths);
 }
 
 #define declare_sysfs_get_str(fname) \

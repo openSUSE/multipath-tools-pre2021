@@ -295,8 +295,7 @@ configure (void)
 		/* maximum info */
 		di_flag = DI_ALL;
 
-	if (path_discovery(pathvec, conf, di_flag))
-		goto out;
+	path_discovery(pathvec, conf, di_flag);
 
 	if (conf->verbosity > 2)
 		print_all_paths(pathvec, 1);
