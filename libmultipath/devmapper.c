@@ -321,11 +321,16 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 
 	dm_task_no_open_count(dmt);
 
-	if (cookie &&
-	    !dm_task_set_cookie(dmt, cookie,
-				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-		dm_udev_complete(*cookie);
-		goto freeout;
+	if (cookie) {
+		if (!dm_task_set_cookie(dmt, cookie,
+					DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
+			dm_udev_complete(*cookie);
+			goto freeout;
+		}
+		dm_task_skip_lockfs(dmt);
+#ifdef LIBDM_API_FLUSH
+		dm_task_no_flush(dmt);
+#endif
 	}
 	r = dm_task_run (dmt);
 
