@@ -307,9 +307,14 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 
 	dm_task_no_open_count(dmt);
 
-	if (task == DM_DEVICE_CREATE &&
-	    !dm_task_set_cookie(dmt, &conf->cookie, 0))
-		goto freeout;
+	if (task == DM_DEVICE_CREATE) {
+		if (!dm_task_set_cookie(dmt, &conf->cookie, 0))
+			goto freeout;
+		dm_task_skip_lockfs(dmt);
+#ifdef LIBDM_API_FLUSH
+		dm_task_no_flush(dmt);
+#endif
+	}
 	r = dm_task_run (dmt);
 
 	freeout:
