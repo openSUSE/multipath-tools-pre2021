@@ -340,7 +340,6 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 	char value[16];
 	char rport_id[32];
 	unsigned long long tmo = 0;
-	char *eptr;
 	int ret;
 
 	sprintf(rport_id, "rport-%d:%d-%d",
@@ -366,7 +365,6 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 	 * then set fast_io_fail, and _then_ set dev_loss_tmo
 	 * to the correct value.
 	 */
-	memset(value, 0, 16);
 	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET &&
 	    mpp->fast_io_fail != MP_FAST_IO_FAIL_ZERO &&
 	    mpp->fast_io_fail != MP_FAST_IO_FAIL_OFF) {
@@ -378,34 +376,34 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 				"error %d", rport_id, -ret);
 			goto out;
 		}
-		tmo = strtoull(value, &eptr, 0);
-		if (eptr == value) {
+		if (sscanf(value, "%llu\n", &tmo) != -1) {
 			condlog(0, "%s: Cannot parse dev_loss_tmo "
 				"attribute '%s'", rport_id, value);
 			goto out;
 		}
 		if (mpp->fast_io_fail >= tmo) {
+			/* Increase dev_loss_tmo temporarily */
 			snprintf(value, 16, "%u", mpp->fast_io_fail + 1);
+			ret = sysfs_attr_set_value(rport_dev, "dev_loss_tmo",
+						   value, strlen(value));
+			if (ret <= 0) {
+				if (ret == -EBUSY)
+					condlog(3, "%s: rport blocked",
+						rport_id);
+				else
+					condlog(0, "%s: failed to set "
+						"dev_loss_tmo to %s, error %d",
+						rport_id, value, -ret);
+				goto out;
+			}
 		}
 	} else if (mpp->dev_loss > DEFAULT_DEV_LOSS_TMO) {
 		condlog(3, "%s: limiting dev_loss_tmo to %d, since "
 			"fast_io_fail is not set",
 			rport_id, DEFAULT_DEV_LOSS_TMO);
-		snprintf(value, 16, "%u", DEFAULT_DEV_LOSS_TMO);
-	} else {
-		snprintf(value, 16, "%u", mpp->dev_loss);
-	}
-	if (strlen(value)) {
-		ret = sysfs_attr_set_value(rport_dev, "dev_loss_tmo",
-					   value, strlen(value));
-		if (ret <= 0) {
-			if (ret == -EBUSY)
-				condlog(3, "%s: rport blocked", rport_id);
-			else
-				condlog(0, "%s: failed to set dev_loss_tmo to %s, error %d",
-					rport_id, value, -ret);
-			goto out;
-		}
+		tmo = DEFAULT_DEV_LOSS_TMO;
+	} else if (mpp->dev_loss) {
+		tmo = mpp->dev_loss;
 	}
 	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET) {
 		if (mpp->fast_io_fail == MP_FAST_IO_FAIL_OFF)

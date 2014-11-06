@@ -584,19 +584,18 @@ select_fast_io_fail(struct multipath *mp)
 extern int
 select_dev_loss(struct multipath *mp)
 {
-	if (mp->hwe && mp->hwe->dev_loss != DEFAULT_DEV_LOSS_TMO) {
+	if (mp->hwe && mp->hwe->dev_loss) {
 		mp->dev_loss = mp->hwe->dev_loss;
 		condlog(3, "%s: dev_loss_tmo = %u (controller default)",
 			mp->alias, mp->dev_loss);
 		return 0;
 	}
-	if (conf->dev_loss && conf->dev_loss != DEFAULT_DEV_LOSS_TMO) {
+	if (conf->dev_loss) {
 		mp->dev_loss = conf->dev_loss;
 		condlog(3, "%s: dev_loss_tmo = %u (config file default)",
 			mp->alias, mp->dev_loss);
 		return 0;
 	}
-	mp->dev_loss = DEFAULT_DEV_LOSS_TMO;
 	return 0;
 }
 
