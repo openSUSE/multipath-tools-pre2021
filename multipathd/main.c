@@ -328,7 +328,7 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 	int minor;
 	struct multipath *mpp;
 
-	condlog(2, "%s: remove map (uevent)", uev->kernel);
+	condlog(3, "%s: remove map (uevent)", uev->kernel);
 	alias = uevent_get_dm_name(uev);
 	if (!alias) {
 		condlog(3, "%s: No DM_NAME in uevent, ignoring", uev->kernel);
@@ -338,7 +338,7 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 	mpp = find_mp_by_minor(vecs->mpvec, minor);
 
 	if (!mpp) {
-		condlog(2, "%s: devmap not registered, can't remove",
+		condlog(3, "%s: devmap not registered, can't remove",
 			uev->kernel);
 		goto out;
 	}
