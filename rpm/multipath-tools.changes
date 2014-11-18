@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Nov 18 14:05:13 CET 2014 - hare@suse.de
+
+- kpartx: handle more than 256 loop devices (bnc#898427)
+- devmapper: do not flush I/O for DM_DEVICE_CREATE (bnc#901809)
+- libmultipath: unwrap dev_loss_tmo logic (bnc#887608)
+- multipathd: Fix verbosity on map remove (bnc#901091)
+- multipathd: reload map if reinstate failed (bnc#904667)
+
+-------------------------------------------------------------------
 Tue Oct  7 16:34:54 CEST 2014 - hare@suse.de
 
 - thread count increases over time (bnc#896910)
