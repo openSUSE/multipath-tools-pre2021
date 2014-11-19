@@ -2,6 +2,7 @@
 Wed Nov 19 10:22:16 CET 2014 - hare@suse.de
 
 - Do not use 'sscanf' for parsing integers (bnc#889927)
+- Do not remove paths without uevents (bnc#890998)
 
 -------------------------------------------------------------------
 Tue Nov 18 14:05:13 CET 2014 - hare@suse.de
