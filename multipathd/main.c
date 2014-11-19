@@ -1230,7 +1230,7 @@ check_path (struct vectors * vecs, struct path * pp)
 			condlog(3, "%s: reload map", pp->dev);
 			ev_add_path(pp, vecs);
 			pp->tick = 1;
-			return 0;
+			return;
 		}
 		new_path_up = 1;
 
@@ -1252,7 +1252,7 @@ check_path (struct vectors * vecs, struct path * pp)
 				condlog(3, "%s: reload map", pp->dev);
 				ev_add_path(pp, vecs);
 				pp->tick = 1;
-				return 0;
+				return;
 			}
 		} else {
 			LOG_MSG(4, checker_message(&pp->checker));
