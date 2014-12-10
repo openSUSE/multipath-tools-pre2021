@@ -114,6 +114,7 @@ rm -rf $RPM_BUILD_ROOT;
 [ -f /.buildenv ] && exit 0
 if [ -f /etc/init.d/multipathd ] && dmsetup --target multipath table | grep -q multipath ; then
   /etc/init.d/multipathd stop
+  %service_add_pre multipathd.socket
   %service_add_pre multipathd.service
 fi
 
@@ -121,6 +122,7 @@ fi
 [ -f /.buildenv ] && exit 0
 %{run_ldconfig}
 if dmsetup --target multipath table | grep -q multipath ; then
+  %service_add_post multipathd.socket
   %service_add_post multipathd.service
 fi
 %{?regenerate_initrd_post}
@@ -128,10 +130,12 @@ exit 0
 
 %preun
 %service_del_preun multipathd.service
+%service_del_preun multipathd.socket
 
 %postun
 %{?regenerate_initrd_post}
 %service_del_postun multipathd.service
+%service_del_postun multipathd.socket
 %{run_ldconfig}
 
 %posttrans
