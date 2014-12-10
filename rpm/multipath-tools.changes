@@ -1,4 +1,19 @@
 -------------------------------------------------------------------
+Wed Dec 10 09:43:29 CET 2014 - hare@suse.de
+
+- libmultipath: Fall back to SG_IO if no UID could be assigned
+  (bnc#908915)
+- Assign local priority for NAA VPD descriptor (bnc#907483)
+- libmultipath: finally fix dev_loss_tmo setting (bnc#889927)
+- libmultipath: Do not use 'sscanf' for parsing integers (bnc#889927)
+- devmapper: do not flush I/O for DM_DEVICE_CREATE (bnc#901809)
+- kpartx: handle more than 256 loop devices (bnc#898427)
+- multipathd: fixup locking in uev_remove_map() (bnc#901891)
+- multipathd: use global variable for uxsock timeout (bnc#900758)
+- multipathd: remove unused variable in cli_reconfigure()
+- Add %service calls for multipathd.socket
+
+-------------------------------------------------------------------
 Mon Sep 22 11:02:53 CEST 2014 - hare@suse.de
 
 - Really fix segfault in recv_packet (bnc#896678)
