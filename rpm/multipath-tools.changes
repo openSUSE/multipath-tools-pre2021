@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Dec 11 10:44:25 CET 2014 - hare@suse.de
+
+- kpartx: do not use LOOP_CTL_GET_FREE (bnc#898427)
+- kpartx: Use standard 'major' and 'minor' macros (bnc#898427)
+
+-------------------------------------------------------------------
 Wed Nov 19 10:22:16 CET 2014 - hare@suse.de
 
 - Do not use 'sscanf' for parsing integers (bnc#889927)
