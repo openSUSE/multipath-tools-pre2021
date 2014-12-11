@@ -40,10 +40,6 @@
 #define int2ptr(x)	((void *) ((long) x))
 #endif
 
-#ifndef LOOP_CTL_GET_FREE
-#define LOOP_CTL_GET_FREE 0x4C82
-#endif
-
 static char *
 xstrdup (const char *s)
 {
@@ -145,13 +141,14 @@ find_loop_by_file (const char * filename)
 extern char *
 find_unused_loop_device (void)
 {
-	char dev[20], *next_loop_dev = NULL;;
+	char dev[256], *next_loop_dev = NULL;;
 	int fd, next_loop = 0, somedev = 0, someloop = 0, loop_known = 0;
 	struct stat statbuf;
 	struct loop_info loopinfo;
 	FILE *procdev;
 
 	while (next_loop_dev == NULL) {
+#ifdef LOOP_CTL_GET_FREE
 		if (stat("/dev/loop-control", &statbuf) == 0 &&
 		    S_ISCHR(statbuf.st_mode)) {
 			fd = open("/dev/loop-control", O_RDWR);
@@ -162,7 +159,14 @@ find_unused_loop_device (void)
 				return NULL;
 			close(fd);
 		}
-
+#else
+		sprintf(dev, "/sys/block/loop%d/loop", next_loop);
+		/* 'loop' subdirectory exists if the device is in use */
+		if (stat(dev, &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
+			next_loop++;
+			continue;
+		}
+#endif
 		sprintf(dev, "/dev/loop%d", next_loop);
 
 		if (stat (dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
