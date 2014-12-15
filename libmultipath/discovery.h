@@ -31,6 +31,7 @@
 struct config;
 
 int path_discovery (vector pathvec, struct config * conf, int flag);
+int path_trigger (struct config * conf, int flag);
 
 int do_tur (char *);
 int path_offline (struct path *);
