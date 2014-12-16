@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Dec 16 11:54:47 CET 2014 - hare@suse.de
+
+- Do not automatically fall back to vpd uid generation
+- Improve vpd parsing
+- multipathd: trigger all devices on startup (bnc#901465)
+
+-------------------------------------------------------------------
 Wed Dec 10 09:43:29 CET 2014 - hare@suse.de
 
 - libmultipath: Fall back to SG_IO if no UID could be assigned
