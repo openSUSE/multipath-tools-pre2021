@@ -2,6 +2,7 @@
  * Copyright (c) 2005 Christophe Varoqui
  */
 #include <sys/time.h>
+#include <errno.h>
 #include <pthread.h>
 #include <memory.h>
 #include <vector.h>
@@ -240,10 +241,14 @@ find_key (const char * str)
 	return foundkw;
 }
 
-#define E_SYNTAX	1
-#define E_NOPARM	2
-#define E_NOMEM		3
-
+/*
+ * get_cmdvec
+ *
+ * returns:
+ * ENOMEM: not enough memory to allocate command
+ * EAGAIN: command not found
+ * EINVAL: argument missing for command
+ */
 static int
 get_cmdvec (char * cmd, vector *v)
 {
@@ -257,13 +262,13 @@ get_cmdvec (char * cmd, vector *v)
 
 	strvec = alloc_strvec(cmd);
 	if (!strvec)
-		return E_NOMEM;
+		return ENOMEM;
 
 	cmdvec = vector_alloc();
 
 	if (!cmdvec) {
 		free_strvec(strvec);
-		return E_NOMEM;
+		return ENOMEM;
 	}
 
 	vector_foreach_slot(strvec, buff, i) {
@@ -276,17 +281,17 @@ get_cmdvec (char * cmd, vector *v)
 		}
 		kw = find_key(buff);
 		if (!kw) {
-			r = E_SYNTAX;
+			r = EAGAIN;
 			goto out;
 		}
 		cmdkw = alloc_key();
 		if (!cmdkw) {
-			r = E_NOMEM;
+			r = ENOMEM;
 			goto out;
 		}
 		if (!vector_alloc_slot(cmdvec)) {
 			FREE(cmdkw);
-			r = E_NOMEM;
+			r = ENOMEM;
 			goto out;
 		}
 		vector_set_slot(cmdvec, cmdkw);
@@ -296,7 +301,7 @@ get_cmdvec (char * cmd, vector *v)
 			get_param = 1;
 	}
 	if (get_param) {
-		r = E_NOPARM;
+		r = EINVAL;
 		goto out;
 	}
 	*v = cmdvec;
@@ -309,7 +314,7 @@ out:
 	return r;
 }
 
-static unsigned long 
+static unsigned long
 fingerprint(vector vec)
 {
 	int i;
@@ -337,50 +342,75 @@ alloc_handlers (void)
 }
 
 static int
-genhelp_sprint_aliases (char * reply, vector keys, struct key * refkw)
+genhelp_sprint_aliases (char * reply, int reply_len,
+			vector keys, struct key * refkw)
 {
 	int i, fwd = 0;
 	struct key * kw;
 
 	vector_foreach_slot (keys, kw, i)
 		if (kw->code == refkw->code && kw != refkw)
-			fwd += sprintf(reply, "|%s", kw->str);
+			fwd += snprintf(reply, reply_len, "|%s", kw->str);
 
 	return fwd;
 }
 
 static char *
-genhelp_handler (void)
+genhelp_handler (const char *cmd, int error)
 {
-	int i, j;
+	int i, j, len = INITIAL_REPLY_LEN, off = 0;
 	unsigned long fp;
 	struct handler * h;
 	struct key * kw;
 	char * reply;
 	char * p;
 
-	reply = MALLOC(INITIAL_REPLY_LEN);
+	reply = MALLOC(len);
 
 	if (!reply)
 		return NULL;
 
 	p = reply;
-	p += sprintf(p, VERSION_STRING);
-	p += sprintf(p, "CLI commands reference:\n");
+	switch(error) {
+	case ENOMEM:
+		off += snprintf(p + off, len - off,
+				"%s: Not enough memory\n", cmd);
+		break;
+	case EAGAIN:
+		off += snprintf(p + off, len - off, "%s: not found\n", cmd);
+		break;
+	case EINVAL:
+		off += snprintf(p + off, len - off,
+				"%s: Missing argument\n", cmd);
+		break;
+	}
+	off += snprintf(p + off, len - off, VERSION_STRING);
+	off += snprintf(p + off, len - off, "CLI commands reference:\n");
 
 	vector_foreach_slot (handlers, h, i) {
 		fp = h->fingerprint;
 		vector_foreach_slot (keys, kw, j) {
 			if ((kw->code & fp)) {
 				fp -= kw->code;
-				p += sprintf(p, " %s", kw->str);
-				p += genhelp_sprint_aliases(p, keys, kw);
+				off += snprintf(p + off, len - off,
+						" %s", kw->str);
+				off += genhelp_sprint_aliases(p + off,
+							      len - off,
+							      keys, kw);
 
 				if (kw->has_param)
-					p += sprintf(p, " $%s", kw->str);
+					off += snprintf(p + off, len - off,
+							" $%s", kw->str);
 			}
 		}
-		p += sprintf(p, "\n");
+		off += snprintf(p + off, len - off, "\n");
+		if (off > len - 256) {
+			len += INITIAL_REPLY_LEN;
+			reply = realloc(p, len);
+			if (!reply)
+				return NULL;
+			p = reply;
+		}
 	}
 
 	return reply;
@@ -398,7 +428,7 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data, int timeout )
 	r = get_cmdvec(cmd, &cmdvec);
 
 	if (r) {
-		*reply = genhelp_handler();
+		*reply = genhelp_handler(cmd, r);
 		*len = strlen(*reply) + 1;
 		return 0;
 	}
@@ -406,7 +436,7 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data, int timeout )
 	h = find_handler(fingerprint(cmdvec));
 
 	if (!h || !h->fn) {
-		*reply = genhelp_handler();
+		*reply = genhelp_handler(cmd, EINVAL);
 		*len = strlen(*reply) + 1;
 		free_keys(cmdvec);
 		return 0;
@@ -532,7 +562,7 @@ char *
 key_generator (const char * str, int state)
 {
 	static int index, len, has_param;
-	static unsigned long rlfp;	
+	static unsigned long rlfp;
 	struct key * kw;
 	int i;
 	struct handler *h;
@@ -563,7 +593,7 @@ key_generator (const char * str, int state)
 		/*
 		 * If last keyword takes a param, don't even try to guess
 		 */
-		if (r == E_NOPARM) {
+		if (r == EINVAL) {
 			has_param = 1;
 			return (strdup("(value)"));
 		}
