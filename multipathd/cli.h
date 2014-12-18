@@ -69,7 +69,7 @@ enum {
 #define SETPRSTATUS	(1UL << __SETPRSTATUS)
 #define UNSETPRSTATUS	(1UL << __UNSETPRSTATUS)
 
-#define INITIAL_REPLY_LEN	1100
+#define INITIAL_REPLY_LEN	1024
 
 struct key {
 	char * str;
