@@ -264,11 +264,12 @@ select_alias (struct multipath * mp)
 
 	select_alias_prefix(mp);
 
-	if (strlen(mp->alias_old) > 0) {
+	if (mp->alias_old) {
 		mp->alias = use_existing_alias(mp->wwid, conf->bindings_file,
 				mp->alias_old, mp->alias_prefix,
 				conf->bindings_read_only);
-		memset (mp->alias_old, 0, WWID_SIZE);
+		free(mp->alias_old);
+		mp->alias_old = NULL;
 	}
 
 	if (mp->alias == NULL)

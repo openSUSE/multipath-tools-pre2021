@@ -417,7 +417,7 @@ find_existing_alias (struct multipath * mpp,
 
 	vector_foreach_slot (vecs->mpvec, mp, i)
 		if (strcmp(mp->wwid, mpp->wwid) == 0) {
-			strncpy(mpp->alias_old, mp->alias, WWID_SIZE);
+			mpp->alias_old = STRDUP(mp->alias);
 			return;
 		}
 }
