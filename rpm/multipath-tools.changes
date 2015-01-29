@@ -1,9 +1,16 @@
 -------------------------------------------------------------------
+Thu Jan 29 13:02:08 CET 2015 - hare@suse.de
+
+- skip uninitialized devices during reconfiguration (bnc#908915)
+- memory overflow when printing help text (bnc#909742)
+
+-------------------------------------------------------------------
 Tue Dec 16 11:54:47 CET 2014 - hare@suse.de
 
 - Do not automatically fall back to vpd uid generation
 - Improve vpd parsing
 - multipathd: trigger all devices on startup (bnc#901465)
+- Unset 'uid_attribute' on failure
 
 -------------------------------------------------------------------
 Wed Dec 10 09:43:29 CET 2014 - hare@suse.de
