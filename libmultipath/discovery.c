@@ -1388,10 +1388,8 @@ sysfs_pathinfo(struct path * pp)
 	if (!strncmp(pp->dev,"sd", 2))
 		pp->bus = SYSFS_BUS_SCSI;
 
-	if (pp->bus == SYSFS_BUS_UNDEF) {
-		condlog(3, "%s: unhandled device type, skipping", pp->dev);
-		return 1;
-	}
+	if (pp->bus == SYSFS_BUS_UNDEF)
+		return 0;
 	else if (pp->bus == SYSFS_BUS_SCSI) {
 		if (scsi_sysfs_pathinfo(pp))
 			return 1;
