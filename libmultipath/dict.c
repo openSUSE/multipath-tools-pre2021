@@ -2466,6 +2466,139 @@ snprint_def_max_polling_interval (char * buff, int len, void * data)
 }
 
 static int
+set_delay_checks(vector strvec, void *ptr)
+{
+	int *int_ptr = (int *)ptr;
+	char * buff;
+
+	buff = set_value(strvec);
+	if (!buff)
+		return 1;
+
+	if (!strcmp(buff, "no") || !strcmp(buff, "0"))
+		*int_ptr = DELAY_CHECKS_OFF;
+	else if ((*int_ptr = atoi(buff)) < 1)
+		*int_ptr = DELAY_CHECKS_UNDEF;
+
+	FREE(buff);
+	return 0;
+}
+
+int
+print_delay_checks(char * buff, int len, void *ptr)
+{
+	int *int_ptr = (int *)ptr;
+
+	switch(*int_ptr) {
+	case DELAY_CHECKS_UNDEF:
+		return 0;
+	case DELAY_CHECKS_OFF:
+		return snprintf(buff, len, "\"off\"");
+	default:
+		return snprintf(buff, len, "%i", *int_ptr);
+	}
+}
+
+static int
+def_delay_watch_checks_handler(vector strvec)
+{
+	return set_delay_checks(strvec, &conf->delay_watch_checks);
+}
+
+static int
+snprint_def_delay_watch_checks(char *buff,  int len, void *data)
+{
+	return print_delay_checks(buff, len, &conf->delay_watch_checks);
+}
+
+static int
+hw_delay_watch_checks_handler(vector strvec)
+{
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+
+	if (!hwe)
+		return 1;
+	return set_delay_checks(strvec, &hwe->delay_watch_checks);
+}
+
+static int
+snprint_hw_delay_watch_checks(char *buff,  int len, void *data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	return print_delay_checks(buff, len, &hwe->delay_watch_checks);
+}
+
+static int
+mp_delay_watch_checks_handler(vector strvec)
+{
+	struct mpentry *mpe = VECTOR_LAST_SLOT(conf->mptable);
+
+	if (!mpe)
+		return 1;
+	return set_delay_checks(strvec, &mpe->delay_watch_checks);
+}
+
+static int
+snprint_mp_delay_watch_checks(char *buff,  int len, void *data)
+{
+	struct mpentry *mpe = (struct mpentry *)data;
+
+	return print_delay_checks(buff, len, &mpe->delay_watch_checks);
+}
+
+static int
+def_delay_wait_checks_handler(vector strvec)
+{
+	return set_delay_checks(strvec, &conf->delay_wait_checks);
+}
+
+static int
+snprint_def_delay_wait_checks(char *buff,  int len, void *data)
+{
+	return print_delay_checks(buff, len, &conf->delay_wait_checks);
+}
+
+static int
+hw_delay_wait_checks_handler(vector strvec)
+{
+	struct hwentry *hwe = VECTOR_LAST_SLOT(conf->hwtable);
+
+	if (!hwe)
+		return 1;
+	return set_delay_checks(strvec, &hwe->delay_wait_checks);
+}
+
+static int
+snprint_hw_delay_wait_checks(char *buff,  int len, void *data)
+{
+	struct hwentry * hwe = (struct hwentry *)data;
+
+	return print_delay_checks(buff, len, &hwe->delay_wait_checks);
+}
+
+static int
+mp_delay_wait_checks_handler(vector strvec)
+{
+	struct mpentry *mpe = VECTOR_LAST_SLOT(conf->mptable);
+
+	if (!mpe)
+		return 1;
+	return set_delay_checks(strvec, &mpe->delay_wait_checks);
+}
+
+static int
+snprint_mp_delay_wait_checks(char *buff,  int len, void *data)
+{
+	struct mpentry *mpe = (struct mpentry *)data;
+
+	return print_delay_checks(buff, len, &mpe->delay_wait_checks);
+}
+
+/*
+ * blacklist block handlers
+ */
+static int
 snprint_reassign_maps (char * buff, int len, void * data)
 {
 	if (conf->reassign_maps == DEFAULT_REASSIGN_MAPS)
@@ -2851,6 +2984,8 @@ init_keywords(void)
 	install_keyword("reservation_key", &def_reservation_key_handler, &snprint_def_reservation_key);
 	install_keyword("retain_attached_hw_handler", &def_retain_hwhandler_handler, &snprint_def_retain_hwhandler_handler);
 	install_keyword("detect_prio", &def_detect_prio_handler, &snprint_def_detect_prio);
+	install_keyword("delay_watch_checks", &def_delay_watch_checks_handler, &snprint_def_delay_watch_checks);
+	install_keyword("delay_wait_checks", &def_delay_wait_checks_handler, &snprint_def_delay_wait_checks);
 	__deprecated install_keyword("default_selector", &def_selector_handler, NULL);
 	__deprecated install_keyword("default_path_grouping_policy", &def_pgpolicy_handler, NULL);
 	__deprecated install_keyword("default_uid_attribute", &def_uid_attribute_handler, NULL);
@@ -2918,6 +3053,8 @@ init_keywords(void)
 	install_keyword("user_friendly_names", &hw_names_handler, &snprint_hw_user_friendly_names);
 	install_keyword("retain_attached_hw_handler", &hw_retain_hwhandler_handler, &snprint_hw_retain_hwhandler_handler);
 	install_keyword("detect_prio", &hw_detect_prio_handler, &snprint_detect_prio);
+	install_keyword("delay_watch_checks", &hw_delay_watch_checks_handler, &snprint_hw_delay_watch_checks);
+	install_keyword("delay_wait_checks", &hw_delay_wait_checks_handler, &snprint_hw_delay_wait_checks);
 	install_sublevel_end();
 
 	install_keyword_root("multipaths", &multipaths_handler);
@@ -2942,5 +3079,7 @@ init_keywords(void)
 	install_keyword("gid", &mp_gid_handler, &snprint_mp_gid);
 	install_keyword("reservation_key", &mp_reservation_key_handler, &snprint_mp_reservation_key);
 	install_keyword("user_friendly_names", &mp_names_handler, &snprint_mp_user_friendly_names);
+	install_keyword("delay_watch_checks", &mp_delay_watch_checks_handler, &snprint_mp_delay_watch_checks);
+	install_keyword("delay_wait_checks", &mp_delay_wait_checks_handler, &snprint_mp_delay_wait_checks);
 	install_sublevel_end();
 }

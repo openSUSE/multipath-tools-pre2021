@@ -425,6 +425,25 @@ will automatically use the
 .I alua
 prioritizer. If not, the prioritizer will be selected as usual. Default is
 .I no
+.TP
+.B delay_watch_checks
+If set to a value greater than 0, multipathd will watch paths that have
+recently become valid for this many checks.  If they fail again while they are
+being watched, when they next become valid, they will not be used until they
+have stayed up for
+.I delay_wait_checks
+checks. Default is
+.I no
+.TP
+.B delay_wait_checks
+If set to a value greater than 0, when a device that has recently come back
+online fails again within
+.I delay_watch_checks
+checks, the next time it comes back online, it will marked and delayed, and not
+used until it has passed
+.I delay_wait_checks
+checks. Default is
+.I no
 .
 .SH "blacklist section"
 The
@@ -543,6 +562,10 @@ section:
 .B features
 .TP
 .B reservation_key
+.TP
+.B delay_watch_checks
+.TP
+.B delay_wait_checks
 .RE
 .PD
 .LP
@@ -633,6 +656,10 @@ section:
 .B retain_attached_hw_handler
 .TP
 .B detect_prio
+.TP
+.B delay_watch_checks
+.TP
+.B delay_wait_checks
 .RE
 .PD
 .LP

@@ -27,6 +27,8 @@
 #	log_checker_err always
 #	retain_attached_hw_handler no
 #	detect_prio no
+#	delay_watch_checks no
+#	delay_wait_checks no
 #}
 #blacklist {
 #	devnode "^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*"

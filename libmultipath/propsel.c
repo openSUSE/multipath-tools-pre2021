@@ -17,6 +17,7 @@
 #include "devmapper.h"
 #include "prio.h"
 #include "discovery.h"
+#include "dict.h"
 #include "prioritizers/alua_rtpg.h"
 #include <inttypes.h>
 
@@ -724,5 +725,61 @@ select_detect_prio (struct path * pp)
 	}
 	pp->detect_prio = 0;
 	condlog(3, "%s: detect_prio = %d (compiled in default)", pp->dev, pp->detect_prio);
+	return 0;
+}
+
+int
+select_delay_watch_checks(struct multipath *mp)
+{
+	char *origin, buff[12];
+
+	if (mp->mpe && mp->mpe->delay_watch_checks) {
+		mp->delay_watch_checks = mp->mpe->delay_watch_checks;
+		origin = "(multipath setting)";
+		goto out;
+	}
+	if (mp->hwe && mp->hwe->delay_watch_checks) {
+		mp->delay_watch_checks = mp->hwe->delay_watch_checks;
+		origin = "(controller setting)";
+		goto out;
+	}
+	if (conf->delay_watch_checks) {
+		mp->delay_watch_checks = conf->delay_watch_checks;
+		origin = "(config file default)";
+		goto out;
+	}
+	mp->delay_watch_checks = DEFAULT_DELAY_CHECKS;
+	origin = "(internal default)";
+out:
+	print_delay_checks(buff, 12, &mp->delay_watch_checks);
+	condlog(3, "%s: delay_watch_checks = %s %s", mp->alias, buff, origin);
+	return 0;
+}
+
+int
+select_delay_wait_checks(struct multipath *mp)
+{
+	char *origin, buff[12];
+
+	if (mp->mpe && mp->mpe->delay_wait_checks) {
+		mp->delay_wait_checks = mp->mpe->delay_wait_checks;
+		origin = "(multipath setting)";
+		goto out;
+	}
+	if (mp->hwe && mp->hwe->delay_wait_checks) {
+		mp->delay_wait_checks = mp->hwe->delay_wait_checks;
+		origin = "(controller setting)";
+		goto out;
+	}
+	if (conf->delay_wait_checks) {
+		mp->delay_wait_checks = conf->delay_wait_checks;
+		origin = "(config file default)";
+		goto out;
+	}
+	mp->delay_wait_checks = DEFAULT_DELAY_CHECKS;
+	origin = "(internal default)";
+out:
+	print_delay_checks(buff, 12, &mp->delay_wait_checks);
+	condlog(3, "%s: delay_wait_checks = %s %s", mp->alias, buff, origin);
 	return 0;
 }

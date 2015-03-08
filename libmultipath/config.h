@@ -48,6 +48,8 @@ struct hwentry {
 	int user_friendly_names;
 	int retain_hwhandler;
 	int detect_prio;
+	int delay_watch_checks;
+	int delay_wait_checks;
 	char * bl_product;
 };
 
@@ -71,6 +73,8 @@ struct mpentry {
 	int flush_on_last_del;
 	int attribute_flags;
 	int user_friendly_names;
+	int delay_watch_checks;
+	int delay_wait_checks;
 	uid_t uid;
 	gid_t gid;
 	mode_t mode;
@@ -110,6 +114,8 @@ struct config {
 	int reassign_maps;
 	int retain_hwhandler;
 	int detect_prio;
+	int delay_watch_checks;
+	int delay_wait_checks;
 	unsigned int version[3];
 
 	char * dev;

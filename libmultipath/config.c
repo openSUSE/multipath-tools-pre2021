@@ -340,6 +340,8 @@ merge_hwe (struct hwentry * dst, struct hwentry * src)
 	merge_num(user_friendly_names);
 	merge_num(retain_hwhandler);
 	merge_num(detect_prio);
+	merge_num(delay_watch_checks);
+	merge_num(delay_wait_checks);
 
 	/*
 	 * Make sure features is consistent with
