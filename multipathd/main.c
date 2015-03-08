@@ -1903,7 +1903,7 @@ main (int argc, char *argv[])
 	if (!conf)
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":dv:k::")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dv:k::B")) != EOF ) {
 	switch(arg) {
 		case 'd':
 			logsink = 0;
@@ -1919,6 +1919,9 @@ main (int argc, char *argv[])
 		case 'k':
 			uxclnt(optarg);
 			exit(0);
+		case 'B':
+			conf->bindings_read_only = 1;
+			break;
 		default:
 			;
 		}
