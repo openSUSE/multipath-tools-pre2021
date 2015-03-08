@@ -2211,6 +2211,8 @@ main (int argc, char *argv[])
 	}
 
 	if (foreground) {
+		if (!isatty(fileno(stdout)))
+			setbuf(stdout, NULL);
 		err = 0;
 		daemon_pid = getpid();
 	} else
