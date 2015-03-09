@@ -336,7 +336,7 @@ static struct hwentry default_hw[] = {
 	},
 	{
 		.vendor        = "FUJITSU",
-		.product       = "ETERNUS_DX(L|400|8000)",
+		.product       = "ETERNUS_DX(H|L|M|400|8000)",
 		.features      = "1 queue_if_no_path",
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.pgpolicy      = GROUP_BY_PRIO,
