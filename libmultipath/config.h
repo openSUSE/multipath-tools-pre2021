@@ -116,6 +116,7 @@ struct config {
 	unsigned int dev_loss;
 	int log_checker_err;
 	int allow_queueing;
+	int find_multipaths;
 	uid_t uid;
 	gid_t gid;
 	mode_t mode;

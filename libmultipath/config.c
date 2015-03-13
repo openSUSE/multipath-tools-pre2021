@@ -564,6 +564,7 @@ load_config (char * file, struct udev *udev)
 	conf->force_sync = 0;
 	conf->uxsock_timeout = DEFAULT_UXSOCK_TIMEOUT;
 	conf->uid_attribute = set_default(DEFAULT_UID_ATTRIBUTE);
+	conf->find_multipaths = DEFAULT_FIND_MULTIPATHS;
 
 	/*
 	 * preload default hwtable
