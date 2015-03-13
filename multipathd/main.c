@@ -1265,6 +1265,9 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	int add_active;
 	int oldchkrstate = pp->chkrstate;
 
+	if (pp->initialized && !pp->mpp)
+		return 0;
+
 	if (pp->tick)
 		pp->tick -= (pp->tick > ticks) ? ticks : pp->tick;
 	if (pp->tick)
