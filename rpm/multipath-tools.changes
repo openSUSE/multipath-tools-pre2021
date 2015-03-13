@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Mar 13 13:59:19 CET 2015 - hare@suse.de
+
+- libmultipath: make vpd page 0x80 optional (bsc#917963)
+- Add HP MSA 2040 to the hardware table (bsc#920189)
+- Revert 'Skip unhandled device types' (bsc#917701)
+
+-------------------------------------------------------------------
 Thu Jan 29 13:02:08 CET 2015 - hare@suse.de
 
 - skip uninitialized devices during reconfiguration (bnc#908915)
