@@ -31,7 +31,7 @@ Release:        41
 Summary:        Tools to Manage Multipathed Devices with the device-mapper
 Source:         multipath-tools-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-Patch0:         %{name}-%{version}-sles11-sp3.diff.bz2
+Patch0:         %{name}-%{version}-sles11-sp4.diff.bz2
 
 %description
 This package provides the tools to manage multipathed devices by
