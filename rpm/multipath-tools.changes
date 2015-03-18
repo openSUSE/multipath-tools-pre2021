@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Mar 18 12:53:32 CET 2015 - hare@suse.de
+
+- Add dependency on systemd-udevd.service (bsc#903001)
+- Use ALUA for HP 3PAR (bsc#922105)
+- Add DX8700 S3 and DX8900 S3 defaults (bsc#921703)
+- Load all device handler modules on startup (bsc#908529)
+
+-------------------------------------------------------------------
 Fri Mar 13 13:59:19 CET 2015 - hare@suse.de
 
 - libmultipath: make vpd page 0x80 optional (bsc#917963)
