@@ -178,7 +178,7 @@ static struct hwentry default_hw[] = {
 	{
 		/* HP MSA 1040/2040 product family */
 		.vendor        = "HP",
-		.product       = "MSA (12)040 SA(N|S)",
+		.product       = "MSA (1|2)040 SA(N|S)",
 		.features      = DEFAULT_FEATURES,
 		.hwhandler     = DEFAULT_HWHANDLER,
 		.pgpolicy      = GROUP_BY_PRIO,
