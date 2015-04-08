@@ -621,13 +621,13 @@ domap (struct multipath * mpp, char * params)
 		r = dm_addmap_reload(mpp, params);
 		if (r)
 			r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias,
-						 0, MPATH_UDEV_RELOAD_FLAG);
+						 MPATH_UDEV_RELOAD_FLAG);
 		break;
 
 	case ACT_RESIZE:
 		r = dm_addmap_reload(mpp, params);
 		if (r)
-			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias, 1, 0);
+			r = dm_simplecmd_flush(DM_DEVICE_RESUME, mpp->alias, 0);
 		break;
 
 	case ACT_RENAME:
@@ -636,11 +636,12 @@ domap (struct multipath * mpp, char * params)
 
 	case ACT_RENAME2:
 		r = dm_rename(mpp->alias_old, mpp->alias);
-		if (r) {
-			r = dm_addmap_reload(mpp, params);
-			if (r)
-				r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias, 0, MPATH_UDEV_RELOAD_FLAG);
-		}
+		if (r != DOMAP_OK)
+			break;
+		r = dm_addmap_reload(mpp, params);
+		if (r)
+			r = dm_simplecmd_noflush(DM_DEVICE_RESUME, mpp->alias,
+						 MPATH_UDEV_RELOAD_FLAG);
 		break;
 
 	default:
