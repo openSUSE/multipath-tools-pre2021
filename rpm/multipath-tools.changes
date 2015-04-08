@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Apr  8 11:00:43 CEST 2015 - hare@suse.de
+
+- Remove 'udev_sync' argument from dm_simplecmd (bsc#903001)
+- Ensure multipathd is started before systemd-udev-trigger
+
+-------------------------------------------------------------------
 Tue Apr  7 10:18:24 CEST 2015 - hare@suse.de
 
 - Only import ID_FS_XXX variables if not set (bsc#909358)
