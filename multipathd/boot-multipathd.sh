@@ -1,9 +1,9 @@
 #!/bin/bash
 #%stage: boot
-#%depends: dm
+#%depends: dm scsi_dh
 #%programs: /sbin/multipathd
 #%if: "$root_mpath"
-#%modules: dm-multipath dm-round-robin dm-queue-length dm-least-pending dm-service-time scsi-dh-emc scsi-dh-hp_sw scsi-dh-rdac scsi-dh-alua
+#%modules: dm-multipath dm-round-robin dm-queue-length dm-least-pending dm-service-time
 
 load_modules
 
