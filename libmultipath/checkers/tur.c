@@ -193,6 +193,7 @@ void cleanup_func(void *data)
 	pthread_spin_lock(&ct->hldr_lock);
 	ct->holders--;
 	holders = ct->holders;
+	ct->running = 0;
 	ct->thread = 0;
 	pthread_spin_unlock(&ct->hldr_lock);
 	if (!holders)
@@ -280,10 +281,17 @@ libcheck_check (struct checker * c)
 	/*
 	 * Async mode
 	 */
+	pthread_spin_lock(&ct->hldr_lock);
+	ct->holders++;
+	pthread_spin_unlock(&ct->hldr_lock);
+
 	r = pthread_mutex_lock(&ct->lock);
 	if (r != 0) {
 		condlog(2, "%d:%d: tur mutex lock failed with %d",
 			TUR_DEVT(ct), r);
+		pthread_spin_lock(&ct->hldr_lock);
+		ct->holders--;
+		pthread_spin_unlock(&ct->hldr_lock);
 		MSG(c, MSG_TUR_FAILED);
 		return PATH_WILD;
 	}
@@ -318,6 +326,9 @@ libcheck_check (struct checker * c)
 			pthread_mutex_unlock(&ct->lock);
 			condlog(3, "%d:%d: tur thread not responding",
 				TUR_DEVT(ct));
+			pthread_spin_lock(&ct->hldr_lock);
+			ct->holders--;
+			pthread_spin_unlock(&ct->hldr_lock);
 			return PATH_TIMEOUT;
 		}
 		/* Start new TUR checker */
@@ -331,11 +342,13 @@ libcheck_check (struct checker * c)
 		setup_thread_attr(&attr, 32 * 1024, 1);
 		r = pthread_create(&ct->thread, &attr, tur_thread, ct);
 		if (r) {
-			pthread_mutex_unlock(&ct->lock);
 			ct->thread = 0;
-			ct->holders--;
+			pthread_mutex_unlock(&ct->lock);
+			pthread_spin_lock(&ct->hldr_lock);
+			ct->holders -= 2;
 			condlog(3, "%d:%d: failed to start tur thread, using"
 				" sync mode", TUR_DEVT(ct));
+			pthread_spin_unlock(&ct->hldr_lock);
 			return tur_check(c->fd, c->timeout, c->message);
 		}
 		pthread_attr_destroy(&attr);
@@ -353,6 +366,10 @@ libcheck_check (struct checker * c)
 			tur_status = PATH_PENDING;
 		}
 	}
+
+	pthread_spin_lock(&ct->hldr_lock);
+	ct->holders--;
+	pthread_spin_unlock(&ct->hldr_lock);
 
 	return tur_status;
 }
