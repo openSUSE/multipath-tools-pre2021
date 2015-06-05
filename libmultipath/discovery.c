@@ -515,8 +515,6 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 			"attribute '%s'", rport_id, value);
 		goto out;
 	}
-	if (mpp->dev_loss)
-		tmo = mpp->dev_loss;
 
 	/*
 	 * This is tricky.
@@ -553,7 +551,7 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 		condlog(3, "%s: limiting dev_loss_tmo to %d, since "
 			"fast_io_fail is not set",
 			rport_id, DEFAULT_DEV_LOSS_TMO);
-		tmo = DEFAULT_DEV_LOSS_TMO;
+		mpp->dev_loss = DEFAULT_DEV_LOSS_TMO;
 	}
 	if (mpp->fast_io_fail != MP_FAST_IO_FAIL_UNSET) {
 		if (mpp->fast_io_fail == MP_FAST_IO_FAIL_OFF)
