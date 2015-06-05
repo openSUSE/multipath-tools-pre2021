@@ -214,7 +214,9 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
 #endif
 
 #ifdef LIBDM_API_COOKIE
-	if (udev_wait_flag && !dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+	if (udev_wait_flag &&
+	    !dm_task_set_cookie(dmt, &cookie,
+				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
 		dm_udev_complete(cookie);
 		goto out;
 	}
@@ -295,7 +297,7 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	if (task == DM_DEVICE_CREATE) {
 #ifdef LIBDM_API_COOKIE
 		if (!dm_task_set_cookie(dmt, &cookie,
-					(conf->daemon) ? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+					DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
 			dm_udev_complete(cookie);
 			goto freeout;
 		}
@@ -1314,7 +1316,8 @@ dm_rename (char * old, char * new)
 	dm_task_no_open_count(dmt);
 
 #ifdef LIBDM_API_COOKIE
-	if (!dm_task_set_cookie(dmt, &cookie, (conf->daemon)? DM_UDEV_DISABLE_LIBRARY_FALLBACK : 0)) {
+	if (!dm_task_set_cookie(dmt, &cookie,
+				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
 		dm_udev_complete(cookie);
 		goto out;
 	}
