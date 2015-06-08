@@ -124,6 +124,7 @@ struct config {
 	int detect_prio;
 	int force_sync;
 	int uxsock_timeout;
+	int strict_timing;
 	unsigned int version[3];
 
 	char * dev;
