@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Jun 15 08:47:45 CEST 2015 - hare@suse.de
+
+- libmultipath: sysfs_set_rport_tmo still wrong (bsc#926588)
+- Always set DM_UDEV_DISABLE_LIBRARY_FALLBACK (bsc#933282)
+- Always lock context in tur checker (bsc#933745)
+- make multipathd disable queue_without_daemon by default (bsc#930928)
+
+-------------------------------------------------------------------
 Fri Dec 19 12:52:09 CET 2014 - hare@suse.de
 
 - libmultipath: Use existing user friendly name if possible
