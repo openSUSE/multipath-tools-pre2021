@@ -516,7 +516,7 @@ ev_add_path (struct path * pp, struct vectors * vecs)
 	mpp = pp->mpp = find_mp_by_wwid(vecs->mpvec, pp->wwid);
 rescan:
 	if (mpp) {
-		if (mpp->size != pp->size) {
+		if (pp->size && mpp->size != pp->size) {
 			condlog(0, "%s: failed to add new path %s, "
 				"device size mismatch",
 				mpp->alias, pp->dev);
