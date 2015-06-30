@@ -190,14 +190,8 @@ dm_prereq (void)
 }
 
 static int
-dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
+dm_simplecmd (int task, const char *name, int no_flush, uint32_t *cookie) {
 	int r = 0;
-	int udev_wait_flag = (need_sync && (task == DM_DEVICE_RESUME ||
-					    task == DM_DEVICE_REMOVE));
-
-#ifdef LIBDM_API_COOKIE
-	uint32_t cookie = 0;
-#endif
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create (task)))
@@ -214,21 +208,21 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
 #endif
 
 #ifdef LIBDM_API_COOKIE
-	if (udev_wait_flag &&
-	    !dm_task_set_cookie(dmt, &cookie,
+	if (cookie &&
+	    !dm_task_set_cookie(dmt, cookie,
 				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-		dm_udev_complete(cookie);
+		dm_udev_complete(*cookie);
 		goto out;
 	}
 #endif
 	r = dm_task_run (dmt);
 
 #ifdef LIBDM_API_COOKIE
-	if (udev_wait_flag) {
+	if (cookie) {
 		if (!r)
-			dm_udev_complete(cookie);
+			dm_udev_complete(*cookie);
 		else
-			dm_udev_wait(cookie);
+			dm_udev_wait(*cookie);
 	}
 #endif
 	out:
@@ -238,12 +232,22 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync) {
 
 extern int
 dm_simplecmd_flush (int task, const char *name, int needsync) {
-	return dm_simplecmd(task, name, 0, needsync);
+	uint32_t cookie = 0;
+
+	if (task != DM_DEVICE_RESUME && task != DM_DEVICE_REMOVE)
+		needsync = 0;
+
+	return dm_simplecmd(task, name, 0, needsync ? &cookie : NULL);
 }
 
 extern int
 dm_simplecmd_noflush (int task, const char *name, int needsync) {
-	return dm_simplecmd(task, name, 1, needsync);
+	uint32_t cookie = 0;
+
+	if (task != DM_DEVICE_RESUME && task != DM_DEVICE_REMOVE)
+		needsync = 0;
+
+	return dm_simplecmd(task, name, 1, needsync ? &cookie : NULL);
 }
 
 static int
