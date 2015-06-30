@@ -248,13 +248,10 @@ dm_simplecmd_noflush (int task, const char *name, int needsync) {
 
 static int
 dm_addmap (int task, const char *target, struct multipath *mpp,
-	   char * params, int ro) {
+	   char * params, int ro, uint32_t *cookie) {
 	int r = 0;
 	struct dm_task *dmt;
 	char *prefixed_uuid = NULL;
-#ifdef LIBDM_API_COOKIE
-	uint32_t cookie = 0;
-#endif
 
 	if (!(dmt = dm_task_create (task)))
 		return 0;
@@ -296,9 +293,9 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 
 	if (task == DM_DEVICE_CREATE) {
 #ifdef LIBDM_API_COOKIE
-		if (!dm_task_set_cookie(dmt, &cookie,
+		if (!dm_task_set_cookie(dmt, cookie,
 					DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-			dm_udev_complete(cookie);
+			dm_udev_complete(*cookie);
 			goto freeout;
 		}
 #endif
@@ -312,9 +309,9 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 #ifdef LIBDM_API_COOKIE
 	if (task == DM_DEVICE_CREATE) {
 		if (!r)
-			dm_udev_complete(cookie);
+			dm_udev_complete(*cookie);
 		else
-			dm_udev_wait(cookie);
+			dm_udev_wait(*cookie);
 	}
 #endif
 	freeout:
@@ -330,7 +327,9 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 static int
 _dm_addmap_create (struct multipath *mpp, char * params, int ro) {
 	int r;
-	r = dm_addmap(DM_DEVICE_CREATE, TGT_MPATH, mpp, params, ro);
+	uint32_t cookie = 0;
+
+	r = dm_addmap(DM_DEVICE_CREATE, TGT_MPATH, mpp, params, ro, &cookie);
 	/*
 	 * DM_DEVICE_CREATE is actually DM_DEV_CREATE + DM_TABLE_LOAD.
 	 * Failing the second part leaves an empty map. Clean it up.
@@ -358,12 +357,16 @@ dm_addmap_create_ro (struct multipath *mpp, char *params) {
 
 extern int
 dm_addmap_reload (struct multipath *mpp, char *params) {
-	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, ADDMAP_RW);
+	uint32_t cookie = 0;
+	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
+			 ADDMAP_RW, &cookie);
 }
 
 extern int
 dm_addmap_reload_ro (struct multipath *mpp, char *params) {
-	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, ADDMAP_RO);
+	uint32_t cookie = 0;
+	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
+			 ADDMAP_RO, &cookie);
 }
 
 extern int
