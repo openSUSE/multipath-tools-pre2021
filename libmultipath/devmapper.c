@@ -243,7 +243,7 @@ dm_simplecmd_noflush (int task, const char *name, uint16_t udev_flags) {
 	return dm_simplecmd(task, name, 1, udev_flags);
 }
 
-extern int
+static int
 dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	   int use_uuid, int ro) {
 	int r = 0;
