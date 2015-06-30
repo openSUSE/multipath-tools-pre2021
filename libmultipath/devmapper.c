@@ -290,12 +290,13 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 	if (mpp->attribute_flags & (1 << ATTR_GID) &&
 	    !dm_task_set_gid(dmt, mpp->gid))
 		goto freeout;
-	condlog(4, "%s: addmap [0 %llu %s %s]", mpp->alias, mpp->size,
+	condlog(4, "%s: %s [0 %llu %s %s]", mpp->alias,
+		task == DM_DEVICE_RELOAD ? "reload" : "addmap", mpp->size,
 		target, params);
 
 	dm_task_no_open_count(dmt);
 
-	if (task == DM_DEVICE_CREATE) {
+	if (cookie) {
 #ifdef LIBDM_API_COOKIE
 		if (!dm_task_set_cookie(dmt, cookie,
 					DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
@@ -311,11 +312,12 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 	r = dm_task_run (dmt);
 
 #ifdef LIBDM_API_COOKIE
-	if (task == DM_DEVICE_CREATE) {
-		if (!r)
-			dm_udev_complete(*cookie);
-		else
+	if (cookie) {
+		/* Do not wait on a cookie for DM_DEVICE_RELOAD */
+		if (r && (task == DM_DEVICE_CREATE))
 			dm_udev_wait(*cookie);
+		else
+			dm_udev_complete(*cookie);
 	}
 #endif
 	freeout:
@@ -361,9 +363,24 @@ dm_addmap_create_ro (struct multipath *mpp, char *params) {
 
 extern int
 dm_addmap_reload (struct multipath *mpp, char *params) {
+	int r;
 	uint32_t cookie = 0;
-	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
+
+	/*
+	 * DM_DEVICE_RELOAD cannot wait on a cookie, as
+	 * the cookie will only ever be released after an
+	 * DM_DEVICE_RESUME. So call DM_DEVICE_RESUME
+	 * after each DM_DEVICE_RELOAD.
+	 */
+
+	r = dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
 			 ADDMAP_RW, &cookie);
+	if (!r)
+		r = dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
+			      ADDMAP_RO, &cookie);
+	if (r)
+		r = dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, 1, &cookie);
+	return r;
 }
 
 extern int
