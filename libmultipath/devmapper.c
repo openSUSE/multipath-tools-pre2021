@@ -244,8 +244,8 @@ dm_simplecmd_noflush (int task, const char *name, uint16_t udev_flags) {
 }
 
 static int
-dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
-	   int use_uuid, int ro) {
+dm_addmap (int task, const char *target, struct multipath *mpp,
+	   char * params, int ro) {
 	int r = 0;
 	struct dm_task *dmt;
 	char *prefixed_uuid = NULL;
@@ -263,7 +263,7 @@ dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	if (ro)
 		dm_task_set_ro(dmt);
 
-	if (use_uuid && strlen(mpp->wwid) > 0){
+	if ((task == DM_DEVICE_CREATE) && strlen(mpp->wwid) > 0){
 		prefixed_uuid = MALLOC(UUID_PREFIX_LEN + strlen(mpp->wwid) + 1);
 		if (!prefixed_uuid) {
 			condlog(0, "cannot create prefixed uuid : %s",
@@ -326,7 +326,7 @@ dm_addmap_create (struct multipath *mpp, char * params) {
 		int err;
 
 		if (dm_addmap(DM_DEVICE_CREATE, TGT_MPATH,
-			      mpp, params, 1, ro))
+			      mpp, params, ro))
 			return 1;
 		/*
 		 * DM_DEVICE_CREATE is actually DM_DEV_CREATE + DM_TABLE_LOAD.
@@ -351,11 +351,11 @@ dm_addmap_create (struct multipath *mpp, char * params) {
 
 extern int
 dm_addmap_reload (struct multipath *mpp, char *params) {
-	if (dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, 0, ADDMAP_RW))
+	if (dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, ADDMAP_RW))
 		return 1;
 	if (errno != EROFS)
 		return 0;
-	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, 0, ADDMAP_RO);
+	return dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, ADDMAP_RO);
 }
 
 extern int
