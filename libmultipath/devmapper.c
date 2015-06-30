@@ -275,7 +275,7 @@ dm_device_remove (const char *name, int needsync, int deferred_remove) {
 			    deferred_remove, needsync ? &cookie : NULL);
 }
 
-extern int
+static int
 dm_addmap (int task, const char *target, struct multipath *mpp,
 	   char * params, int ro, uint32_t *cookie) {
 	int r = 0;
