@@ -246,7 +246,7 @@ dm_simplecmd_noflush (int task, const char *name, int needsync) {
 	return dm_simplecmd(task, name, 1, needsync);
 }
 
-extern int
+static int
 dm_addmap (int task, const char *target, struct multipath *mpp, char * params,
 	   int use_uuid, int ro) {
 	int r = 0;
