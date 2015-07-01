@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Jul  1 08:02:27 CEST 2015 - hare@suse.de
+
+- Fixup DM_DEVICE_RELOAD behaviour (bsc#933282)
+- Always set DM_UDEV_DISABLE_LIBRARY_FALLBACK (bsc#933282)
+- libmultipath: sysfs_set_rport_tmo still wrong (bsc#926588)
+- Make loading of scsi_dh modules optional (bsc#926440)
+
+-------------------------------------------------------------------
 Fri Dec 19 12:52:09 CET 2014 - hare@suse.de
 
 - libmultipath: Use existing user friendly name if possible
