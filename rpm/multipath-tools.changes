@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Mon Aug  3 11:48:54 CEST 2015 - hare@suse.de
+
+- Create package for SLE12-SP1.
+  * Remove multipath-tools-0.5.0-sles12.diff.bz2
+  * Add multipath-tools-0.5.0-sles12-sp1.diff.bz2
+- kpartx: parse emulated DASD devices
+- multipathd: Fixup queueing mode in 'show maps status' (bsc#933885)
+- multipathd: Accept zero-sized paths in ev_add_path
+- Always set DM_UDEV_DISABLE_LIBRARY_FALLBACK (bsc#933282)
+- libmultipath: Fixup 'DM_DEVICE_RELOAD' handling (bsc#933282)
+- libmultipath: correctly display checker status
+
+-------------------------------------------------------------------
 Wed Apr  8 11:00:43 CEST 2015 - hare@suse.de
 
 - Remove 'udev_sync' argument from dm_simplecmd (bsc#903001)
