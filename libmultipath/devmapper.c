@@ -757,7 +757,7 @@ dm_suspend_and_flush_map (const char * mapname)
 	if (s)
 		queue_if_no_path = 0;
 	else
-		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
+		s = dm_simplecmd(DM_DEVICE_SUSPEND, mapname, 0, 0, NULL);
 
 	if (!dm_flush_map(mapname)) {
 		condlog(4, "multipath map %s removed", mapname);
