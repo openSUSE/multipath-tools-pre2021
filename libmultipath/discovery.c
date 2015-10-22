@@ -132,59 +132,6 @@ path_discover (vector pathvec, struct config * conf,
 }
 
 int
-path_trigger (struct config * conf, int flag)
-{
-	struct udev_enumerate *udev_iter;
-	struct udev_list_entry *entry;
-	int num_paths = 0;
-
-	udev_iter = udev_enumerate_new(conf->udev);
-	if (!udev_iter)
-		return -ENOMEM;
-
-	udev_enumerate_add_match_subsystem(udev_iter, "block");
-	udev_enumerate_add_match_is_initialized(udev_iter);
-	udev_enumerate_scan_devices(udev_iter);
-
-	udev_list_entry_foreach(entry,
-				udev_enumerate_get_list_entry(udev_iter)) {
-		const char *devpath;
-		char *devname;
-		char filename[PATH_MAX];
-		int fd;
-
-		devpath = udev_list_entry_get_name(entry);
-		condlog(3, "Trigger device %s", devpath);
-		devname = strrchr(devpath, '/');
-		if (!devname) {
-			condlog(3, "%s: invalid devpath", devpath);
-			continue;
-		}
-		devname++;
-		if (filter_devnode(conf->blist_devnode,
-				   conf->elist_devnode, devname) > 0) {
-			condlog(3, "%s: blacklisted", devname);
-			continue;
-		}
-		strncpy(filename, devpath, strlen(devpath) + 1);
-		strncat(filename, "/uevent", 8);
-		fd = open(filename, O_WRONLY | O_CLOEXEC);
-		if (fd < 0)
-			continue;
-		if (write(fd, "add", 3) < 0) {
-			condlog(3, "%s: Failed to trigger 'add' uevent: %m",
-				devpath);
-		} else {
-			num_paths++;
-		}
-		close(fd);
-	}
-	udev_enumerate_unref(udev_iter);
-	condlog(4, "Triggered %d paths", num_paths);
-	return num_paths;
-}
-
-int
 path_discovery (vector pathvec, struct config * conf, int flag)
 {
 	struct udev_enumerate *udev_iter;

@@ -1527,24 +1527,6 @@ configure (struct vectors * vecs, int start_waiters)
 }
 
 int
-trigger_devices (struct vectors * vecs)
-{
-
-	if (!vecs->pathvec && !(vecs->pathvec = vector_alloc()))
-		return 1;
-
-	if (!vecs->mpvec && !(vecs->mpvec = vector_alloc()))
-		return 1;
-
-	/*
-	 * Trigger all non-blacklisted block devices
-	 */
-	path_trigger(conf, DI_ALL);
-
-	return 0;
-}
-
-int
 reconfigure (struct vectors * vecs)
 {
 	struct config * old = conf;
@@ -1866,19 +1848,13 @@ child (void * param)
 		condlog(0, "failed to create cli listener: %d", rc);
 		goto failed;
 	}
+	/*
+	 * fetch and configure both paths and multipaths
+	 */
 #ifdef USE_SYSTEMD
 	sd_notify(0, "STATUS=configure");
 #endif
 	post_config_state(DAEMON_CONFIGURE);
-
-	/*
-	 * Trigger all paths to force reconfiguration
-	 */
-	pthread_cleanup_push(cleanup_lock, &vecs->lock);
-	lock(vecs->lock);
-	pthread_testcancel();
-	trigger_devices(vecs);
-	lock_cleanup_pop(vecs->lock);
 
 	/*
 	 * start threads
@@ -1896,8 +1872,6 @@ child (void * param)
 	/* Startup complete, create logfile */
 	pid_rc = pidfile_create(DEFAULT_PIDFILE, daemon_pid);
 	/* Ignore errors, we can live without */
-
-	post_config_state(DAEMON_RUNNING);
 
 #ifdef USE_SYSTEMD
 	sd_notify(0, "READY=1\nSTATUS=running");
@@ -2098,9 +2072,7 @@ main (int argc, char *argv[])
 			uxclnt(optarg, uxsock_timeout + 100);
 			exit(0);
 		default:
-			fprintf(stderr, "Invalid argument '-%c'\n",
-				optopt);
-			exit(1);
+			;
 		}
 	}
 	if (optind < argc) {
