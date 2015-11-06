@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Nov  6 13:35:22 CET 2015 - hare@suse.de
+
+- Fixes for md_monitor on zFCP (FATE#319070):
+  * strict loop timings
+  * multipathd: fixup a crash when invoking CLI commands
+  * multipathd: implement 'show map $map format $format
+
+-------------------------------------------------------------------
 Tue Aug 25 11:58:21 CEST 2015 - hare@suse.de
 
 - Fixup hang in 'multipath -f' (bsc#941954)
