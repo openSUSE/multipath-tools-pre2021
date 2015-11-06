@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Nov  6 13:35:22 CET 2015 - hare@suse.de
+
+- Fixes for md_monitor on zFCP (FATE#319070):
+  * strict loop timings
+  * multipathd: fixup a crash when invoking CLI commands
+  * multipathd: implement 'show map $map format $format
+
+-------------------------------------------------------------------
 Wed Apr  6 15:53:37 CEST 2016 - hare@suse.de
 
 - multipathd: do not flush maps on startup
