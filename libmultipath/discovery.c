@@ -1026,7 +1026,7 @@ get_prio (struct path * pp)
 }
 
 static int
-get_uid (struct path * pp)
+get_uid (struct path * pp, int path_state)
 {
 	char *c;
 	const char *origin;
@@ -1042,6 +1042,9 @@ get_uid (struct path * pp)
 	memset(pp->wwid, 0, WWID_SIZE);
 	if (pp->getuid) {
 		char buff[CALLOUT_MAX_SIZE];
+
+		if (path_state != PATH_UP)
+			return 1;
 
 		/* Use 'getuid' callout, deprecated */
 		condlog(1, "%s: using deprecated getuid callout", pp->dev);
@@ -1154,8 +1157,8 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		}
 	}
 
-	if (path_state == PATH_UP && (mask & DI_WWID) && !strlen(pp->wwid))
-		get_uid(pp);
+	if ((mask & DI_WWID) && !strlen(pp->wwid))
+		get_uid(pp, path_state);
 	if (mask & DI_BLACKLIST && mask & DI_WWID) {
 		if (!strlen(pp->wwid) ||
 		    filter_wwid(conf->blist_wwid, conf->elist_wwid,
@@ -1168,13 +1171,14 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	  * Retrieve path priority, even for PATH_DOWN paths if it has never
 	  * been successfully obtained before.
 	  */
-	if ((mask & DI_PRIO) && path_state == PATH_UP) {
+	if ((mask & DI_PRIO)) {
 		if (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF) {
 			if (!strlen(pp->wwid))
-				get_uid(pp);
+				get_uid(pp, path_state);
 			if (!strlen(pp->wwid))
 				return PATHINFO_SKIPPED;
-			get_prio(pp);
+			if (path_state == PATH_UP)
+				get_prio(pp);
 		}
 	}
 
