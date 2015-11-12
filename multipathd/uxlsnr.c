@@ -43,6 +43,8 @@ struct client {
 	int fd;
 };
 
+#define MIN_POLLS 1023
+
 LIST_HEAD(clients);
 pthread_mutex_t client_lock = PTHREAD_MUTEX_INITIALIZER;
 struct pollfd *polls;
@@ -129,6 +131,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 	char *inbuf;
 	char *reply;
 	sigset_t mask;
+	int old_clients = MIN_POLLS;
 
 	ux_sock = ux_socket_listen(DEFAULT_SOCKET);
 
@@ -138,13 +141,18 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 	}
 
 	if (!conf) {
-		condlog(1, "configuration changed");
+		condlog(1, "uxsock: configuration changed");
 		return NULL;
 	}
 
 	pthread_cleanup_push(uxsock_cleanup, NULL);
 
-	polls = (struct pollfd *)MALLOC(0);
+	condlog(3, "uxsock: startup listener");
+	polls = (struct pollfd *)MALLOC(MIN_POLLS);
+	if (!polls) {
+		condlog(0, "uxsock: failed to allocate poll fds");
+		return NULL;
+	}
 	pthread_sigmask(SIG_SETMASK, NULL, &mask);
 	sigdelset(&mask, SIGHUP);
 	sigdelset(&mask, SIGUSR1);
@@ -158,7 +166,23 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 		list_for_each_entry(c, &clients, node) {
 			num_clients++;
 		}
-		polls = REALLOC(polls, (1+num_clients) * sizeof(*polls));
+		if (num_clients != old_clients) {
+			if (num_clients < MIN_POLLS) {
+				polls = REALLOC(polls, (1 + MIN_POLLS) *
+						sizeof(struct pollfd));
+			} else {
+				polls = REALLOC(polls, (1+num_clients) *
+						sizeof(struct pollfd));
+			}
+			num_clients = old_clients;
+		}
+		if (!polls) {
+			pthread_mutex_unlock(&client_lock);
+			condlog(0, "uxsock: failed to realloc %d poll fds",
+				1 + num_clients);
+			pthread_yield();
+			continue;
+		}
 		polls[0].fd = ux_sock;
 		polls[0].events = POLLIN;
 
