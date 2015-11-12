@@ -995,8 +995,10 @@ uevqloop (void * ap)
 static void *
 uxlsnrloop (void * ap)
 {
-	if (cli_init())
+	if (cli_init()) {
+		condlog(1, "Failed to init uxsock listener");
 		return NULL;
+	}
 
 	set_handler_callback(LIST+PATHS, cli_list_paths);
 	set_handler_callback(LIST+PATHS+FMT, cli_list_paths_fmt);

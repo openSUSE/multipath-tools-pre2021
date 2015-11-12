@@ -181,8 +181,8 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 			}
 
 			/* something went badly wrong! */
-			condlog(0, "poll");
-			pthread_exit(NULL);
+			condlog(0, "uxsock: poll failed with %d", errno);
+			break;
 		}
 
 		if (poll_count == 0)
@@ -213,25 +213,26 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 				if (recv_packet(c->fd, &inbuf, &len,
 						uxsock_timeout) != 0) {
 					dead_client(c);
-				} else {
-					inbuf[len - 1] = 0;
-					condlog(4, "Got request [%s]", inbuf);
-					uxsock_trigger(inbuf, &reply, &rlen,
-						       trigger_data);
-					if (reply) {
-						if (send_packet(c->fd, reply,
-								rlen) != 0) {
-							dead_client(c);
-						}
-						condlog(4, "Reply [%d bytes]",
-							rlen);
-						FREE(reply);
-						reply = NULL;
-					}
-					check_timeout(start_time, inbuf,
-						      uxsock_timeout);
-					FREE(inbuf);
+					continue;
 				}
+				inbuf[len - 1] = 0;
+				condlog(4, "cli[%d]: Got request [%s]",
+					i, inbuf);
+				uxsock_trigger(inbuf, &reply, &rlen,
+					       trigger_data);
+				if (reply) {
+					if (send_packet(c->fd, reply,
+							rlen) != 0) {
+						dead_client(c);
+					}
+					condlog(4, "cli[%d]: Reply [%d bytes]",
+						i, rlen);
+					FREE(reply);
+					reply = NULL;
+				}
+				check_timeout(start_time, inbuf,
+					      uxsock_timeout);
+				FREE(inbuf);
 			}
 		}
 
