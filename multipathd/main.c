@@ -866,8 +866,6 @@ uxlsnrloop (void * ap)
 	set_handler_callback(LIST+WILDCARDS, cli_list_wildcards);
 	set_handler_callback(ADD+PATH, cli_add_path);
 	set_handler_callback(DEL+PATH, cli_del_path);
-	set_handler_callback(SUSPEND+PATH, cli_block_path);
-	set_handler_callback(RESUME+PATH, cli_unblock_path);
 	set_handler_callback(ADD+MAP, cli_add_map);
 	set_handler_callback(DEL+MAP, cli_del_map);
 	set_handler_callback(SWITCH+MAP+GROUP, cli_switch_group);
@@ -1163,11 +1161,6 @@ check_path (struct vectors * vecs, struct path * pp)
 	if (newstate == PATH_PENDING) {
 		pp->tick = 1;
 		return;
-	}
-	if (newstate == PATH_TIMEOUT) {
-		/* Command timeout, block path */
-		sysfs_set_fc_rport_state(pp, 1);
-		newstate = PATH_DOWN;
 	}
 	/*
 	 * Synchronize with kernel state

@@ -42,7 +42,6 @@ int store_pathinfo (vector pathvec, vector hwtable,
 		    struct path **pp_ptr);
 int sysfs_set_scsi_tmo (struct multipath *mpp);
 int sysfs_get_timeout(struct path *pp, unsigned int *timeout);
-int sysfs_set_fc_rport_state(struct path *pp, int blocked);
 
 /*
  * discovery bitmask
