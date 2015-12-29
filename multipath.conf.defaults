@@ -940,6 +940,23 @@
 #		rr_weight "uniform"
 #		no_path_retry "queue"
 #	}
+#	device {
+#		vendor "ZTE"
+#		product "ZXUSP"
+#		features "1 queue_if_no_path"
+#		path_grouping_policy "group_by_prio"
+#		path_selector "round-robin 0"
+#		path_checker "tur"
+#		hardware_handler "1 alua"
+#		prio "alua"
+#		failback "immediate"
+#		rr_weight "uniform"
+#		no_path_retry 20
+#		rr_min_io_rq 1
+#		flush_on_last_del "yes"
+#		fast_io_fail_tmo 5
+#		dev_loss_tmo 60
+#	}
 #}
 #multipaths {
 #}
