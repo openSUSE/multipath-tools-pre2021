@@ -1532,13 +1532,11 @@ reconfigure (struct vectors * vecs)
 	/*
 	 * free old map and path vectors ... they use old conf state
 	 */
-	if (VECTOR_SIZE(vecs->mpvec))
-		remove_maps_and_stop_waiters(vecs);
+	remove_maps_and_stop_waiters(vecs);
 
-	if (VECTOR_SIZE(vecs->pathvec))
-		free_pathvec(vecs->pathvec, FREE_PATHS);
-
+	free_pathvec(vecs->pathvec, FREE_PATHS);
 	vecs->pathvec = NULL;
+	
 	conf = NULL;
 
 	/* Re-read any timezone changes */
