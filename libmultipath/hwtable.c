@@ -1166,6 +1166,23 @@ static struct hwentry default_hw[] = {
 		.prio_name     = PRIO_ALUA,
 		.prio_args     = NULL,
 	},
+	{
+		.vendor        = "ZTE",
+		.product       = "ZXUSP",
+		.features      = "1 queue_if_no_path",
+		.pgpolicy      = GROUP_BY_PRIO,
+		.selector      = "round-robin 0"
+		.checker_name  = TUR,
+		.hwhandler     = "1 alua",
+		.prio_name     = PRIO_ALUA,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.rr_weight     = RR_WEIGHT_NONE,
+		.no_path_retry = 20,
+		.minio_rq      = 1,
+		.flush_on_last_del = FLUSH_ENABLED,
+		.fast_io_fail      = 5,
+		.dev_loss          = 60,
+	},
 	/*
 	 * EOL
 	 */
