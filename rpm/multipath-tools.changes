@@ -1,4 +1,39 @@
 -------------------------------------------------------------------
+Wed Feb 17 12:24:41 CET 2016 - hare@suse.de
+
+- kpartx: parse emulated DASD devices
+- multipathd: fixup queueing mode in 'show maps status' (bsc#933885)
+- multipathd: accept zero-size paths in ev_add_path()
+- Always set DM_UDEV_DISABLE_LIBRARY_FALLBACK
+- Fixes for bsc#933282:
+  * libmultipath: make 'dm_addmap' static
+  * libmultipath: remove 'use_uuid' argument from dm_addmap()
+  * libmultipath: pass in 'cookie' as argument for dm_addmap()
+  * libmultipath: pass in cookie as argument for dm_simplecmd()
+  * libmultipath: Fixup 'DM_DEVICE_RELOAD' handling
+- libmultipath: correctly display checker status
+- Fix hang in 'multipath -f' (bsc#941954)
+- multipathd: fixup signal handling (again)
+- Revert 'trigger all devices on startup'
+- multipathd: print error message for invalid arguments
+- multipathd: block checkerloop during reconfiguration (bsc#946658)
+- libmultipath: correctly initialize pp->sg_id
+- multipathd: don't buffer output with systemd (bsc#954726)
+- multipath.rules: Do not forward partition events (bsc#954726)
+- libmultipath: improve uxlsnr handling (bsc#954726)
+- multipathd: do not realloc memory in uxlsnr (bsc#954726)
+- libmultipath: call get_uid() for all paths (bsc#935312)
+- multipathd: Do not print misleading message 'not found in pathvec'
+- multipathd: Do not update the paths vec when removing paths
+- libmultipath: remove 'get_info' argument for adopt_paths()
+- libmultipath: ensure 'dev_t' is set when store paths (bsc#924316)
+- libmultipath: Do not store paths with empty dev_t (bsc#924316)
+- libmultipath: Do not store paths with empty device name (bsc#924316)
+- libmultipath: sysfs_set_rport_tmo still wrong (bsc#926588)
+- Add LIO-ORG/SUSE RBD backend hardware defaults (bsc#947845)
+- multipath: Reset alias if renaming fails (bsc#943157)
+
+-------------------------------------------------------------------
 Wed Apr  8 11:00:43 CEST 2015 - hare@suse.de
 
 - Remove 'udev_sync' argument from dm_simplecmd (bsc#903001)
