@@ -288,6 +288,11 @@ free_multipathvec (vector mpvec, enum free_path_mode free_paths)
 int
 store_path (vector pathvec, struct path * pp)
 {
+	if (!strlen(pp->dev_t)) {
+		condlog(2, "%s: Empty device number", pp->dev);
+		return 1;
+	}
+
 	if (!vector_alloc_slot(pathvec))
 		return 1;
 
