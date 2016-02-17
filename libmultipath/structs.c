@@ -292,7 +292,10 @@ store_path (vector pathvec, struct path * pp)
 		condlog(2, "%s: Empty device number", pp->dev);
 		return 1;
 	}
-
+	if (!strlen(pp->dev)) {
+		condlog(2, "%s: Empty device name", pp->dev_t);
+		return 1;
+	}
 	if (!vector_alloc_slot(pathvec))
 		return 1;
 
