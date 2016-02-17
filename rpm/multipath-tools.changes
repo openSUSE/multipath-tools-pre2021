@@ -1,4 +1,25 @@
 -------------------------------------------------------------------
+Wed Feb 17 15:24:52 CET 2016 - hare@suse.de
+
+- multipathd: Do not switch paths on empty multipath tables (bsc#956349)
+- multipathd: Do not update the paths vec when removing paths
+- multipathd: Do not print misleading message 'not found in pathvec'
+- libmultipath: correctly initialize pp->sg_id
+- Fix hang in 'multipath -f' (bsc#941954)
+- Add LIO-ORG/SUSE RBD backend hardware defaults (bsc#947845)
+- Do not treat 'transport-offline' paths as 'offline' (bnc#888378,bsc#949929)
+- libmultipath: call get_uid() for all paths (bsc#935312)
+- Revert patch 'Handle blocked FC rports' (bsc#941405)
+- multipath: Reset alias if renaming fails (bsc#943157)
+- multipath: Wrong sysfs attribute used for iSCSI settings. (bsc#948929)
+- Fixes for bsc#933282:
+  * libmultipath: Fixup 'DM_DEVICE_RELOAD' handling
+  * libmultipath: pass in cookie as argument for dm_simplecmd()
+  * libmultipath: pass in 'cookie' as argument for dm_addmap()
+  * libmultipath: remove 'use_uuid' argument from dm_addmap()
+  * libmultipath: make 'dm_addmap' static
+
+-------------------------------------------------------------------
 Mon Jun 15 08:47:45 CEST 2015 - hare@suse.de
 
 - libmultipath: sysfs_set_rport_tmo still wrong (bsc#926588)
