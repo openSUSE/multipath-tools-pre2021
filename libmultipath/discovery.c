@@ -1599,7 +1599,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 	 * avoid inconsistent information in
 	 * find_path_by_dev()/find_path_by_devt()
 	 */
-	if (!strlen(pp->dev_t)) {
+	if (!strlen(pp->dev_t) && !(mask & DI_SYSFS)) {
 		condlog(1, "%s: empty device number", pp->dev);
 		mask |= DI_SYSFS;
 	}
