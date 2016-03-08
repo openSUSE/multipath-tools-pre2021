@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Mar  8 10:57:07 CET 2016 - hare@suse.de
+
+- Fixup overzealous warning 'empty device number' (bsc#969857)
+
+-------------------------------------------------------------------
 Wed Feb 17 15:53:26 CET 2016 - hare@suse.de
 
 - multipathd: fixup signal handling (again)
