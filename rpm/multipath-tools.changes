@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Mar 16 15:54:27 CET 2016 - hare@suse.de
+
+- Fixup overzealous warning 'empty device number' (bsc#969857)
+
+-------------------------------------------------------------------
 Wed Feb 17 12:24:41 CET 2016 - hare@suse.de
 
 - kpartx: parse emulated DASD devices
