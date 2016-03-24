@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Mar 24 09:49:45 CET 2016 - hare@suse.de
+
+- multipathd: do not flush maps on startup
+- Use find_path_by_dev() where possible (bsc#924316)
+- Fixup error return in store_path() (bsc#972329)
+- Do not display message 'invalid fd'
+
+-------------------------------------------------------------------
 Tue Mar  8 10:57:07 CET 2016 - hare@suse.de
 
 - Fixup overzealous warning 'empty device number' (bsc#969857)
