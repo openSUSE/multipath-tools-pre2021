@@ -227,7 +227,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 				}
 				pthread_mutex_unlock(&client_lock);
 				if (!c) {
-					condlog(3, "cli%d: invalid fd %d",
+					condlog(4, "cli%d: new fd %d",
 						i, polls[i].fd);
 					continue;
 				}
