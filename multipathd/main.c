@@ -155,7 +155,7 @@ coalesce_maps(struct vectors *vecs, vector nmpv)
 
 	vector_foreach_slot (ompv, ompp, i) {
 		condlog(3, "%s: coalesce map", ompp->alias);
-		if (!find_mp_by_wwid(nmpv, ompp->wwid)) {
+		if (ompp->hwe && !find_mp_by_wwid(nmpv, ompp->wwid)) {
 			/*
 			 * remove all current maps not allowed by the
 			 * current configuration
