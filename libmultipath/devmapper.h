@@ -42,7 +42,7 @@ char * dm_mapname(int major, int minor);
 int dm_remove_partmaps (const char * mapname, int need_sync);
 int dm_get_uuid(char *name, char *uuid);
 int dm_get_info (char * mapname, struct dm_info ** dmi);
-int dm_rename (char * old, char * new);
+int dm_rename (const char * old, char * new);
 int dm_reassign(const char * mapname);
 int dm_reassign_table(const char *name, char *old, char *new);
 int dm_setgeometry(struct multipath *mpp);

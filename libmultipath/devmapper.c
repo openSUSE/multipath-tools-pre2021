@@ -32,6 +32,10 @@
 #define UUID_PREFIX "mpath-"
 #define UUID_PREFIX_LEN 6
 
+static int do_foreach_partmaps(const char * mapname,
+			       int (*partmap_func)(const char *, void *),
+			       void *data);
+
 #ifndef LIBDM_API_COOKIE
 static inline int dm_task_set_cookie(struct dm_task *dmt, uint32_t *c, int a)
 {
@@ -690,6 +694,26 @@ out:
 	return r;
 }
 
+static int
+partmap_in_use(const char *name, void *data)
+{
+	int part_count, *ret_count = (int *)data;
+	int open_count = dm_get_opencount(name);
+
+	if (ret_count)
+		(*ret_count)++;
+	part_count = 0;
+	if (open_count) {
+		if (do_foreach_partmaps(name, partmap_in_use, &part_count))
+			return 1;
+		if (open_count != part_count) {
+			condlog(2, "%s: map in use", name);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 extern int
 _dm_flush_map (const char * mapname, int need_sync)
 {
@@ -700,6 +724,10 @@ _dm_flush_map (const char * mapname, int need_sync)
 
 	if (dm_type(mapname, TGT_MPATH) <= 0)
 		return 0; /* nothing to do */
+
+	/* Make sure that no devices are in use */
+	if (partmap_in_use(mapname, NULL))
+		return 1;
 
 	if (dm_remove_partmaps(mapname, need_sync))
 		return 1;
@@ -789,7 +817,7 @@ dm_flush_maps (void)
 }
 
 int
-dm_message(char * mapname, char * message)
+dm_message(const char * mapname, char * message)
 {
 	int r = 1;
 	struct dm_task *dmt;
@@ -1035,7 +1063,8 @@ bad:
 }
 
 static int
-do_foreach_partmaps (const char * mapname, int (*partmap_func)(char *, void *),
+do_foreach_partmaps (const char * mapname,
+		     int (*partmap_func)(const char *, void *),
 		     void *data)
 {
 	struct dm_task *dmt;
@@ -1107,7 +1136,7 @@ struct remove_data {
 };
 
 static int
-remove_partmap(char *name, void *data)
+remove_partmap(const char *name, void *data)
 {
 	struct remove_data *rd = (struct remove_data *)data;
 
@@ -1180,12 +1209,12 @@ out:
 }
 
 struct rename_data {
-	char *old;
+	const char *old;
 	char *new;
 };
 
 static int
-rename_partmap (char *name, void *data)
+rename_partmap (const char *name, void *data)
 {
 	char buff[PARAMS_SIZE];
 	struct rename_data *rd = (struct rename_data *)data;
@@ -1199,7 +1228,7 @@ rename_partmap (char *name, void *data)
 }
 
 int
-dm_rename_partmaps (char * old, char * new)
+dm_rename_partmaps (const char * old, char * new)
 {
 	struct rename_data rd;
 
@@ -1210,7 +1239,7 @@ dm_rename_partmaps (char * old, char * new)
 }
 
 int
-dm_rename (char * old, char * new)
+dm_rename (const char * old, char * new)
 {
 	int r = 0;
 	struct dm_task *dmt;
