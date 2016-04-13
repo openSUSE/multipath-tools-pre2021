@@ -1538,6 +1538,7 @@ checkerloop (void *ap)
 			}
 		}
 
+		post_config_state(DAEMON_IDLE);
 		if (!conf->strict_timing)
 			sleep(1);
 		else {
@@ -1564,8 +1565,6 @@ checkerloop (void *ap)
 				break;
 			}
 		}
-		post_config_state(DAEMON_IDLE);
-		sleep(1);
 	}
 	return NULL;
 }
