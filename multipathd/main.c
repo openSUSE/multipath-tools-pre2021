@@ -1467,7 +1467,7 @@ checkerloop (void *ap)
 
 	while (1) {
 		struct timeval diff_time, start_time, end_time;
-		int num_paths = 0, ticks = 0, signo, rc = 0;
+		int num_paths = 0, ticks = 0, signo, strict_timing, rc = 0;
 		sigset_t mask;
 
 		if (gettimeofday(&start_time, NULL) != 0)
@@ -1492,7 +1492,7 @@ checkerloop (void *ap)
 			condlog(4, "timeout waiting for DAEMON_IDLE");
 			continue;
 		}
-
+		strict_timing = conf->strict_timing;
 		if (vecs->pathvec) {
 			pthread_cleanup_push(cleanup_lock, &vecs->lock);
 			lock(vecs->lock);
@@ -1539,14 +1539,15 @@ checkerloop (void *ap)
 		}
 
 		post_config_state(DAEMON_IDLE);
-		if (!conf->strict_timing)
+		if (!strict_timing)
 			sleep(1);
 		else {
 			timer_tick_it.it_interval.tv_sec = 0;
 			timer_tick_it.it_interval.tv_usec = 0;
 			if (diff_time.tv_usec) {
 				timer_tick_it.it_value.tv_sec = 0;
-				timer_tick_it.it_value.tv_usec = (unsigned long)1000000 - diff_time.tv_usec;
+				timer_tick_it.it_value.tv_usec =
+					(unsigned long)1000000 - diff_time.tv_usec;
 			} else {
 				timer_tick_it.it_value.tv_sec = 1;
 				timer_tick_it.it_value.tv_usec = 0;
