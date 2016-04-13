@@ -148,7 +148,7 @@ void * uxsock_listen(uxsock_trigger_fn uxsock_trigger, void * trigger_data)
 	pthread_cleanup_push(uxsock_cleanup, NULL);
 
 	condlog(3, "uxsock: startup listener");
-	polls = (struct pollfd *)MALLOC(MIN_POLLS);
+	polls = (struct pollfd *)MALLOC(MIN_POLLS + 1);
 	if (!polls) {
 		condlog(0, "uxsock: failed to allocate poll fds");
 		return NULL;
