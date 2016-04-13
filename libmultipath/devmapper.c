@@ -45,7 +45,6 @@ void dm_udev_wait(unsigned int c)
 void dm_udev_set_sync_support(int c)
 {
 }
-
 #endif
 
 static void
@@ -236,14 +235,22 @@ extern int
 dm_simplecmd_flush (int task, const char *name, uint16_t udev_flags) {
 	uint32_t cookie = 0;
 
-	return dm_simplecmd(task, name, 0, udev_flags, &cookie);
+	if (task == DM_DEVICE_RESUME ||
+	    task == DM_DEVICE_REMOVE)
+		return dm_simplecmd(task, name, 0, udev_flags, &cookie);
+	else
+		return dm_simplecmd(task, name, 0, udev_flags, NULL);
 }
 
 extern int
 dm_simplecmd_noflush (int task, const char *name, uint16_t udev_flags) {
 	uint32_t cookie = 0;
 
-	return dm_simplecmd(task, name, 1, udev_flags, &cookie);
+	if (task == DM_DEVICE_RESUME ||
+	    task == DM_DEVICE_REMOVE)
+		return dm_simplecmd(task, name, 1, udev_flags, &cookie);
+	else
+		return dm_simplecmd(task, name, 1, udev_flags, NULL);
 }
 
 static int
