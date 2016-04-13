@@ -207,12 +207,10 @@ dm_prereq (void)
 #define do_deferred(x) ((x) == DEFERRED_REMOVE_ON || (x) == DEFERRED_REMOVE_IN_PROGRESS)
 
 static int
-dm_simplecmd (int task, const char *name, int no_flush, int need_sync,
+dm_simplecmd (int task, const char *name, int no_flush,
 	      uint16_t udev_flags, int deferred_remove, uint32_t *cookie)
 {
 	int r = 0;
-	int udev_wait_flag = (need_sync && (task == DM_DEVICE_RESUME ||
-					    task == DM_DEVICE_REMOVE));
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create (task)))
@@ -231,7 +229,7 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync,
 	if (do_deferred(deferred_remove))
 		dm_task_deferred_remove(dmt);
 #endif
-	if (udev_wait_flag &&
+	if (cookie &&
 	    !dm_task_set_cookie(dmt, cookie,
 				DM_UDEV_DISABLE_LIBRARY_FALLBACK | udev_flags)) {
 		dm_udev_complete(*cookie);
@@ -239,7 +237,7 @@ dm_simplecmd (int task, const char *name, int no_flush, int need_sync,
 	}
 	r = dm_task_run (dmt);
 
-	if (udev_wait_flag) {
+	if (cookie) {
 		if (!r)
 			dm_udev_complete(*cookie);
 		else
@@ -254,22 +252,27 @@ extern int
 dm_simplecmd_flush (int task, const char *name, uint16_t udev_flags) {
 	uint32_t cookie = 0;
 
-	return dm_simplecmd(task, name, 0, 1, udev_flags, 0, &cookie);
+	if (task == DM_DEVICE_RESUME ||
+	    task == DM_DEVICE_REMOVE)
+		return dm_simplecmd(task, name, 0, udev_flags, 0, &cookie);
+	else
+		return dm_simplecmd(task, name, 0, udev_flags, 0, NULL);
 }
 
 extern int
 dm_simplecmd_noflush (int task, const char *name, int needsync, uint16_t udev_flags) {
 	uint32_t cookie = 0;
 
-	return dm_simplecmd(task, name, 1, needsync, udev_flags, 0, &cookie);
+	return dm_simplecmd(task, name, 1, udev_flags, 0,
+			    needsync ? &cookie : NULL);
 }
 
 static int
 dm_device_remove (const char *name, int needsync, int deferred_remove) {
 	uint32_t cookie = 0;
 
-	return dm_simplecmd(DM_DEVICE_REMOVE, name, 0, needsync, 0,
-			    deferred_remove, &cookie);
+	return dm_simplecmd(DM_DEVICE_REMOVE, name, 0, 0,
+			    deferred_remove, needsync ? &cookie : NULL);
 }
 
 extern int
