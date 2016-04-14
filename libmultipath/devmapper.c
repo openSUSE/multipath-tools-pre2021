@@ -1440,8 +1440,10 @@ dm_rename (const char * old, char * new)
 	dm_task_no_open_count(dmt);
 
 	if (!dm_task_set_cookie(dmt, &cookie,
-				DM_UDEV_DISABLE_LIBRARY_FALLBACK))
+				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
+		dm_udev_complete(cookie);
 		goto out;
+	}
 	r = dm_task_run(dmt);
 
 	if (!r)
