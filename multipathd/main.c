@@ -727,8 +727,14 @@ ev_remove_path (struct path *pp, struct vectors * vecs)
 	 */
 	if ((mpp = pp->mpp)) {
 		/*
-		 * Remove path from paths list
+		 * transform the mp->pg vector of vectors of paths
+		 * into a mp->params string to feed the device-mapper
 		 */
+		if (update_mpp_paths(mpp, vecs->pathvec)) {
+			condlog(0, "%s: failed to update paths",
+				mpp->alias);
+			goto fail;
+		}
 		if ((i = find_slot(mpp->paths, (void *)pp)) != -1)
 			vector_del_slot(mpp->paths, i);
 
@@ -761,10 +767,6 @@ ev_remove_path (struct path *pp, struct vectors * vecs)
 			 */
 		}
 
-		/*
-		 * transform the mp->pg vector of vectors of paths
-		 * into a mp->params string to feed the device-mapper
-		 */
 		if (setup_map(mpp, params, PARAMS_SIZE)) {
 			condlog(0, "%s: failed to setup map for"
 				" removal of path %s", mpp->alias, pp->dev);
@@ -1045,7 +1047,6 @@ uxlsnrloop (void * ap)
 
 	umask(077);
 	uxsock_listen(&uxsock_trigger, ap);
-	condlog(1, "terminate uxsock listener");
 
 	return NULL;
 }
