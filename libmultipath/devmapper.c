@@ -194,9 +194,11 @@ dm_prereq (void)
 }
 
 static int
-dm_simplecmd (int task, const char *name, int no_flush, uint16_t udev_flags,
-	      uint32_t *cookie) {
+dm_simplecmd (int task, const char *name, int no_flush, int need_sync, uint16_t udev_flags) {
 	int r = 0;
+	int udev_wait_flag = (need_sync && (task == DM_DEVICE_RESUME ||
+					    task == DM_DEVICE_REMOVE));
+	uint32_t cookie = 0;
 	struct dm_task *dmt;
 
 	if (!(dmt = dm_task_create (task)))
@@ -211,20 +213,18 @@ dm_simplecmd (int task, const char *name, int no_flush, uint16_t udev_flags,
 	if (no_flush)
 		dm_task_no_flush(dmt);		/* for DM_DEVICE_SUSPEND/RESUME */
 #endif
-
-	if (cookie &&
-	    !dm_task_set_cookie(dmt, cookie,
-				DM_UDEV_DISABLE_LIBRARY_FALLBACK | udev_flags)) {
-		dm_udev_complete(*cookie);
+	if (udev_wait_flag &&
+	    !dm_task_set_cookie(dmt, &cookie,
+				DM_UDEV_DISABLE_LIBRARY_FALLBACK | udev_flags))
 		goto out;
-	}
+
 	r = dm_task_run (dmt);
 
-	if (cookie) {
+	if (udev_wait_flag) {
 		if (!r)
-			dm_udev_complete(*cookie);
+			dm_udev_complete(cookie);
 		else
-			dm_udev_wait(*cookie);
+			dm_udev_wait(cookie);
 	}
 	out:
 	dm_task_destroy (dmt);
@@ -233,32 +233,21 @@ dm_simplecmd (int task, const char *name, int no_flush, uint16_t udev_flags,
 
 extern int
 dm_simplecmd_flush (int task, const char *name, uint16_t udev_flags) {
-	uint32_t cookie = 0;
-
-	if (task == DM_DEVICE_RESUME ||
-	    task == DM_DEVICE_REMOVE)
-		return dm_simplecmd(task, name, 0, udev_flags, &cookie);
-	else
-		return dm_simplecmd(task, name, 0, udev_flags, NULL);
+	return dm_simplecmd(task, name, 0, 1, udev_flags);
 }
 
 extern int
 dm_simplecmd_noflush (int task, const char *name, uint16_t udev_flags) {
-	uint32_t cookie = 0;
-
-	if (task == DM_DEVICE_RESUME ||
-	    task == DM_DEVICE_REMOVE)
-		return dm_simplecmd(task, name, 1, udev_flags, &cookie);
-	else
-		return dm_simplecmd(task, name, 1, udev_flags, NULL);
+	return dm_simplecmd(task, name, 1, 1, udev_flags);
 }
 
 static int
 dm_addmap (int task, const char *target, struct multipath *mpp,
-	   char * params, int ro, uint32_t *cookie) {
+	   char * params, int ro) {
 	int r = 0;
 	struct dm_task *dmt;
 	char *prefixed_uuid = NULL;
+	uint32_t cookie = 0;
 
 	if (!(dmt = dm_task_create (task)))
 		return 0;
@@ -272,16 +261,23 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 	if (ro)
 		dm_task_set_ro(dmt);
 
-	if ((task == DM_DEVICE_CREATE) && strlen(mpp->wwid) > 0){
-		prefixed_uuid = MALLOC(UUID_PREFIX_LEN + strlen(mpp->wwid) + 1);
-		if (!prefixed_uuid) {
-			condlog(0, "cannot create prefixed uuid : %s",
-				strerror(errno));
-			goto addout;
+	if (task == DM_DEVICE_CREATE) {
+		if (strlen(mpp->wwid) > 0) {
+			prefixed_uuid = MALLOC(UUID_PREFIX_LEN +
+					       strlen(mpp->wwid) + 1);
+			if (!prefixed_uuid) {
+				condlog(0, "cannot create prefixed uuid : %s",
+					strerror(errno));
+				goto addout;
+			}
+			sprintf(prefixed_uuid, UUID_PREFIX "%s", mpp->wwid);
+			if (!dm_task_set_uuid(dmt, prefixed_uuid))
+				goto freeout;
 		}
-		sprintf(prefixed_uuid, UUID_PREFIX "%s", mpp->wwid);
-		if (!dm_task_set_uuid(dmt, prefixed_uuid))
-			goto freeout;
+		dm_task_skip_lockfs(dmt);
+#ifdef LIBDM_API_FLUSH
+		dm_task_no_flush(dmt);
+#endif
 	}
 
 	if (mpp->attribute_flags & (1 << ATTR_MODE) &&
@@ -299,25 +295,18 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 
 	dm_task_no_open_count(dmt);
 
-	if (cookie) {
-		if (!dm_task_set_cookie(dmt, cookie,
-					DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-			dm_udev_complete(*cookie);
-			goto freeout;
-		}
-		dm_task_skip_lockfs(dmt);
-#ifdef LIBDM_API_FLUSH
-		dm_task_no_flush(dmt);
-#endif
-	}
+	if (task == DM_DEVICE_CREATE &&
+	    !dm_task_set_cookie(dmt, &cookie,
+				DM_UDEV_DISABLE_LIBRARY_FALLBACK))
+		goto freeout;
+
 	r = dm_task_run (dmt);
 
-	if (cookie) {
-		if (r && (task == DM_DEVICE_CREATE))
-			/* Do not wait on a cookie for DM_DEVICE_RELOAD */
-			dm_udev_wait(*cookie);
+	if (task == DM_DEVICE_CREATE) {
+		if (!r)
+			dm_udev_complete(cookie);
 		else
-			dm_udev_complete(*cookie);
+			dm_udev_wait(cookie);
 	}
 	freeout:
 	if (prefixed_uuid)
@@ -332,13 +321,11 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 extern int
 dm_addmap_create (struct multipath *mpp, char * params) {
 	int ro;
-	uint32_t cookie = 0;
 
 	for (ro = 0; ro <= 1; ro++) {
 		int err;
 
-		if (dm_addmap(DM_DEVICE_CREATE, TGT_MPATH,
-			      mpp, params, ro, &cookie))
+		if (dm_addmap(DM_DEVICE_CREATE, TGT_MPATH, mpp, params, ro))
 			return 1;
 		/*
 		 * DM_DEVICE_CREATE is actually DM_DEV_CREATE + DM_TABLE_LOAD.
@@ -362,28 +349,27 @@ dm_addmap_create (struct multipath *mpp, char * params) {
 #define ADDMAP_RO 1
 
 extern int
-dm_addmap_reload (struct multipath *mpp, char *params) {
+dm_addmap_reload (struct multipath *mpp, char *params, int flush)
+{
 	int r;
-	uint32_t cookie = 0;
+	uint16_t udev_flags = flush ? 0 : MPATH_UDEV_RELOAD_FLAG;
 
 	/*
 	 * DM_DEVICE_RELOAD cannot wait on a cookie, as
 	 * the cookie will only ever be released after an
 	 * DM_DEVICE_RESUME. So call DM_DEVICE_RESUME
-	 * after each DM_DEVICE_RELOAD.
+	 * after each successful call to DM_DEVICE_RELOAD.
 	 */
-
-	r = dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
-		      ADDMAP_RW, &cookie);
+	r = dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params, ADDMAP_RW);
 	if (!r) {
 		if (errno != EROFS)
 			return 0;
-		r = dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp, params,
-			      ADDMAP_RO, &cookie);
+		r = dm_addmap(DM_DEVICE_RELOAD, TGT_MPATH, mpp,
+			      params, ADDMAP_RO);
 	}
 	if (r)
-		r = dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, 1, 0, &cookie);
-
+		r = dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, flush,
+				 1, udev_flags);
 	return r;
 }
 
@@ -764,7 +750,7 @@ dm_suspend_and_flush_map (const char * mapname)
 	if (s)
 		queue_if_no_path = 0;
 	else
-		s = dm_simplecmd(DM_DEVICE_SUSPEND, mapname, 0, 0, NULL);
+		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
 
 	if (!dm_flush_map(mapname)) {
 		condlog(4, "multipath map %s removed", mapname);
