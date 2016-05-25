@@ -45,7 +45,7 @@ while [ $# -gt 0 ] ; do
             shift;
             ;;
 	-m|--maintenance)
-	    OBS=SUSE:SLE-11-SP4:Update:Test
+	    OBS_PRJ=SUSE:SLE-11-SP4:Update
 	    shift;
 	    ;;
         -u|--update)
