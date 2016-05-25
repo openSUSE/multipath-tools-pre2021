@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed May 25 10:17:15 CEST 2016 - hare@suse.de
+
+- Revert 'Do not update the path vec when removing paths' (bsc#980933)
+
+-------------------------------------------------------------------
 Wed Feb 17 15:24:52 CET 2016 - hare@suse.de
 
 - multipathd: Do not switch paths on empty multipath tables (bsc#956349)
