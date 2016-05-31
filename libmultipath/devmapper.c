@@ -211,19 +211,14 @@ dm_simplecmd (int task, const char *name, int no_flush, uint32_t *cookie) {
 	if (cookie &&
 	    !dm_task_set_cookie(dmt, cookie,
 				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-		dm_udev_complete(*cookie);
 		goto out;
 	}
 #endif
 	r = dm_task_run (dmt);
 
 #ifdef LIBDM_API_COOKIE
-	if (cookie) {
-		if (!r)
-			dm_udev_complete(*cookie);
-		else
-			dm_udev_wait(*cookie);
-	}
+	if (cookie)
+		dm_udev_wait(*cookie);
 #endif
 	out:
 	dm_task_destroy (dmt);
@@ -296,11 +291,10 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 
 	dm_task_no_open_count(dmt);
 
-	if (cookie) {
+	if (cookie && task == DM_DEVICE_CREATE) {
 #ifdef LIBDM_API_COOKIE
 		if (!dm_task_set_cookie(dmt, cookie,
 					DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-			dm_udev_complete(*cookie);
 			goto freeout;
 		}
 #endif
@@ -312,13 +306,8 @@ dm_addmap (int task, const char *target, struct multipath *mpp,
 	r = dm_task_run (dmt);
 
 #ifdef LIBDM_API_COOKIE
-	if (cookie) {
-		/* Do not wait on a cookie for DM_DEVICE_RELOAD */
-		if (r && (task == DM_DEVICE_CREATE))
-			dm_udev_wait(*cookie);
-		else
-			dm_udev_complete(*cookie);
-	}
+	if (cookie && task == DM_DEVICE_CREATE)
+		dm_udev_wait(*cookie);
 #endif
 	freeout:
 	if (prefixed_uuid)
@@ -1342,17 +1331,13 @@ dm_rename (char * old, char * new)
 #ifdef LIBDM_API_COOKIE
 	if (!dm_task_set_cookie(dmt, &cookie,
 				DM_UDEV_DISABLE_LIBRARY_FALLBACK)) {
-		dm_udev_complete(cookie);
 		goto out;
 	}
 #endif
 	r = dm_task_run(dmt);
 
 #ifdef LIBDM_API_COOKIE
-	if (!r)
-		dm_udev_complete(cookie);
-	else
-		dm_udev_wait(cookie);
+	dm_udev_wait(cookie);
 #endif
 out:
 	dm_task_destroy(dmt);
