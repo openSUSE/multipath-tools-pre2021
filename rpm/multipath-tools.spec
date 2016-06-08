@@ -21,7 +21,8 @@ BuildRequires:  device-mapper-devel
 BuildRequires:  libaio-devel
 BuildRequires:  libudev-devel
 BuildRequires:  readline-devel
-BuildRequires:  systemd-devel
+BuildRequires:  pkgconfig(systemd)
+BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  udev
 Url:            http://christophe.varoqui.free.fr/
 Requires:       device-mapper >= 1.2.78
