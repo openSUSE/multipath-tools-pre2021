@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Thu Jul  7 12:29:06 CEST 2016 - hare@suse.de
+
+- uxlsnr: avoid potential memory overflow allocating polls
+- libmultipath: correctly zero out cookie in dm_simplecmd
+- multipathd: enter IDLE mode before sleeping in checkerloop()
+- multipathd: avoid accessing configuration in IDLE
+- Revert 'multipathd: Do not update the paths vec when removing paths'
+  (bsc#980933)
+- Fix systemd build requirements (bsc#983167)
+- multipathd: Rework cookie handling to match with upstream
+
+-------------------------------------------------------------------
 Thu Mar 24 09:49:45 CET 2016 - hare@suse.de
 
 - multipathd: do not flush maps on startup
