@@ -9,7 +9,8 @@ BASEVER="0.5.0"
 DESTDIR=
 TMPDIR=
 OBS_PRJ=SUSE:SLE-11-SP4:GA
-OBS_BRANCH=home:hreinecke:branches
+: ${OBS_USER:=hreinecke}
+OBS_BRANCH=home:$OBS_USER:branches
 OSC="osc -A https://api.suse.de --no-keyring"
 uncommitted_changes=0
 
@@ -40,6 +41,9 @@ while [ $# -gt 0 ] ; do
 	    shift;
 	    ;;
 	-o|--use-osc)
+	    OBS_PRJ=Base:System
+	    OBS_BRANCH=home:$OBS_USER:branches
+	    OSC="osc --no-keyring"
 	    use_osc=1;
 	    shift;
 	    ;;
