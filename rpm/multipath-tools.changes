@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jul 25 10:09:33 UTC 2016 - martin.wilck@suse.com
+
+- multipath.rules: update to deal with partition devices (bsc#979280)
+
+-------------------------------------------------------------------
 Thu Mar 24 09:49:45 CET 2016 - hare@suse.de
 
 - multipathd: do not flush maps on startup
