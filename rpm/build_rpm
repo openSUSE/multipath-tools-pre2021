@@ -13,6 +13,7 @@ OBS_PRJ=SUSE:SLE-11-SP4:GA
 OBS_BRANCH=home:$OBS_USER:branches
 OSC="osc -A https://api.suse.de --no-keyring"
 uncommitted_changes=0
+DO_REQUEST=yes
 
 while [ $# -gt 0 ] ; do
     case "$1" in
@@ -64,6 +65,10 @@ while [ $# -gt 0 ] ; do
             ;;
         --uncommitted-changes)
             uncommitted_changes=1
+            shift;
+            ;;
+        --no-request)
+            DO_REQUEST=no
             shift;
             ;;
         *)
@@ -157,7 +162,7 @@ if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
     osc ar
     osc ci --message="Checked in from git branch $BRANCH"
-    osc sr
+    [[ Oh$DO_REQUEST = Ohyes ]] && osc sr
     popd
 fi
 
