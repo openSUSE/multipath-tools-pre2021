@@ -197,17 +197,28 @@ Arguments to pass to to the prio function. This only applies to certain
 prioritizers
 .RS
 .TP 12
-.B weighted
-.I "<hbtl|devname|wwn> <regex1> <prio1> <regex2> <prio2> ..."
+.I weighted
+Needs a value of the form
+.I "<hbtl|devname|serial|wwn> <regex1> <prio1> <regex2> <prio2> ..."
+.RS
+.TP 8
 .I hbtl
 regex can be of SCSI H:B:T:L format  Ex: 1:0:.:. , *:0:0:.
+.TP
 .I devname
 regex can be of device name format  Ex: sda , sd.e
+.TP
+.I serial
+regex can be of serial number format  Ex: .*J1FR.*324  The serial can be looked up through sysfs or by running multipathd show paths format "%z" Ex: 0395J1FR904324
+.TP
 .I wwn
 regex can be of the form
 .I "host_wwnn:host_wwpn:target_wwnn:target_wwpn"
 these values can be looked up through sysfs or by running
-.I mulitpathd show paths format "%N:%R:%n:%r" Ex: 0x200100e08ba0aea0:0x210100e08ba0aea0:.*:.* , .*:.*:iqn.2009-10.com.redhat.msp.lab.ask-06:.*
+.I multipathd show paths format "%N:%R:%n:%r" Ex: 0x200100e08ba0aea0:0x210100e08ba0aea0:.*:.* , .*:.*:iqn.2009-10.com.redhat.msp.lab.ask-06:.*
+.TP
+Default value is: \fB<unset>\fR
+.RE
 .TP
 .B features
 Specify any device-mapper features to be used. Syntax is
