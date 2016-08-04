@@ -109,7 +109,8 @@ int send_packet(int fd, const char *buf)
 	sigaddset(&set, SIGPIPE);
 	pthread_sigmask(SIG_BLOCK, &set, &old);
 
-	ret = mpath_send_cmd(fd, buf);
+	if (mpath_send_cmd(fd, buf) < 0)
+		return -errno;
 
 	/* And unblock it again */
 	pthread_sigmask(SIG_SETMASK, &old, NULL);
@@ -128,7 +129,7 @@ int recv_packet(int fd, char **buf, unsigned int timeout)
 	*buf = NULL;
 	len = mpath_recv_reply_len(fd, timeout);
 	if (len <= 0)
-		return len;
+		return (len == 0) ? 0 : -errno;
 	(*buf) = MALLOC(len);
 	if (!*buf)
 		return -ENOMEM;
@@ -136,7 +137,7 @@ int recv_packet(int fd, char **buf, unsigned int timeout)
 	if (err) {
 		FREE(*buf);
 		(*buf) = NULL;
-		return err;
+		return -errno;
 	}
 	return 0;
 }
