@@ -1022,7 +1022,7 @@ uxsock_trigger (char * str, char ** reply, int * len, void * trigger_data)
 	*len = 0;
 	vecs = (struct vectors *)trigger_data;
 
-	r = parse_cmd(str, reply, len, vecs, uxsock_timeout / 1000);
+	r = parse_cmd(str, reply, len, vecs, uxsock_timeout);
 
 	if (r > 0) {
 		if (r == ETIMEDOUT)
@@ -2559,7 +2559,7 @@ main (int argc, char *argv[])
 				exit(1);
 			if (verbosity)
 				conf->verbosity = verbosity;
-			uxclnt(optarg, uxsock_timeout + 100);
+			uxclnt(optarg, conf->uxsock_timeout + 100);
 			exit(0);
 		case 'B':
 			bindings_read_only = 1;
