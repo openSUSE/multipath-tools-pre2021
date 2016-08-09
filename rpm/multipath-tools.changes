@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Aug  9 12:33:39 CEST 2016 - hare@suse.de
+
+- libmultipath: add HP MSA 2040 to hardware table (bsc#984957)
+- multipathd: Add 'wwn' and 'serial' keyword to weightedpath
+  prioritizer (bsc#991432)
+
+-------------------------------------------------------------------
 Wed May 25 10:17:15 CEST 2016 - hare@suse.de
 
 - Revert 'Do not update the path vec when removing paths' (bsc#980933)
