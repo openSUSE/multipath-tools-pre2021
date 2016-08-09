@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Aug  9 12:33:39 CEST 2016 - hare@suse.de
+
+- multipathd: Add 'wwn' and 'serial' keyword to weightedpath
+  prioritizer (bsc#991432)
+
+-------------------------------------------------------------------
 Thu Jul  7 12:29:06 CEST 2016 - hare@suse.de
 
 - uxlsnr: avoid potential memory overflow allocating polls
