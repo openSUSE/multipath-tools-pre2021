@@ -602,11 +602,14 @@ main (int argc, char *argv[])
 
 		fd = ux_socket_connect(DEFAULT_SOCKET);
 		if (fd == -1) {
-			printf("%s is not a valid multipath device path\n",
-				conf->dev);
-			goto out;
-		}
-		close(fd);
+			condlog(3, "%s: daemon is not running", conf->dev);
+			if (!systemd_service_enabled(conf->dev)) {
+				printf("%s is not a valid "
+				       "multipath device path\n", conf->dev);
+				goto out;
+			}
+		} else
+			close(fd);
 	}
 	if (conf->cmd == CMD_REMOVE_WWID && !conf->dev) {
 		condlog(0, "the -w option requires a device");
