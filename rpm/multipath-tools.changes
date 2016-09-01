@@ -1,7 +1,14 @@
 -------------------------------------------------------------------
+Tue Aug  9 12:33:39 CEST 2016 - hare@suse.de
+
+- multipathd: Add 'wwn' and 'serial' keyword to weightedpath
+  prioritizer (bsc#991432)
+
+-------------------------------------------------------------------
 Mon Jul 25 10:09:33 UTC 2016 - martin.wilck@suse.com
 
 - multipath.rules: update to deal with partition devices (bsc#979280)
+
 
 -------------------------------------------------------------------
 Thu Jul  7 12:29:06 CEST 2016 - hare@suse.de
