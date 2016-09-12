@@ -5,7 +5,7 @@
 
 RPM="multipath-tools"
 BRANCH="sles11-sp4"
-BASEVER="0.4.9"
+BASEVER="0.5.0"
 DESTDIR=
 TMPDIR=
 OBS_PRJ=SUSE:SLE-11-SP4:GA
@@ -35,6 +35,10 @@ while [ $# -gt 0 ] ; do
             BRANCH=${1##*=};
             shift;
             ;;
+	-i|--use-isc)
+	    use_osc=1;
+	    shift;
+	    ;;
 	-o|--use-osc)
 	    use_osc=1;
 	    shift;
@@ -45,6 +49,7 @@ while [ $# -gt 0 ] ; do
             shift;
             ;;
 	-m|--maintenance)
+	    use_osc=1
 	    OBS_PRJ=SUSE:SLE-11-SP4:Update
 	    shift;
 	    ;;
@@ -58,8 +63,8 @@ while [ $# -gt 0 ] ; do
             shift;
             ;;
         *)
-            echo "Usage: build_rpm [-c|-f|-o|-u] [-d dir|--destdir=DIR] " \
-                 "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes]"
+            echo "Usage: build_rpm [-c|-f|-i|-o|-u] [-d dir|--destdir=DIR] " \
+                 "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes] [--no-request]"
             exit 1;
             ;;
     esac
@@ -92,6 +97,7 @@ fi
 
 if ! git branch | grep -q "$BRANCH" ; then
     echo "Branch \"$BRANCH\" does not exist"
+    rmdir ${DESTDIR}
     exit 1
 else
     echo "Checking out from $BRANCH"
@@ -100,11 +106,21 @@ fi
 if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
     if ! $OSC meta pkg $OBS_BRANCH:$OBS_PRJ $RPM > /dev/null 2>&1 ; then
-	$OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM
+	if ! $OSC branch -m "Update with latest fixes" $OBS_PRJ $RPM ; then
+	    echo "Failed to branch package $RPM from $OBS_PRJ"
+	    popd > /dev/null
+	    rmdir ${DESTDIR}
+	    exit 1
+	fi
     fi
-    $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ multipath-tools
+    if  ! $OSC co --current-dir $OBS_BRANCH:$OBS_PRJ $RPM ; then
+	echo "Failed to checkout package $RPM from $OBS_PRJ"
+	popd > /dev/null
+	rmdir ${DESTDIR}
+	exit 1
+    fi
     TMPDIR=${DESTDIR}
-    DESTDIR="${DESTDIR}/multipath-tools"
+    DESTDIR="${DESTDIR}/${RPM}"
     popd
 fi
 
