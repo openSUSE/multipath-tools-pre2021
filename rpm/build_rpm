@@ -8,10 +8,12 @@ BRANCH="sles12-sp1"
 BASEVER="0.5.0"
 DESTDIR=
 TMPDIR=
+: ${OBS_USER:=hreinecke}
 OBS_PRJ=SUSE:SLE-12-SP1:GA
-OBS_BRANCH=home:hreinecke:branches
+OBS_BRANCH=home:$OBS_USER:branches
 OSC="osc -A https://api.suse.de --no-keyring"
 uncommitted_changes=0
+DO_REQUEST=yes
 
 while [ $# -gt 0 ] ; do
     case "$1" in
@@ -41,7 +43,7 @@ while [ $# -gt 0 ] ; do
 	    ;;
 	-o|--use-osc)
 	    OBS_PRJ=Base:System
-	    OBS_BRANCH=home:hreinecke:branches
+	    OBS_BRANCH=home:$OBS_USER:branches
 	    OSC="osc --no-keyring"
 	    use_osc=1;
 	    shift;
@@ -65,9 +67,13 @@ while [ $# -gt 0 ] ; do
             uncommitted_changes=1
             shift;
             ;;
+        --no-request)
+            DO_REQUEST=no
+            shift;
+            ;;
         *)
             echo "Usage: build_rpm [-c|-f|-i|-o|-u] [-d dir|--destdir=DIR] " \
-                 "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes]"
+                 "[-b BRANCH|--branch=BRANCH] [--uncommitted-changes] [--no-request]"
             exit 1;
             ;;
     esac
@@ -156,7 +162,7 @@ if [ -n "$use_osc" ] ; then
     pushd $DESTDIR
     osc ar
     osc ci --message="Checked in from git branch $BRANCH"
-    osc sr
+    [[ Oh$DO_REQUEST = Ohyes ]] && osc sr
     popd
 fi
 
