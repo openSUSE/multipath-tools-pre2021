@@ -135,7 +135,7 @@ fi
 
 git archive --format=tar --prefix=$RPM-$VERSION/ "$VERSION" \
     | bzip2 > $DESTDIR/$RPM-$VERSION.tar.bz2
-git diff $VERSION..$BRANCH | bzip2 > $DESTDIR/$RPM-$VERSION-$BRANCH.diff.bz2
+git diff --no-renames $VERSION..$BRANCH | bzip2 > $DESTDIR/$RPM-$VERSION-$BRANCH.diff.bz2
 
 git show $BRANCH:rpm/$RPM.spec > $DESTDIR/$RPM.spec
 git show $BRANCH:rpm/$RPM.changes > $DESTDIR/$RPM.changes
