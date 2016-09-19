@@ -2592,7 +2592,7 @@ main (int argc, char *argv[])
 			optind++;
 		}
 		c += snprintf(c, s + CMDSIZE - c, "\n");
-		uxclnt(s, uxsock_timeout + 100);
+		uxclnt(s, conf->uxsock_timeout + 100);
 		exit(0);
 	}
 
