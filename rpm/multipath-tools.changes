@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Sep 19 10:30:00 CEST 2016 - mwilck@suse.de
+
+- libmultipath: remove calls to dm_udev_complete (bsc#986838)
+
+-------------------------------------------------------------------
 Tue Aug  9 12:33:39 CEST 2016 - hare@suse.de
 
 - multipathd: Add 'wwn' and 'serial' keyword to weightedpath
