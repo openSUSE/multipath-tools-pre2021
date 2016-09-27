@@ -330,7 +330,7 @@ dm_addmap_create (struct multipath *mpp, char * params) {
 		err = errno;
 		if (dm_map_present(mpp->alias)) {
 			condlog(3, "%s: failed to load map (a path might be in use)", mpp->alias);
-			dm_flush_map_nosync(mpp->alias);
+			dm_flush_map(mpp->alias);
 		}
 		if (err != EROFS) {
 			condlog(3, "%s: failed to load map, error %d",
@@ -715,7 +715,7 @@ partmap_in_use(const char *name, void *data)
 }
 
 extern int
-_dm_flush_map (const char * mapname, int need_sync)
+_dm_flush_map (const char * mapname)
 {
 	int r;
 
@@ -729,7 +729,7 @@ _dm_flush_map (const char * mapname, int need_sync)
 	if (partmap_in_use(mapname, NULL))
 		return 1;
 
-	if (dm_remove_partmaps(mapname, need_sync))
+	if (dm_remove_partmaps(mapname))
 		return 1;
 
 	if (dm_get_opencount(mapname)) {
@@ -1131,17 +1131,11 @@ out:
 	return r;
 }
 
-struct remove_data {
-	int need_sync;
-};
-
 static int
 remove_partmap(const char *name, void *data)
 {
-	struct remove_data *rd = (struct remove_data *)data;
-
 	if (dm_get_opencount(name)) {
-		dm_remove_partmaps(name, rd->need_sync);
+		dm_remove_partmaps(name);
 		if (dm_get_opencount(name)) {
 			condlog(2, "%s: map in use", name);
 			return 1;
@@ -1153,10 +1147,9 @@ remove_partmap(const char *name, void *data)
 }
 
 int
-dm_remove_partmaps (const char * mapname, int need_sync)
+dm_remove_partmaps (const char * mapname)
 {
-	struct remove_data rd = { need_sync };
-	return do_foreach_partmaps(mapname, remove_partmap, &rd);
+	return do_foreach_partmaps(mapname, remove_partmap, NULL);
 }
 
 static struct dm_info *
