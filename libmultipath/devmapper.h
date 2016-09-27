@@ -23,9 +23,9 @@ int dm_map_present (const char *);
 int dm_get_map(const char *, unsigned long long *, char *);
 int dm_get_status(char *, char *);
 int dm_type(const char *, char *);
-int _dm_flush_map (const char *);
-#define dm_flush_map(mapname) _dm_flush_map(mapname)
-int dm_suspend_and_flush_map(const char * mapname);
+int _dm_flush_map (const char *, int);
+#define dm_flush_map(mapname) _dm_flush_map(mapname, 0)
+#define dm_suspend_and_flush_map(mapname) _dm_flush_map(mapname, 1)
 int dm_flush_maps (void);
 int dm_fail_path(char * mapname, char * path);
 int dm_reinstate_path(char * mapname, char * path);
