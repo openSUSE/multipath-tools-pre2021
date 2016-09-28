@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Sep 28 12:03:30 UTC 2016 - mwilck@suse.de
+
+- Backported reassign_maps support to SLES12-SP1 (bsc#999522)
+
+- multpath.conf(5): fix reassign_maps section
+- Add find_multipaths to multipath.conf man page
+- libmultipath: only add uninitialized paths in check_path
+- add find_multipaths option
+
+-------------------------------------------------------------------
 Wed Sep 28 09:51:54 CEST 2016 - mwilck@suse.de
 
 - _dm_flush_map: add "need_suspend" parameter (bsc#986838)
