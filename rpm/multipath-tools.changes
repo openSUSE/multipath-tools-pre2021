@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Sep 28 09:51:54 CEST 2016 - mwilck@suse.de
+
+- _dm_flush_map: add "need_suspend" parameter (bsc#986838)
+- dm_flush_map: remove need_sync parameter
+- multipath: check partitions unused before removing (bsc#986838),
+  backported from sles12-sp2
+- libmultipath: refactor partmaps code
+- fix indentation problem in multipath.conf(5)
+
+-------------------------------------------------------------------
 Wed Sep 21 23:41:00 CEST 2016 - mwilck@suse.de
 
 - backports from sles12-sp2 branch (bsc#984669)
