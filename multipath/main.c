@@ -265,7 +265,8 @@ get_dm_mpvec (enum mpath_cmds cmd, vector curmp, vector pathvec, char * refwwid)
  *   1: Failure
  */
 static int
-configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
+configure (struct config *conf, enum mpath_cmds cmd,
+	   enum devtypes dev_type, char *devpath)
 {
 	vector curmp = NULL;
 	vector pathvec = NULL;
@@ -274,7 +275,6 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 	int di_flag = 0;
 	char * refwwid = NULL;
 	char * dev = NULL;
-	struct config *conf;
 
 	/*
 	 * allocate core vectors to store paths and multipaths
@@ -294,7 +294,6 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 	/*
 	 * if we have a blacklisted device parameter, exit early
 	 */
-	conf = get_multipath_config();
 	if (dev && (dev_type == DEV_DEVNODE ||
 		    dev_type == DEV_UEVENT) &&
 	    cmd != CMD_REMOVE_WWID &&
@@ -303,10 +302,9 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 		if (cmd == CMD_VALID_PATH)
 			printf("%s is not a valid multipath device path\n",
 			       devpath);
-		put_multipath_config(conf);
 		goto out;
 	}
-	put_multipath_config(conf);
+
 	/*
 	 * scope limiting must be translated into a wwid
 	 * failing the translation is fatal (by policy)
@@ -722,7 +720,7 @@ main (int argc, char *argv[])
 		r = dm_flush_maps();
 		goto out;
 	}
-	while ((r = configure(cmd, dev_type, dev)) < 0)
+	while ((r = configure(conf, cmd, dev_type, dev)) < 0)
 		condlog(3, "restart multipath configuration process");
 
 out:

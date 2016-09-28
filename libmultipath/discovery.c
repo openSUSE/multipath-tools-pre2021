@@ -1653,7 +1653,7 @@ pathinfo (struct path *pp, struct config *conf, int mask)
 {
 	int path_state;
 
-	if (!pp)
+	if (!pp || !conf)
 		return PATHINFO_FAILED;
 
 	condlog(3, "%s: mask = 0x%x", pp->dev, mask);
