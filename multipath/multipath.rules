@@ -15,7 +15,7 @@ ENV{MPATH_SBIN_PATH}="/sbin"
 TEST!="$env{MPATH_SBIN_PATH}/multipath", ENV{MPATH_SBIN_PATH}="/usr/sbin"
 
 ENV{DM_MULTIPATH_DEVICE_PATH}!="1", \
-	PROGRAM=="$env{MPATH_SBIN_PATH}/multipath -i -u %k", \
+	PROGRAM=="$env{MPATH_SBIN_PATH}/multipath -u -i %k", \
 	ENV{DM_MULTIPATH_DEVICE_PATH}="1", ENV{ID_FS_TYPE}="none", \
 	ENV{SYSTEMD_READY}="0"
 
