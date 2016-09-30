@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep 12 13:48:10 CEST 2016 - mwilck@suse.de
+
+- multipathd: read-only bindings (bsc#995633)
+- boot-multipathd.sh: start multipathd with -B in initrd
+- Fix issues with user_friendly_names initramfs bindings
+
+-------------------------------------------------------------------
 Tue Aug  9 12:33:39 CEST 2016 - hare@suse.de
 
 - libmultipath: add HP MSA 2040 to hardware table (bsc#984957)

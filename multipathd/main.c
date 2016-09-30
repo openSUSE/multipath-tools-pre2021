@@ -1466,6 +1466,7 @@ reconfigure (struct vectors * vecs)
 	if (!load_config(DEFAULT_CONFIGFILE, udev)) {
 		dm_drv_version(conf->version, TGT_MPATH);
 		conf->verbosity = old->verbosity;
+		conf->bindings_read_only = old->bindings_read_only;
 		conf->daemon = 1;
 		configure(vecs, 1);
 		free_config(old);
@@ -1903,7 +1904,7 @@ main (int argc, char *argv[])
 	if (!conf)
 		exit(1);
 
-	while ((arg = getopt(argc, argv, ":dv:k::")) != EOF ) {
+	while ((arg = getopt(argc, argv, ":dv:k::B")) != EOF ) {
 	switch(arg) {
 		case 'd':
 			logsink = 0;
@@ -1919,6 +1920,9 @@ main (int argc, char *argv[])
 		case 'k':
 			uxclnt(optarg);
 			exit(0);
+		case 'B':
+			conf->bindings_read_only = 1;
+			break;
 		default:
 			;
 		}

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 #%stage: boot
 #%depends: dm
@@ -11,5 +12,5 @@ mpath_status=$(get_param multipath)
 
 if [ "$mpath_status" != "off" ] ; then
     echo "Starting multipathd"
-    /sbin/multipathd -v 3
+    /sbin/multipathd -v 3 -B
 fi
