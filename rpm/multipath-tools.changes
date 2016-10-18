@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 18 16:09:53 UTC 2016 - mwilck@suse.de
+
+- multipath -ll: set DI_SERIAL (bsc#991432)
+- libmultipath: fall back to search paths by devt (bsc#1003972)
+
+-------------------------------------------------------------------
 Wed Sep 28 12:03:30 UTC 2016 - mwilck@suse.de
 
 - Backported reassign_maps support to SLES12-SP1 (bsc#999522)
