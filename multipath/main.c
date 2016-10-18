@@ -336,7 +336,7 @@ configure (void)
 
 	if (conf->cmd == CMD_LIST_LONG)
 		/* extended path info '-ll' */
-		di_flag |= DI_SYSFS | DI_CHECKER;
+		di_flag |= DI_SYSFS | DI_CHECKER | DI_SERIAL;
 	else if (conf->cmd == CMD_LIST_SHORT)
 		/* minimum path info '-l' */
 		di_flag |= DI_SYSFS;
