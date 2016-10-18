@@ -32,6 +32,10 @@
 #define UUID_PREFIX "mpath-"
 #define UUID_PREFIX_LEN 6
 
+static int do_foreach_partmaps(const char * mapname,
+			       int (*partmap_func)(const char *, void *),
+			       void *data);
+
 #ifndef LIBDM_API_COOKIE
 static inline int dm_task_set_cookie(struct dm_task *dmt, uint32_t *c, int a)
 {
@@ -326,7 +330,7 @@ dm_addmap_create (struct multipath *mpp, char * params) {
 		err = errno;
 		if (dm_map_present(mpp->alias)) {
 			condlog(3, "%s: failed to load map (a path might be in use)", mpp->alias);
-			dm_flush_map_nosync(mpp->alias);
+			dm_flush_map(mpp->alias);
 		}
 		if (err != EROFS) {
 			condlog(3, "%s: failed to load map, error %d",
@@ -690,38 +694,31 @@ out:
 	return r;
 }
 
-extern int
-_dm_flush_map (const char * mapname, int need_sync)
+static int
+partmap_in_use(const char *name, void *data)
 {
-	int r;
+	int part_count, *ret_count = (int *)data;
+	int open_count = dm_get_opencount(name);
 
-	if (!dm_map_present(mapname))
-		return 0;
-
-	if (dm_type(mapname, TGT_MPATH) <= 0)
-		return 0; /* nothing to do */
-
-	if (dm_remove_partmaps(mapname, need_sync))
-		return 1;
-
-	if (dm_get_opencount(mapname)) {
-		condlog(2, "%s: map in use", mapname);
-		return 1;
+	if (ret_count)
+		(*ret_count)++;
+	part_count = 0;
+	if (open_count) {
+		if (do_foreach_partmaps(name, partmap_in_use, &part_count))
+			return 1;
+		if (open_count != part_count) {
+			condlog(2, "%s: map in use", name);
+			return 1;
+		}
 	}
-
-	r = dm_simplecmd_flush(DM_DEVICE_REMOVE, mapname, 0);
-
-	if (r) {
-		condlog(4, "multipath map %s removed", mapname);
-		return 0;
-	}
-	return 1;
+	return 0;
 }
 
 extern int
-dm_suspend_and_flush_map (const char * mapname)
+_dm_flush_map (const char * mapname, int need_suspend)
 {
-	int s = 0, queue_if_no_path = 0;
+	int r;
+	int queue_if_no_path = 0;
 	unsigned long long mapsize;
 	char params[PARAMS_SIZE] = {0};
 
@@ -731,27 +728,44 @@ dm_suspend_and_flush_map (const char * mapname)
 	if (dm_type(mapname, TGT_MPATH) <= 0)
 		return 0; /* nothing to do */
 
-	if (!dm_get_map(mapname, &mapsize, params)) {
-		if (strstr(params, "queue_if_no_path"))
+	/* Make sure that no devices are in use */
+	if (partmap_in_use(mapname, NULL))
+		return 1;
+
+	if (need_suspend &&
+	    !dm_get_map(mapname, &mapsize, params) &&
+	    strstr(params, "queue_if_no_path")) {
+		if (!dm_queue_if_no_path((char *)mapname, 0))
 			queue_if_no_path = 1;
+		else
+			/* Leave queue_if_no_path alone if unset failed */
+			queue_if_no_path = -1;
 	}
 
-	if (queue_if_no_path)
-		s = dm_queue_if_no_path((char *)mapname, 0);
-	/* Leave queue_if_no_path alone if unset failed */
-	if (s)
-		queue_if_no_path = 0;
-	else
-		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
+	if (dm_remove_partmaps(mapname))
+		return 1;
 
-	if (!dm_flush_map(mapname)) {
+	if (dm_get_opencount(mapname)) {
+		condlog(2, "%s: map in use", mapname);
+		return 1;
+	}
+
+	if (need_suspend && queue_if_no_path != -1)
+		dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
+
+	r = dm_simplecmd_flush(DM_DEVICE_REMOVE, mapname, 0);
+
+	if (r) {
 		condlog(4, "multipath map %s removed", mapname);
 		return 0;
+	} else {
+		condlog(2, "failed to remove multipath map %s", mapname);
+		if (need_suspend && queue_if_no_path != -1) {
+			dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 0);
+			if (queue_if_no_path == 1)
+				dm_queue_if_no_path((char *)mapname, 1);
+		}
 	}
-	condlog(2, "failed to remove multipath map %s", mapname);
-	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 0);
-	if (queue_if_no_path)
-		s = dm_queue_if_no_path((char *)mapname, 1);
 	return 1;
 }
 
@@ -789,7 +803,7 @@ dm_flush_maps (void)
 }
 
 int
-dm_message(char * mapname, char * message)
+dm_message(const char * mapname, char * message)
 {
 	int r = 1;
 	struct dm_task *dmt;
@@ -1034,8 +1048,10 @@ bad:
 	return NULL;
 }
 
-int
-dm_remove_partmaps (const char * mapname, int need_sync)
+static int
+do_foreach_partmaps (const char * mapname,
+		     int (*partmap_func)(const char *, void *),
+		     void *data)
 {
 	struct dm_task *dmt;
 	struct dm_names *names;
@@ -1087,25 +1103,8 @@ dm_remove_partmaps (const char * mapname, int need_sync)
 		     */
 		    strstr(params, dev_t)
 		   ) {
-			/*
-			 * then it's a kpartx generated partition.
-			 * remove it.
-			 */
-			/*
-			 * if the opencount is 0 maybe some other
-			 * partitions depend on it.
-			 */
-			if (dm_get_opencount(names->name)) {
-				dm_remove_partmaps(names->name, need_sync);
-				if (dm_get_opencount(names->name)) {
-					condlog(2, "%s: map in use",
-						names->name);
-					goto out;
-				}
-			}
-			condlog(4, "partition map %s removed",
-				names->name);
-			dm_simplecmd_flush(DM_DEVICE_REMOVE, names->name, 0);
+			if (partmap_func(names->name, data) != 0)
+				goto out;
 		}
 
 		next = names->next;
@@ -1116,6 +1115,27 @@ dm_remove_partmaps (const char * mapname, int need_sync)
 out:
 	dm_task_destroy (dmt);
 	return r;
+}
+
+static int
+remove_partmap(const char *name, void *data)
+{
+	if (dm_get_opencount(name)) {
+		dm_remove_partmaps(name);
+		if (dm_get_opencount(name)) {
+			condlog(2, "%s: map in use", name);
+			return 1;
+		}
+	}
+	condlog(4, "partition map %s removed", name);
+	dm_simplecmd_flush(DM_DEVICE_REMOVE, name, 0);
+	return 0;
+}
+
+int
+dm_remove_partmaps (const char * mapname)
+{
+	return do_foreach_partmaps(mapname, remove_partmap, NULL);
 }
 
 static struct dm_info *
@@ -1167,82 +1187,38 @@ out:
 	return r;
 }
 
-int
-dm_rename_partmaps (char * old, char * new)
+struct rename_data {
+	const char *old;
+	char *new;
+};
+
+static int
+rename_partmap (const char *name, void *data)
 {
-	struct dm_task *dmt;
-	struct dm_names *names;
-	unsigned next = 0;
 	char buff[PARAMS_SIZE];
-	unsigned long long size;
-	char dev_t[32];
-	int r = 1;
+	struct rename_data *rd = (struct rename_data *)data;
 
-	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
-		return 1;
-
-	dm_task_no_open_count(dmt);
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!(names = dm_task_get_names(dmt)))
-		goto out;
-
-	if (!names->dev) {
-		r = 0; /* this is perfectly valid */
-		goto out;
-	}
-
-	if (dm_dev_t(old, &dev_t[0], 32))
-		goto out;
-
-	do {
-		if (
-		    /*
-		     * if devmap target is "linear"
-		     */
-		    (dm_type(names->name, TGT_PART) > 0) &&
-
-		    /*
-		     * and the multipath mapname and the part mapname start
-		     * the same
-		     */
-		    !strncmp(names->name, old, strlen(old)) &&
-
-		    /*
-		     * and we can fetch the map table from the kernel
-		     */
-		    !dm_get_map(names->name, &size, &buff[0]) &&
-
-		    /*
-		     * and the table maps over the multipath map
-		     */
-		    strstr(buff, dev_t)
-		   ) {
-				/*
-				 * then it's a kpartx generated partition.
-				 * Rename it.
-				 */
-				snprintf(buff, PARAMS_SIZE, "%s%s",
-					 new, names->name + strlen(old));
-				dm_rename(names->name, buff);
-				condlog(4, "partition map %s renamed",
-					names->name);
-		   }
-
-		next = names->next;
-		names = (void *) names + next;
-	} while (next);
-
-	r = 0;
-out:
-	dm_task_destroy (dmt);
-	return r;
+	if (strncmp(name, rd->old, strlen(rd->old)) != 0)
+		return 0;
+	snprintf(buff, PARAMS_SIZE, "%s%s", rd->new, name + strlen(rd->old));
+	dm_rename(name, buff);
+	condlog(4, "partition map %s renamed", name);
+	return 0;
 }
 
 int
-dm_rename (char * old, char * new)
+dm_rename_partmaps (const char * old, char * new)
+{
+	struct rename_data rd;
+
+	rd.old = old;
+	rd.new = new;
+
+	return do_foreach_partmaps(old, rename_partmap, &rd);
+}
+
+int
+dm_rename (const char * old, char * new)
 {
 	int r = 0;
 	struct dm_task *dmt;

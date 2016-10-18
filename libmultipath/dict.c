@@ -117,6 +117,22 @@ reassign_maps_handler(vector strvec)
 }
 
 static int
+find_multipaths_handler(vector strvec)
+{
+	char * buff;
+
+	buff = set_value(strvec);
+	if (!strcmp(buff, "yes"))
+		conf->find_multipaths = 1;
+	else if (!strcmp(buff, "no"))
+		conf->find_multipaths = 0;
+	else
+		return 1;
+
+	return 0;
+}
+
+static int
 multipath_dir_handler(vector strvec)
 {
 	conf->multipath_dir = set_value(strvec);
@@ -2542,6 +2558,13 @@ snprint_reassign_maps (char * buff, int len, void * data)
 }
 
 static int
+snprint_find_multipaths (char * buff, int len, void * data)
+{
+	return snprintf(buff, len, "\"%s\"",
+			conf->find_multipaths?"yes":"no");
+}
+
+static int
 snprint_def_multipath_dir (char * buff, int len, void * data)
 {
 	if (!conf->multipath_dir)
@@ -2950,6 +2973,7 @@ init_keywords(void)
 	install_keyword("force_sync", &def_force_sync_handler, &snprint_def_force_sync);
 	install_keyword("uxsock_timeout", &def_uxsock_timeout_handler, &snprint_def_uxsock_timeout);
 	install_keyword("strict_timing", &def_strict_timing_handler, &snprint_def_strict_timing);
+	install_keyword("find_multipaths", &find_multipaths_handler, &snprint_find_multipaths);
 	__deprecated install_keyword("default_selector", &def_selector_handler, NULL);
 	__deprecated install_keyword("default_path_grouping_policy", &def_pgpolicy_handler, NULL);
 	__deprecated install_keyword("default_uid_attribute", &def_uid_attribute_handler, NULL);

@@ -24,9 +24,8 @@ int dm_get_map(const char *, unsigned long long *, char *);
 int dm_get_status(char *, char *);
 int dm_type(const char *, char *);
 int _dm_flush_map (const char *, int);
-#define dm_flush_map(mapname) _dm_flush_map(mapname, 1)
-#define dm_flush_map_nosync(mapname) _dm_flush_map(mapname, 0)
-int dm_suspend_and_flush_map(const char * mapname);
+#define dm_flush_map(mapname) _dm_flush_map(mapname, 0)
+#define dm_suspend_and_flush_map(mapname) _dm_flush_map(mapname, 1)
 int dm_flush_maps (void);
 int dm_fail_path(char * mapname, char * path);
 int dm_reinstate_path(char * mapname, char * path);
@@ -39,10 +38,10 @@ int dm_geteventnr (char *name);
 int dm_get_major (char *name);
 int dm_get_minor (char *name);
 char * dm_mapname(int major, int minor);
-int dm_remove_partmaps (const char * mapname, int need_sync);
+int dm_remove_partmaps (const char * mapname);
 int dm_get_uuid(char *name, char *uuid);
 int dm_get_info (char * mapname, struct dm_info ** dmi);
-int dm_rename (char * old, char * new);
+int dm_rename (const char * old, char * new);
 int dm_reassign(const char * mapname);
 int dm_reassign_table(const char *name, char *old, char *new);
 int dm_setgeometry(struct multipath *mpp);

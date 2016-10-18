@@ -54,6 +54,7 @@
 #include <print.h>
 #include <configure.h>
 #include <prio.h>
+#include <wwids.h>
 #include <pgpolicies.h>
 #include <uevent.h>
 #include <log.h>
@@ -611,7 +612,23 @@ rescan:
 		verify_paths(mpp, vecs);
 		mpp->flush_on_last_del = FLUSH_UNDEF;
 		mpp->action = ACT_RELOAD;
-	} else {
+	}
+	else {
+		if (!pp->size) {
+			condlog(0, "%s: failed to create new map,"
+				" device size is 0 ", pp->dev);
+			int i = find_slot(vecs->pathvec, (void *)pp);
+			if (i != -1)
+				vector_del_slot(vecs->pathvec, i);
+			free_path(pp);
+			return 1;
+		}
+
+		if (conf->find_multipaths &&
+		    !should_multipath(pp, vecs->pathvec)) {
+			orphan_path(pp, "only one path");
+			return 0;
+		}
 		condlog(4,"%s: creating new map", pp->dev);
 		if ((mpp = add_map_with_path(vecs, pp, 1))) {
 			mpp->action = ACT_CREATE;
@@ -1247,6 +1264,9 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	int chkr_new_path_up = 0;
 	int add_active;
 	int oldchkrstate = pp->chkrstate;
+
+	if (pp->initialized && !pp->mpp)
+		return 0;
 
 	if (pp->tick)
 		pp->tick -= (pp->tick > ticks) ? ticks : pp->tick;
