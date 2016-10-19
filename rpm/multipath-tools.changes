@@ -1,14 +1,18 @@
 -------------------------------------------------------------------
-Tue Oct 18 16:09:53 UTC 2016 - mwilck@suse.de
+Wed Oct 19 13:37:27 UTC 2016 - mwilck@suse.de
 
+- multipathd: skip conf==NULL check in socket listener thread
+  (bsc#1005414)
 - multipath -ll: set DI_SERIAL (bsc#991432)
 - libmultipath: fall back to search paths by devt (bsc#1003972)
+- libmultipath/discovery: calculate priority even for ghost paths
+  (bsc#1005546)
+- libmultipath/configure: do not load invalid maps (bsc#1005546)
 
 -------------------------------------------------------------------
 Wed Sep 28 12:03:30 UTC 2016 - mwilck@suse.de
 
-- Backported reassign_maps support to SLES12-SP1 (bsc#999522)
-
+- Backported find_multipaths support to SLES12-SP1 (bsc#999522)
 - multpath.conf(5): fix reassign_maps section
 - Add find_multipaths to multipath.conf man page
 - libmultipath: only add uninitialized paths in check_path
