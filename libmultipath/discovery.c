@@ -1687,7 +1687,7 @@ pathinfo (struct path *pp, vector hwtable, int mask)
 		if (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF) {
 			if (!strlen(pp->wwid))
 				get_uid(pp, pp->state);
-			if (pp->state == PATH_UP)
+			if (pp->state == PATH_UP || pp->state == PATH_GHOST)
 				get_prio(pp);
 		}
 	}
