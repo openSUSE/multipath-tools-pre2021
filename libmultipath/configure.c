@@ -595,6 +595,7 @@ domap (struct multipath * mpp, char * params)
 
 	switch (mpp->action) {
 	case ACT_REJECT:
+		return DOMAP_FAIL;
 	case ACT_NOTHING:
 		return DOMAP_EXIST;
 
@@ -780,8 +781,11 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		if (!mpp)
 			return 1;
 
-		if (pp1->priority == PRIO_UNDEF)
+		if (pp1->priority == PRIO_UNDEF) {
+			condlog(0, "%s: priority for %s not set. Discard",
+				mpp->alias, pp1->dev_t);
 			mpp->action = ACT_REJECT;
+		}
 
 		if (!mpp->paths) {
 			condlog(0, "%s: skip coalesce (no paths)", mpp->alias);
@@ -808,8 +812,11 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 					mpp->size);
 				mpp->action = ACT_REJECT;
 			}
-			if (pp2->priority == PRIO_UNDEF)
+			if (pp2->priority == PRIO_UNDEF) {
+				condlog(0, "%s: priority for %s not set. "
+					"Discard", mpp->alias, pp2->dev_t);
 				mpp->action = ACT_REJECT;
+			}
 		}
 		verify_paths(mpp, vecs);
 
