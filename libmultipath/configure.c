@@ -385,8 +385,59 @@ pgcmp (struct multipath * mpp, struct multipath * cmpp)
 	return r;
 }
 
+static struct udev_enumerate *
+get_list_of_udev_mpps(void)
+{
+	struct udev_enumerate *num = udev_enumerate_new(udev);
+	if (!num)
+		return NULL;
+	udev_enumerate_add_match_subsystem(num, "block");
+	udev_enumerate_add_match_sysname(num, "dm-*");
+	udev_enumerate_add_match_property(num, "DM_TARGET_TYPES", "multipath");
+	udev_enumerate_add_match_is_initialized(num);
+	if (udev_enumerate_scan_devices(num) < 0) {
+		condlog(1, "failed to enumerate udev devices");
+		udev_enumerate_unref(num);
+		num = NULL;
+	}
+	return num;
+}
+
+static int
+is_mpp_in_udev_list(const struct multipath *mpp, struct udev_enumerate *num)
+{
+	struct udev_list_entry *item;
+	if (!num || !mpp || !mpp->dmi)
+		return 0;
+
+	udev_list_entry_foreach(item,
+				udev_enumerate_get_list_entry(num)) {
+		const char *name = udev_list_entry_get_name(item);
+		struct udev_device *dev =
+			udev_device_new_from_syspath(udev, name);
+		dev_t dv;
+
+		if (!dev) {
+			condlog(2, "Failed to get udev device for %s", name);
+			continue;
+		}
+		dv = udev_device_get_devnum(dev);
+		udev_device_unref(dev);
+
+		if (minor(dv) == mpp->dmi->minor &&
+		    major(dv) == mpp->dmi->major) {
+			condlog(5, "matched %s with udev device %i:%i",
+				mpp->alias, major(dv), minor(dv));
+			return 1;
+		}
+	}
+	condlog(1, "No udev match for %s", mpp->alias);
+	return 0;
+}
+
 static void
-select_action (struct multipath * mpp, vector curmp, int force_reload)
+select_action (struct multipath * mpp, vector curmp,
+	       struct udev_enumerate *udev_mpps, int force_reload)
 {
 	struct multipath * cmpp;
 	struct multipath * cmpp_by_name;
@@ -521,6 +572,12 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 	if (cmpp->nextpg != mpp->bestpg) {
 		mpp->action = ACT_SWITCHPG;
 		condlog(3, "%s: set ACT_SWITCHPG (next path group change)",
+			mpp->alias);
+		return;
+	}
+	if (udev_mpps && !is_mpp_in_udev_list(cmpp, udev_mpps)) {
+		mpp->action = ACT_RELOAD;
+		condlog(3, "%s: set ACT_RELOAD (udev device not initialized)",
 			mpp->alias);
 		return;
 	}
@@ -794,6 +851,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 	vector pathvec = vecs->pathvec;
 	struct config *conf;
 	int allow_queueing;
+	struct udev_enumerate *udev_mpps = get_list_of_udev_mpps();
 
 	/* ignore refwwid if it's empty */
 	if (refwwid && !strlen(refwwid))
@@ -841,8 +899,10 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		 * at this point, we know we really got a new mp
 		 */
 		mpp = add_map_with_path(vecs, pp1, 0);
-		if (!mpp)
-			return 1;
+		if (!mpp) {
+			r = 1;
+			goto error;
+		}
 
 		if (pp1->priority == PRIO_UNDEF)
 			mpp->action = ACT_REJECT;
@@ -886,7 +946,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 		if (cmd == CMD_DRY_RUN)
 			mpp->action = ACT_DRY_RUN;
 		if (mpp->action == ACT_UNDEF)
-			select_action(mpp, curmp,
+			select_action(mpp, curmp, udev_mpps,
 				      force_reload == FORCE_RELOAD_YES ? 1 : 0);
 
 		r = domap(mpp, params, is_daemon);
@@ -902,7 +962,7 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 				remove_map(mpp, vecs, 0);
 				continue;
 			} else /* if (r == DOMAP_RETRY) */
-				return r;
+				goto error;
 		}
 		if (r == DOMAP_DRY)
 			continue;
@@ -943,8 +1003,10 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 
 		if (newmp) {
 			if (mpp->action != ACT_REJECT) {
-				if (!vector_alloc_slot(newmp))
-					return 1;
+				if (!vector_alloc_slot(newmp)) {
+					r = 1;
+					goto error;
+				}
 				vector_set_slot(newmp, mpp);
 			}
 			else
@@ -975,7 +1037,10 @@ coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid, int force_r
 				condlog(2, "%s: remove (dead)", alias);
 		}
 	}
-	return 0;
+	r = 0;
+error:
+	udev_enumerate_unref(udev_mpps);
+	return r;
 }
 
 /*
@@ -1180,7 +1245,7 @@ extern int reload_map(struct vectors *vecs, struct multipath *mpp, int refresh, 
 		condlog(0, "%s: failed to setup map", mpp->alias);
 		return 1;
 	}
-	select_action(mpp, vecs->mpvec, 1);
+	select_action(mpp, vecs->mpvec, NULL, 1);
 
 	r = domap(mpp, params, is_daemon);
 	if (r == DOMAP_FAIL || r == DOMAP_RETRY) {
