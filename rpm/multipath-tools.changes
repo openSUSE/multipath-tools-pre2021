@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Oct 19 13:58:41 CEST 2016 - hare@suse.de
+
+- libmultipath/configure: do not load invalid maps (bsc#1005546)
+- libmultipath/discovery: calculate priority even for ghost paths
+  (bsc#1005546)
+
+-------------------------------------------------------------------
 Wed Sep 28 12:03:30 UTC 2016 - mwilck@suse.de
 
 - Backported reassign_maps support to SLES12-SP1 (bsc#999522)
