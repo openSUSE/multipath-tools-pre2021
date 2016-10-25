@@ -1883,6 +1883,7 @@ child (void * param)
 	int i;
 #ifdef USE_SYSTEMD
 	unsigned long checkint;
+	int startup_done = 0;
 #endif
 	int rc, pid_rc;
 	char *envp;
@@ -2012,10 +2013,6 @@ child (void * param)
 	pid_rc = pidfile_create(DEFAULT_PIDFILE, daemon_pid);
 	/* Ignore errors, we can live without */
 
-#ifdef USE_SYSTEMD
-	sd_notify(0, "READY=1");
-#endif
-
 	while (running_state != DAEMON_SHUTDOWN) {
 		pthread_cleanup_push(config_cleanup, NULL);
 		pthread_mutex_lock(&config_lock);
@@ -2031,6 +2028,12 @@ child (void * param)
 			reconfigure(vecs);
 			lock_cleanup_pop(vecs->lock);
 			post_config_state(DAEMON_IDLE);
+#ifdef USE_SYSTEMD
+			if (!startup_done) {
+				sd_notify(0, "READY=1");
+				startup_done = 1;
+			}
+#endif
 		}
 	}
 
