@@ -2361,6 +2361,7 @@ child (void * param)
 	int i;
 #ifdef USE_SYSTEMD
 	unsigned long checkint;
+	int startup_done = 0;
 #endif
 	int rc;
 	int pid_fd = -1;
@@ -2509,10 +2510,6 @@ child (void * param)
 	}
 	pthread_attr_destroy(&misc_attr);
 
-#ifdef USE_SYSTEMD
-	sd_notify(0, "READY=1");
-#endif
-
 	while (running_state != DAEMON_SHUTDOWN) {
 		pthread_cleanup_push(config_cleanup, NULL);
 		pthread_mutex_lock(&config_lock);
@@ -2534,6 +2531,12 @@ child (void * param)
 			}
 			lock_cleanup_pop(vecs->lock);
 			post_config_state(DAEMON_IDLE);
+#ifdef USE_SYSTEMD
+			if (!startup_done) {
+				sd_notify(0, "READY=1");
+				startup_done = 1;
+			}
+#endif
 		}
 	}
 
