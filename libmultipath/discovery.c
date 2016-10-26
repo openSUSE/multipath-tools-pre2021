@@ -216,8 +216,6 @@ declare_sysfs_get_str(devtype);
 declare_sysfs_get_str(vendor);
 declare_sysfs_get_str(model);
 declare_sysfs_get_str(rev);
-declare_sysfs_get_str(access_state);
-declare_sysfs_get_str(preferred_path);
 
 ssize_t
 sysfs_get_vpd (struct udev_device * udev, int pg,
@@ -510,10 +508,10 @@ sysfs_get_asymmetric_access_state(struct path *pp, char *buff, int buflen)
 	if (!parent)
 		return -1;
 
-	if (sysfs_get_access_state(parent, buff, buflen) <= 0)
+	if (sysfs_attr_get_value(parent, "access_state", buff, buflen) <= 0)
 		return -1;
 
-	if (sysfs_get_preferred_path(parent, value, 16) <= 0)
+	if (sysfs_attr_get_value(parent, "preferred_path", value, 16) <= 0)
 		return 0;
 
 	preferred = strtoul(value, &eptr, 0);
