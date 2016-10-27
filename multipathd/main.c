@@ -2144,7 +2144,6 @@ main (int argc, char *argv[])
 
 		if (load_config(DEFAULT_CONFIGFILE, udev_new()))
 			exit(1);
-		memset(cmd, 0x0, CMDSIZE);
 		while (optind < argc) {
 			if (strchr(argv[optind], ' '))
 				c += snprintf(c, s + CMDSIZE - c, "\"%s\" ", argv[optind]);
