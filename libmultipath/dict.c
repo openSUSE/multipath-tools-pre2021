@@ -731,29 +731,6 @@ def_uxsock_timeout_handler(vector strvec)
 	return 0;
 }
 
-static int
-def_strict_timing_handler(vector strvec)
-{
-	char * buff;
-
-	buff = set_value(strvec);
-
-	if (!buff)
-		return 1;
-
-	if ((strlen(buff) == 2 && !strcmp(buff, "no")) ||
-	    (strlen(buff) == 1 && !strcmp(buff, "0")))
-		conf->strict_timing = 0;
-	else if ((strlen(buff) == 3 && !strcmp(buff, "yes")) ||
-		 (strlen(buff) == 1 && !strcmp(buff, "1")))
-		conf->strict_timing = 1;
-	else
-		conf->strict_timing = 0;
-
-	FREE(buff);
-	return 0;
-}
-
 /*
  * blacklist block handlers
  */
@@ -2872,15 +2849,6 @@ snprint_def_uxsock_timeout(char * buff, int len, void * data)
 }
 
 static int
-snprint_def_strict_timing(char * buff, int len, void * data)
-{
-	if (conf->strict_timing)
-		return snprintf(buff, len, "yes");
-	else
-		return snprintf(buff, len, "no");
-}
-
-static int
 snprint_ble_simple (char * buff, int len, void * data)
 {
 	struct blentry * ble = (struct blentry *)data;
@@ -2949,7 +2917,6 @@ init_keywords(void)
 	install_keyword("detect_prio", &def_detect_prio_handler, &snprint_def_detect_prio);
 	install_keyword("force_sync", &def_force_sync_handler, &snprint_def_force_sync);
 	install_keyword("uxsock_timeout", &def_uxsock_timeout_handler, &snprint_def_uxsock_timeout);
-	install_keyword("strict_timing", &def_strict_timing_handler, &snprint_def_strict_timing);
 	__deprecated install_keyword("default_selector", &def_selector_handler, NULL);
 	__deprecated install_keyword("default_path_grouping_policy", &def_pgpolicy_handler, NULL);
 	__deprecated install_keyword("default_uid_attribute", &def_uid_attribute_handler, NULL);
