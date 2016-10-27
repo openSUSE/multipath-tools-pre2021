@@ -36,7 +36,7 @@ Group:          System/Base
 %define has_systemd 1
 Source:         http://christophe.varoqui.free.fr/multipath-tools/multipath-tools-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-Patch0:         %{name}-%{version}-sles12-sp1.diff.bz2
+Patch0:         %{name}-%{version}-sles12.diff.bz2
 %if %suse_version > 1220
 %define         _sysdir usr/lib
 %else

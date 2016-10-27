@@ -1,11 +1,32 @@
 -------------------------------------------------------------------
-Tue Mar  8 10:57:07 CET 2016 - hare@suse.de
+Wed Apr  6 15:53:37 CEST 2016 - hare@suse.de
+
+- multipathd: do not flush maps on startup
+- Use find_path_by_dev() where possible (bsc#924316)
+- Fixup error return in store_path() (bsc#972329)
+- Do not display message 'invalid fd'
+- multipathd: Do not switch paths on empty multipath tables (bsc#956349)
+
+-------------------------------------------------------------------
+Wed Mar 16 15:54:27 CET 2016 - hare@suse.de
 
 - Fixup overzealous warning 'empty device number' (bsc#969857)
 
 -------------------------------------------------------------------
-Wed Feb 17 15:53:26 CET 2016 - hare@suse.de
+Wed Feb 17 12:24:41 CET 2016 - hare@suse.de
 
+- kpartx: parse emulated DASD devices
+- multipathd: fixup queueing mode in 'show maps status' (bsc#933885)
+- multipathd: accept zero-size paths in ev_add_path()
+- Always set DM_UDEV_DISABLE_LIBRARY_FALLBACK
+- Fixes for bsc#933282:
+  * libmultipath: make 'dm_addmap' static
+  * libmultipath: remove 'use_uuid' argument from dm_addmap()
+  * libmultipath: pass in 'cookie' as argument for dm_addmap()
+  * libmultipath: pass in cookie as argument for dm_simplecmd()
+  * libmultipath: Fixup 'DM_DEVICE_RELOAD' handling
+- libmultipath: correctly display checker status
+- Fix hang in 'multipath -f' (bsc#941954)
 - multipathd: fixup signal handling (again)
 - Revert 'trigger all devices on startup'
 - multipathd: print error message for invalid arguments
@@ -18,7 +39,6 @@ Wed Feb 17 15:53:26 CET 2016 - hare@suse.de
 - libmultipath: call get_uid() for all paths (bsc#935312)
 - multipathd: Do not print misleading message 'not found in pathvec'
 - multipathd: Do not update the paths vec when removing paths
-- multipathd: Do not switch paths on empty multipath tables (bsc#956349)
 - libmultipath: remove 'get_info' argument for adopt_paths()
 - libmultipath: ensure 'dev_t' is set when store paths (bsc#924316)
 - libmultipath: Do not store paths with empty dev_t (bsc#924316)
@@ -26,32 +46,6 @@ Wed Feb 17 15:53:26 CET 2016 - hare@suse.de
 - libmultipath: sysfs_set_rport_tmo still wrong (bsc#926588)
 - Add LIO-ORG/SUSE RBD backend hardware defaults (bsc#947845)
 - multipath: Reset alias if renaming fails (bsc#943157)
-
--------------------------------------------------------------------
-Fri Nov  6 13:35:22 CET 2015 - hare@suse.de
-
-- Fixes for md_monitor on zFCP (FATE#319070):
-  * strict loop timings
-  * multipathd: fixup a crash when invoking CLI commands
-  * multipathd: implement 'show map $map format $format
-
--------------------------------------------------------------------
-Tue Aug 25 11:58:21 CEST 2015 - hare@suse.de
-
-- Fixup hang in 'multipath -f' (bsc#941954)
-
--------------------------------------------------------------------
-Mon Aug  3 11:48:54 CEST 2015 - hare@suse.de
-
-- Create package for SLE12-SP1.
-  * Remove multipath-tools-0.5.0-sles12.diff.bz2
-  * Add multipath-tools-0.5.0-sles12-sp1.diff.bz2
-- kpartx: parse emulated DASD devices
-- multipathd: Fixup queueing mode in 'show maps status' (bsc#933885)
-- multipathd: Accept zero-sized paths in ev_add_path
-- Always set DM_UDEV_DISABLE_LIBRARY_FALLBACK (bsc#933282)
-- libmultipath: Fixup 'DM_DEVICE_RELOAD' handling (bsc#933282)
-- libmultipath: correctly display checker status
 
 -------------------------------------------------------------------
 Wed Apr  8 11:00:43 CEST 2015 - hare@suse.de
