@@ -363,31 +363,6 @@ show_daemon (char ** r, int *len)
 }
 
 int
-show_map (char ** r, int *len, struct multipath * mpp, char * style)
-{
-	char * c;
-	char * reply;
-	unsigned int maxlen = INITIAL_REPLY_LEN;
-	int again = 1;
-
-	reply = MALLOC(maxlen);
-	while (again) {
-		if (!reply)
-			return 1;
-
-		c = reply;
-		c += snprint_multipath(c, reply + maxlen - c, style, mpp);
-
-		again = ((c - reply) == (maxlen - 1));
-
-		REALLOC_REPLY(reply, again, maxlen);
-	}
-	*r = reply;
-	*len = (int)(c - reply + 1);
-	return 0;
-}
-
-int
 show_maps (char ** r, int *len, struct vectors * vecs, char * style)
 {
 	int i;
@@ -431,26 +406,6 @@ cli_list_maps_fmt (void * v, char ** reply, int * len, void * data)
 	condlog(3, "list maps (operator)");
 
 	return show_maps(reply, len, vecs, fmt);
-}
-
-int
-cli_list_map_fmt (void * v, char ** reply, int * len, void * data)
-{
-	struct multipath * mpp;
-	struct vectors * vecs = (struct vectors *)data;
-	char * param = get_keyparam(v, MAP);
-	char * fmt = get_keyparam(v, FMT);
-
-	param = convert_dev(param, 0);
-	get_path_layout(vecs->pathvec, 0);
-	get_multipath_layout(vecs->mpvec, 1);
-	mpp = find_mp_by_str(vecs->mpvec, param);
-	if (!mpp)
-		return 1;
-
-	condlog(3, "list map %s fmt %s (operator)", param, fmt);
-
-	return show_map(reply, len, mpp, fmt);
 }
 
 int
