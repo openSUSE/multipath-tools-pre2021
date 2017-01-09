@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jan  9 09:31:41 UTC 2017 - mwilck@suse.com
+
+- multipath-tools: fix dm- device filtering (bsc#1017009)
+
+-------------------------------------------------------------------
 Wed Oct 19 13:58:41 CEST 2016 - hare@suse.de
 
 - libmultipath/configure: do not load invalid maps (bsc#1005546)
@@ -6,7 +11,7 @@ Wed Oct 19 13:58:41 CEST 2016 - hare@suse.de
   (bsc#1005546)
 
 -------------------------------------------------------------------
-Wed Oct 19 13:37:27 UTC 2016 - mwilck@suse.de
+Wed Oct 19 13:37:27 CEST 2016 - mwilck@suse.de
 
 - multipathd: skip conf==NULL check in socket listener thread
   (bsc#1005414)
