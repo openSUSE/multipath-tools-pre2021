@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jan 10 19:38:51 UTC 2017 - mwilck@suse.com
+
+- multipathd.service: re-add Before: lvm2-activation-early.service
+  (bsc#1019181)
+
+-------------------------------------------------------------------
 Mon Jan  9 09:31:41 UTC 2017 - mwilck@suse.com
 
 - multipath-tools: fix dm- device filtering (bsc#1017009)
