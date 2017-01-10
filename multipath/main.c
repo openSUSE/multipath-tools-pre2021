@@ -267,7 +267,8 @@ configure (void)
 	/*
 	 * if we have a blacklisted device parameter, exit early
 	 */
-	if (dev && conf->dev_type == DEV_DEVNODE &&
+	if (dev && (conf->dev_type == DEV_DEVNODE ||
+		    conf->dev_type == DEV_UEVENT) &&
 	    conf->cmd != CMD_REMOVE_WWID &&
 	    (filter_devnode(conf->blist_devnode,
 			    conf->elist_devnode, dev) > 0)) {
