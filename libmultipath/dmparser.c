@@ -184,10 +184,7 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp,
 			FREE(word);
 			return 1;
 		}
-		if ((mpp->no_path_retry == NO_PATH_RETRY_UNDEF) ||
-			(mpp->no_path_retry == NO_PATH_RETRY_FAIL) ||
-			(mpp->no_path_retry == NO_PATH_RETRY_QUEUE))
-			setup_feature(mpp, word);
+		setup_feature(mpp, word);
 
 		FREE(word);
 	}
@@ -388,19 +385,17 @@ disassemble_map (vector pathvec, char * params, struct multipath * mpp,
 
 			for (k = 0; k < num_paths_args; k++)
 				if (k == 0) {
+					p += get_word(p, &word);
+					def_minio = atoi(word);
+					FREE(word);
+
 					if (!strncmp(mpp->selector,
 						     "round-robin", 11)) {
-						p += get_word(p, &word);
-						def_minio = atoi(word);
 
 						if (mpp->rr_weight == RR_WEIGHT_PRIO
 						    && pp->priority > 0)
 							def_minio /= pp->priority;
 
-						FREE(word);
-					} else {
-						p += get_word(p, NULL);
-						def_minio = 0;
 					}
 
 					if (def_minio != mpp->minio)

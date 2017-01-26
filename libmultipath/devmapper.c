@@ -777,9 +777,13 @@ partmap_in_use(const char *name, void *data)
 }
 
 extern int
-_dm_flush_map (const char * mapname, int need_sync, int deferred_remove)
+_dm_flush_map (const char * mapname, int need_sync, int deferred_remove,
+	       int need_suspend)
 {
 	int r;
+	int queue_if_no_path = 0;
+	unsigned long long mapsize;
+	char params[PARAMS_SIZE] = {0};
 
 	if (!dm_is_mpath(mapname))
 		return 0; /* nothing to do */
@@ -789,6 +793,16 @@ _dm_flush_map (const char * mapname, int need_sync, int deferred_remove)
 	if (!do_deferred(deferred_remove) && partmap_in_use(mapname, NULL))
 			return 1;
 
+	if (need_suspend &&
+	    !dm_get_map(mapname, &mapsize, params) &&
+	    strstr(params, "queue_if_no_path")) {
+		if (!dm_queue_if_no_path((char *)mapname, 0))
+			queue_if_no_path = 1;
+		else
+			/* Leave queue_if_no_path alone if unset failed */
+			queue_if_no_path = -1;
+	}
+
 	if (dm_remove_partmaps(mapname, need_sync, deferred_remove))
 		return 1;
 
@@ -796,6 +810,9 @@ _dm_flush_map (const char * mapname, int need_sync, int deferred_remove)
 		condlog(2, "%s: map in use", mapname);
 		return 1;
 	}
+
+	if (need_suspend && queue_if_no_path != -1)
+		dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
 
 	r = dm_device_remove(mapname, need_sync, deferred_remove);
 
@@ -807,6 +824,13 @@ _dm_flush_map (const char * mapname, int need_sync, int deferred_remove)
 		}
 		condlog(4, "multipath map %s removed", mapname);
 		return 0;
+	} else {
+		condlog(2, "failed to remove multipath map %s", mapname);
+		if (need_suspend && queue_if_no_path != -1) {
+			dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 0);
+			if (queue_if_no_path == 1)
+				dm_queue_if_no_path((char *)mapname, 1);
+		}
 	}
 	return 1;
 }
@@ -816,7 +840,7 @@ _dm_flush_map (const char * mapname, int need_sync, int deferred_remove)
 int
 dm_flush_map_nopaths(const char * mapname, int deferred_remove)
 {
-	return _dm_flush_map(mapname, 1, deferred_remove);
+	return _dm_flush_map(mapname, 1, deferred_remove, 0);
 }
 
 #else
@@ -824,44 +848,10 @@ dm_flush_map_nopaths(const char * mapname, int deferred_remove)
 int
 dm_flush_map_nopaths(const char * mapname, int deferred_remove)
 {
-	return _dm_flush_map(mapname, 1, 0);
+	return _dm_flush_map(mapname, 1, 0, 0);
 }
 
 #endif
-
-extern int
-dm_suspend_and_flush_map (const char * mapname)
-{
-	int s = 0, queue_if_no_path = 0;
-	unsigned long long mapsize;
-	char params[PARAMS_SIZE] = {0};
-
-	if (!dm_is_mpath(mapname))
-		return 0; /* nothing to do */
-
-	if (!dm_get_map(mapname, &mapsize, params)) {
-		if (strstr(params, "queue_if_no_path"))
-			queue_if_no_path = 1;
-	}
-
-	if (queue_if_no_path)
-		s = dm_queue_if_no_path((char *)mapname, 0);
-	/* Leave queue_if_no_path alone if unset failed */
-	if (s)
-		queue_if_no_path = 0;
-	else
-		s = dm_simplecmd_flush(DM_DEVICE_SUSPEND, mapname, 0);
-
-	if (!dm_flush_map(mapname)) {
-		condlog(4, "multipath map %s removed", mapname);
-		return 0;
-	}
-	condlog(2, "failed to remove multipath map %s", mapname);
-	dm_simplecmd_noflush(DM_DEVICE_RESUME, mapname, 0);
-	if (queue_if_no_path)
-		s = dm_queue_if_no_path((char *)mapname, 1);
-	return 1;
-}
 
 extern int
 dm_flush_maps (void)

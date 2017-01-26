@@ -366,7 +366,7 @@ configure (struct config *conf, enum mpath_cmds cmd,
 
 	if (cmd == CMD_LIST_LONG)
 		/* extended path info '-ll' */
-		di_flag |= DI_SYSFS | DI_CHECKER;
+		di_flag |= DI_SYSFS | DI_CHECKER | DI_SERIAL;
 	else if (cmd == CMD_LIST_SHORT)
 		/* minimum path info '-l' */
 		di_flag |= DI_SYSFS;
@@ -575,7 +575,7 @@ main (int argc, char *argv[])
 			}
 			break;
 		case 'r':
-			conf->force_reload = 1;
+			conf->force_reload = FORCE_RELOAD_YES;
 			break;
 		case 'i':
 			conf->ignore_wwids = 1;
@@ -611,6 +611,16 @@ main (int argc, char *argv[])
 			usage(argv[0]);
 			exit(1);
 		}
+	}
+
+	/*
+	 * FIXME: new device detection with find_multipaths currently
+	 * doesn't work reliably.
+	 */
+	if (cmd ==  CMD_VALID_PATH &&
+	    conf->find_multipaths && conf->ignore_wwids) {
+		condlog(2, "ignoring -i flag because find_multipath is set in multipath.conf");
+		conf->ignore_wwids = 0;
 	}
 
 	if (getuid() != 0) {
