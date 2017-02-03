@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb  3 11:31:17 CET 2017 - hare@suse.de
+
+- kpartx: sanitize delete partitions (bsc#1008691)
+- kpartx: Fix check whether to detach loop device
+
+-------------------------------------------------------------------
 Wed Jan 11 18:24:26 UTC 2017 - mwilck@suse.com
 
 - multipathd: issue systemd READY after initial configuration
