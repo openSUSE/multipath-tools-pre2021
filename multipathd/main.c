@@ -1187,7 +1187,7 @@ check_path (struct vectors * vecs, struct path * pp)
 		 */
 		pp->checkint = conf->checkint;
 
-		if (newstate == PATH_DOWN || newstate == PATH_SHAKY) {
+		if (newstate != PATH_UP && newstate != PATH_GHOST) {
 			/*
 			 * proactively fail path in the DM
 			 */
