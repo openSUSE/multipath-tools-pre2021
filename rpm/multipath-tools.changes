@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb  7 11:05:28 CET 2017 - hare@suse.de
+
+- multipathd: fix memory corruption issue (bsc#1022996)
+
+-------------------------------------------------------------------
 Fri Feb  3 11:31:17 CET 2017 - hare@suse.de
 
 - kpartx: sanitize delete partitions (bsc#1008691)
