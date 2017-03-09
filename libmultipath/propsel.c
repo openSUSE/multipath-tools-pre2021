@@ -380,7 +380,7 @@ static int
 check_rdac(struct path * pp)
 {
 	int len;
-	unsigned char buff[44];
+	char buff[44];
 
 	len = get_vpd_sgio(pp->fd, 0xC9, buff, 44);
 	if (len <= 0)
