@@ -1,0 +1,16 @@
+#
+# kpartx compability rules for SUSE
+#
+# Older versions were using an underscore between
+# DM_NAME and the partition number.
+#
+# Newer (and upstream) versions were using a minus here.
+#
+
+KERNEL!="dm-*", GOTO="kpartx_compat_end"
+ACTION=="remove", GOTO="kpartx_compat_end"
+
+ENV{DM_MPATH}=="?*", ENV{DM_PART}=="?*", \
+	SYMLINK+="mapper/$env{DM_MPATH}_part$env{DM_PART}"
+
+LABEL="kpartx_compat_end"

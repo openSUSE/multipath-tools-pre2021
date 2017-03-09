@@ -266,7 +266,8 @@ get_dm_mpvec (enum mpath_cmds cmd, vector curmp, vector pathvec, char * refwwid)
  *   1: Failure
  */
 static int
-configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
+configure (struct config *conf, enum mpath_cmds cmd,
+	   enum devtypes dev_type, char *devpath)
 {
 	vector curmp = NULL;
 	vector pathvec = NULL;
@@ -275,7 +276,6 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 	int di_flag = 0;
 	char * refwwid = NULL;
 	char * dev = NULL;
-	struct config *conf;
 
 	/*
 	 * allocate core vectors to store paths and multipaths
@@ -295,7 +295,6 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 	/*
 	 * if we have a blacklisted device parameter, exit early
 	 */
-	conf = get_multipath_config();
 	if (dev && (dev_type == DEV_DEVNODE ||
 		    dev_type == DEV_UEVENT) &&
 	    cmd != CMD_REMOVE_WWID &&
@@ -304,10 +303,9 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 		if (cmd == CMD_VALID_PATH)
 			printf("%s is not a valid multipath device path\n",
 			       devpath);
-		put_multipath_config(conf);
 		goto out;
 	}
-	put_multipath_config(conf);
+
 	/*
 	 * scope limiting must be translated into a wwid
 	 * failing the translation is fatal (by policy)
@@ -369,7 +367,7 @@ configure (enum mpath_cmds cmd, enum devtypes dev_type, char *devpath)
 
 	if (cmd == CMD_LIST_LONG)
 		/* extended path info '-ll' */
-		di_flag |= DI_SYSFS | DI_CHECKER;
+		di_flag |= DI_SYSFS | DI_CHECKER | DI_SERIAL;
 	else if (cmd == CMD_LIST_SHORT)
 		/* minimum path info '-l' */
 		di_flag |= DI_SYSFS;
@@ -580,7 +578,7 @@ main (int argc, char *argv[])
 			}
 			break;
 		case 'r':
-			conf->force_reload = 1;
+			conf->force_reload = FORCE_RELOAD_YES;
 			break;
 		case 'i':
 			conf->ignore_wwids = 1;
@@ -619,6 +617,16 @@ main (int argc, char *argv[])
 			usage(argv[0]);
 			exit(1);
 		}
+	}
+
+	/*
+	 * FIXME: new device detection with find_multipaths currently
+	 * doesn't work reliably.
+	 */
+	if (cmd ==  CMD_VALID_PATH &&
+	    conf->find_multipaths && conf->ignore_wwids) {
+		condlog(2, "ignoring -i flag because find_multipath is set in multipath.conf");
+		conf->ignore_wwids = 0;
 	}
 
 	if (getuid() != 0) {
@@ -682,11 +690,14 @@ main (int argc, char *argv[])
 
 		fd = mpath_connect();
 		if (fd == -1) {
-			printf("%s is not a valid multipath device path\n",
-				dev);
-			goto out;
-		}
-		mpath_disconnect(fd);
+			condlog(3, "%s: daemon is not running", dev);
+			if (!systemd_service_enabled(dev)) {
+				printf("%s is not a valid "
+				       "multipath device path\n", dev);
+				goto out;
+			}
+		} else
+			mpath_disconnect(fd);
 	}
 	if (cmd == CMD_REMOVE_WWID && !dev) {
 		condlog(0, "the -w option requires a device");
@@ -727,7 +738,7 @@ main (int argc, char *argv[])
 		r = dm_flush_maps(retries);
 		goto out;
 	}
-	while ((r = configure(cmd, dev_type, dev)) < 0)
+	while ((r = configure(conf, cmd, dev_type, dev)) < 0)
 		condlog(3, "restart multipath configuration process");
 
 out:

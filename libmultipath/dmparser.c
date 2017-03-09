@@ -183,10 +183,7 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
 			FREE(word);
 			return 1;
 		}
-		if ((mpp->no_path_retry == NO_PATH_RETRY_UNDEF) ||
-			(mpp->no_path_retry == NO_PATH_RETRY_FAIL) ||
-			(mpp->no_path_retry == NO_PATH_RETRY_QUEUE))
-			setup_feature(mpp, word);
+		setup_feature(mpp, word);
 
 		FREE(word);
 	}
@@ -330,12 +327,15 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
 			if (devt2devname(devname, FILE_NAME_SIZE, word)) {
 				condlog(2, "%s: cannot find block device",
 					word);
-				FREE(word);
-				continue;
+				devname[0] = '\0';
 			}
 
-			if (pathvec)
-				pp = find_path_by_dev(pathvec, devname);
+			if (pathvec) {
+				if (strlen(devname))
+					pp = find_path_by_dev(pathvec, devname);
+				else
+					pp = find_path_by_devt(pathvec, word);
+			}
 
 			if (!pp) {
 				pp = alloc_path();
@@ -392,19 +392,17 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
 
 			for (k = 0; k < num_paths_args; k++)
 				if (k == 0) {
+					p += get_word(p, &word);
+					def_minio = atoi(word);
+					FREE(word);
+
 					if (!strncmp(mpp->selector,
 						     "round-robin", 11)) {
-						p += get_word(p, &word);
-						def_minio = atoi(word);
 
 						if (mpp->rr_weight == RR_WEIGHT_PRIO
 						    && pp->priority > 0)
 							def_minio /= pp->priority;
 
-						FREE(word);
-					} else {
-						p += get_word(p, NULL);
-						def_minio = 0;
 					}
 
 					if (def_minio != mpp->minio)

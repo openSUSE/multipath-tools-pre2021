@@ -501,12 +501,21 @@ void setup_feature(struct multipath *mpp, char *feature)
 	if (!strncmp(feature, "queue_if_no_path", 16)) {
 		if (mpp->no_path_retry <= NO_PATH_RETRY_UNDEF)
 			mpp->no_path_retry = NO_PATH_RETRY_QUEUE;
+		else
+			condlog(1, "%s: ignoring feature queue_if_no_path because no_path_retry = %d",
+				mpp->alias, mpp->no_path_retry);
+	} else if (!strcmp(feature, "retain_attached_hw_handler")) {
+		if (mpp->retain_hwhandler != RETAIN_HWHANDLER_OFF)
+			mpp->retain_hwhandler = RETAIN_HWHANDLER_ON;
+		else
+			condlog(1, "%s: ignoring feature 'retain_attached_hw_handler'",
+				mpp->alias);
 	}
 }
 
 int add_feature(char **f, char *n)
 {
-	int c = 0, d, l;
+	int c = 0, d, l = 0;
 	char *e, *p, *t;
 
 	if (!f)
@@ -528,18 +537,19 @@ int add_feature(char **f, char *n)
 	}
 
 	/* Check if feature is already present */
-	if (strstr(*f, n))
-		return 0;
+	if (*f) {
+		if (strstr(*f, n))
+			return 0;
 
-	/* Get feature count */
-	c = strtoul(*f, &e, 10);
-	if (*f == e)
-		/* parse error */
-		return 1;
+		/* Get feature count */
+		c = strtoul(*f, &e, 10);
+		if (*f == e)
+			/* parse error */
+			return 1;
 
-	/* Check if we need to increase feature count space */
-	l = strlen(*f) + strlen(n) + 1;
-
+		/* Check if we need to increase feature count space */
+		l = strlen(*f) + strlen(n) + 1;
+	}
 	/* Count new features */
 	if ((c % 10) == 9)
 		l++;
@@ -571,7 +581,10 @@ int add_feature(char **f, char *n)
 	snprintf(p, l + 2, "%0d ", c);
 
 	/* Copy the feature string */
-	p = strchr(*f, ' ');
+	p = NULL;
+	if (*f)
+		p = strchr(*f, ' ');
+
 	if (p) {
 		while (*p == ' ')
 			p++;

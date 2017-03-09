@@ -120,8 +120,15 @@ path_discover (vector pathvec, struct config * conf,
 
 	pp = find_path_by_dev(pathvec, (char *)devname);
 	if (!pp) {
-		return store_pathinfo(pathvec, conf,
-				      udevice, flag, NULL);
+		char devt[BLK_DEV_SIZE];
+		dev_t devnum = udev_device_get_devnum(udevice);
+
+		snprintf(devt, BLK_DEV_SIZE, "%d:%d",
+			 major(devnum), minor(devnum));
+		pp = find_path_by_devt(pathvec, devt);
+		if (!pp)
+			return store_pathinfo(pathvec, conf,
+					      udevice, flag, NULL);
 	}
 	return pathinfo(pp, conf, flag);
 }
@@ -203,8 +210,6 @@ declare_sysfs_get_str(devtype);
 declare_sysfs_get_str(vendor);
 declare_sysfs_get_str(model);
 declare_sysfs_get_str(rev);
-declare_sysfs_get_str(access_state);
-declare_sysfs_get_str(preferred_path);
 
 int
 sysfs_set_max_sectors_kb(struct multipath *mpp)
@@ -520,10 +525,10 @@ sysfs_get_asymmetric_access_state(struct path *pp, char *buff, int buflen)
 	if (!parent)
 		return -1;
 
-	if (sysfs_get_access_state(parent, buff, buflen) <= 0)
+	if (sysfs_attr_get_value(parent, "access_state", buff, buflen) <= 0)
 		return -1;
 
-	if (sysfs_get_preferred_path(parent, value, 16) <= 0)
+	if (sysfs_attr_get_value(parent, "preferred_path", value, 16) <= 0)
 		return 0;
 
 	preferred = strtoul(value, &eptr, 0);
@@ -1107,7 +1112,7 @@ get_vpd_sysfs (struct udev_device *parent, int pg, char * str, int maxlen)
 	return len;
 }
 
-static int
+int
 get_vpd_sgio (int fd, int pg, char * str, int maxlen)
 {
 	int len, buff_len;
@@ -1794,7 +1799,7 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 {
 	int path_state;
 
-	if (!pp)
+	if (!pp || !conf)
 		return PATHINFO_FAILED;
 
 	/*
