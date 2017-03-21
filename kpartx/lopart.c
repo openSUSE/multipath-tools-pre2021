@@ -27,6 +27,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <sys/sysmacros.h>
 #include "sysmacros.h"
 #include <linux/loop.h>
 
