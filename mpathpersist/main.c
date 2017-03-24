@@ -57,6 +57,8 @@ void rcu_register_thread_memb(void) {}
 
 void rcu_unregister_thread_memb(void) {}
 
+struct udev *udev;
+
 int main (int argc, char * argv[])
 {
 	int fd, c, res;
@@ -86,7 +88,6 @@ int main (int argc, char * argv[])
 	int num_transport =0;
 	void *resp = NULL;
 	struct transportid * tmp;
-	struct udev *udev = NULL;
 	struct config *conf;
 
 	if (optind == argc)
@@ -104,7 +105,7 @@ int main (int argc, char * argv[])
 	}
 
 	udev = udev_new();
-	conf = mpath_lib_init(udev);
+	conf = mpath_lib_init();
 	memset(transportids,0,MPATH_MX_TIDS);
 	multipath_conf = conf;
 
