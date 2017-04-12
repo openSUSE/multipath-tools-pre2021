@@ -355,8 +355,11 @@ main(int argc, char **argv){
 
 	if (!loopdev) {
 		mapname = dm_mapname(major(buf.st_rdev), minor(buf.st_rdev));
-		if (mapname)
+		if (mapname) {
 			uuid = dm_mapuuid(mapname);
+			if (!uuid)
+				uuid = strdup(mapname);
+		}
 	}
 
 	if (!mapname)
