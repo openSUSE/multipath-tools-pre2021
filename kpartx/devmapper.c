@@ -415,11 +415,11 @@ dm_compare_uuid(const char *mapuuid, const char *partname)
 
 	partuuid = dm_mapuuid(partname);
 	if (!partuuid)
-		return 1;
+		return 0;
 
 	if (!strncmp(partuuid, "part", 4)) {
-		char *p = strstr(partuuid, "mpath-");
-		if (p && !strcmp(mapuuid, p))
+		char *p = strchr(partuuid, '-');
+		if (p && !strcmp(mapuuid, p + 1))
 			r = 0;
 	}
 	free(partuuid);
@@ -496,7 +496,7 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 		/*
 		 * skip if uuids don't match
 		 */
-		if (dm_compare_uuid(uuid, names->name)) {
+		if (uuid && dm_compare_uuid(uuid, names->name)) {
 			if (rd->verbose)
 				printf("%s: is not a kpartx partition. Not removing\n",
 				       names->name);
