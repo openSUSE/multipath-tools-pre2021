@@ -360,16 +360,14 @@ main(int argc, char **argv){
 			uuid = dm_mapuuid(mapname);
 			if (!uuid)
 				uuid = strdup(mapname);
+			if (!force_devmap && dm_no_partitions(mapname))
+				/* Feature 'no_partitions' is set, return */
+				return 0;
 		}
 	}
 
 	if (!mapname)
 		mapname = device + off;
-	if (!force_devmap &&
-		 dm_no_partitions(mapname)) {
-		/* Feature 'no_partitions' is set, return */
-		return 0;
-	}
 
 	if (delim == NULL) {
 		delim = malloc(DELIM_SIZE);
