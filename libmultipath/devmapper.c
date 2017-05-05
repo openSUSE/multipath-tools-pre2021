@@ -567,7 +567,7 @@ out:
  * returns:
  *    1 : match
  *    0 : no match
- *   -1 : empty map
+ *   -1 : empty map, or more than 1 target
  */
 extern int
 dm_type(const char * name, char * type)
@@ -590,10 +590,11 @@ dm_type(const char * name, char * type)
 		goto out;
 
 	/* Fetch 1st target */
-	dm_get_next_target(dmt, NULL, &start, &length,
-			   &target_type, &params);
-
-	if (!target_type)
+	if (dm_get_next_target(dmt, NULL, &start, &length,
+			       &target_type, &params) != NULL)
+		/* multiple targets */
+		r = -1;
+	else if (!target_type)
 		r = -1;
 	else if (!strcmp(target_type, type))
 		r = 1;
@@ -1163,9 +1164,9 @@ do_foreach_partmaps (const char * mapname,
 	do {
 		if (
 		    /*
-		     * if devmap target is "linear"
+		     * if there is only a single "linear" target
 		     */
-		    (dm_type(names->name, TGT_PART) > 0) &&
+		    (dm_type(names->name, TGT_PART) == 1) &&
 
 		    /*
 		     * and both uuid end with same suffix starting
