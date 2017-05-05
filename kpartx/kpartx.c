@@ -60,6 +60,26 @@ struct pt {
 int ptct = 0;
 int udev_sync = 0;
 
+/*
+ * UUID format for partitions created on non-DM devices
+ * ${UUID_PREFIX}${MAJOR}:${MINOR}-${NONDM_UUID_SUFFIX}"
+ * The suffix should be sufficiently random to avoid unintended conflicts,
+ * and shouldn't be changed.
+ * The value below is a bas64-encoded 96-bit random number.
+ */
+#define NONDM_UUID_SUFFIX "-kpartx-Wh5pYvM7uc60hh74"
+
+static char *
+nondm_create_uuid(dev_t devt)
+{
+#define NONDM_UUID_BUFLEN (32 + sizeof(NONDM_UUID_SUFFIX))
+	static char uuid_buf[NONDM_UUID_BUFLEN];
+	snprintf(uuid_buf, sizeof(uuid_buf), "%u:%u%s",
+		 major(devt), minor(devt), NONDM_UUID_SUFFIX);
+	uuid_buf[NONDM_UUID_BUFLEN-1] = '\0';
+	return uuid_buf;
+}
+
 static void
 addpts(char *t, ptreader f)
 {
@@ -361,6 +381,15 @@ main(int argc, char **argv){
 				uuid = strdup(mapname);
 		}
 	}
+
+	/*
+	 * We are called for a non-DM device.
+	 * Make up a fake UUID for the device, unless "-d -f" is given.
+	 * This allows deletion of partitions created with older kpartx
+	 * versions which didn't use the fake UUID during creation.
+	 */
+	if (!uuid && !(what == DELETE && force_devmap))
+		uuid = nondm_create_uuid(buf.st_rdev);
 
 	if (!mapname)
 		mapname = device + off;
