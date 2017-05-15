@@ -8,6 +8,7 @@
 #include <libdevmapper.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/sysmacros.h>
 #include "devmapper.h"
 
 #define _UUID_PREFIX "part"
@@ -440,6 +441,7 @@ struct remove_data {
 
 static int
 do_foreach_partmaps (const char * mapname, const char *uuid,
+		     dev_t devt,
 		     int (*partmap_func)(const char *, void *),
 		     void *data)
 {
@@ -451,6 +453,7 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 	int major, minor;
 	char dev_t[32];
 	int r = 1;
+	int is_dmdev = 1;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
 		return 1;
@@ -468,15 +471,20 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 		goto out;
 	}
 
-	if (dm_devn(mapname, &major, &minor))
-		goto out;
+	if (dm_devn(mapname, &major, &minor) ||
+	    (major != major(devt) || minor != minor(devt)))
+		/*
+		 * The latter could happen if a dm device "/dev/mapper/loop0"
+		 * exits while kpartx is called on "/dev/loop0".
+		 */
+		is_dmdev = 0;
 
-	sprintf(dev_t, "%d:%d", major, minor);
+	sprintf(dev_t, "%d:%d", major(devt), minor(devt));
 	do {
 		/*
 		 * skip our devmap
 		 */
-		if (!strcmp(names->name, mapname))
+		if (is_dmdev && !strcmp(names->name, mapname))
 			goto next;
 
 		/*
@@ -504,7 +512,7 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 		/*
 		 * skip if uuids don't match
 		 */
-		if (uuid && dm_compare_uuid(uuid, names->name)) {
+		if (is_dmdev && uuid && dm_compare_uuid(uuid, names->name)) {
 			if (rd->verbose)
 				printf("%s: is not a kpartx partition. Not removing\n",
 				       names->name);
@@ -545,10 +553,10 @@ remove_partmap(const char *name, void *data)
 }
 
 int
-dm_remove_partmaps (char * mapname, char *uuid, int verbose)
+dm_remove_partmaps (char * mapname, char *uuid, dev_t devt, int verbose)
 {
 	struct remove_data rd = { verbose };
-	return do_foreach_partmaps(mapname, uuid, remove_partmap, &rd);
+	return do_foreach_partmaps(mapname, uuid, devt, remove_partmap, &rd);
 }
 
 #define FEATURE_NO_PART "no_partitions"
