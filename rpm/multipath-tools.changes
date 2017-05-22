@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon May 22 21:13:54 UTC 2017 - mwilck@suse.com
+
+- added /usr/lib/modules-load.d/multipath.conf
+  (bsc#1039045, bsc#1030314, bsc#1032487, bsc#1037299)
+- multipath-tools.spec: cleanups from OBS
+
+-------------------------------------------------------------------
 Fri Apr 14 10:36:16 CEST 2017 - hare@suse.de
 
 - kpartx: Fixup sanitize delete partitions (bsc#1033541)
