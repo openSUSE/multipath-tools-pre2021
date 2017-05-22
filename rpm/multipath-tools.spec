@@ -1,7 +1,7 @@
 #
 # spec file for package multipath-tools
 #
-# Copyright (c) 2016 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2017 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -21,9 +21,9 @@ BuildRequires:  device-mapper-devel
 BuildRequires:  libaio-devel
 BuildRequires:  libudev-devel
 BuildRequires:  readline-devel
-BuildRequires:  pkgconfig(systemd)
-BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  udev
+BuildRequires:  pkgconfig(libsystemd)
+BuildRequires:  pkgconfig(systemd)
 Url:            http://christophe.varoqui.free.fr/
 Requires:       device-mapper >= 1.2.78
 Requires:       kpartx
