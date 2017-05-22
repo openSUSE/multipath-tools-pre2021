@@ -36,6 +36,7 @@ Group:          System/Base
 %{?systemd_requires}
 %define has_systemd 1
 Source:         http://christophe.varoqui.free.fr/multipath-tools/multipath-tools-%{version}.tar.bz2
+Source1:        multipath.conf
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 Patch0:         %{name}-%{version}-sles12-sp1.diff.bz2
 %if %suse_version > 1220
@@ -107,6 +108,8 @@ mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
 rm $RPM_BUILD_ROOT/%_lib/libmpathpersist.so
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 ln -sf /sbin/service $RPM_BUILD_ROOT/usr/sbin/rcmultipathd
+mkdir -p $RPM_BUILD_ROOT/usr/lib/modules-load.d
+install -m 644 -D %{SOURCE1} "%buildroot/usr/lib/modules-load.d/multipath.conf"
 
 %clean
 rm -rf $RPM_BUILD_ROOT;
@@ -159,6 +162,8 @@ exit 0
 %dir /%{_sysdir}/systemd/system
 /%{_sysdir}/systemd/system/multipathd.service
 /%{_sysdir}/systemd/system/multipathd.socket
+%dir /usr/lib/modules-load.d
+/usr/lib/modules-load.d/multipath.conf
 %{_mandir}/man8/multipath.8*
 %{_mandir}/man5/multipath.conf.5*
 %{_mandir}/man8/multipathd.8*
