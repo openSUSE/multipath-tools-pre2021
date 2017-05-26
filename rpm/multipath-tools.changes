@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Apr 14 10:36:16 CEST 2017 - hare@suse.de
+
+- kpartx: Fixup sanitize delete partitions (bsc#1033541)
+- multipathd: fixup check for new path states (bsc#1019798)
+- libmultipath: use existing alias from bindings file (bsc#1005255)
+
+-------------------------------------------------------------------
 Tue Feb  7 11:05:28 CET 2017 - hare@suse.de
 
 - multipathd: fix memory corruption issue (bsc#1022996)
