@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Jun  6 18:47:29 UTC 2017 - mwilck@suse.com
+
+- added /usr/lib/dracut/dracut.conf.d/50-multipath-tools.conf 
+  (bsc#1039045, bsc#1030314, bsc#1032487, bsc#1037299)
+  * removed /usr/lib/modules-load.d/multipath.conf from previous
+    version again. The dracut.conf.d approach is more robust 
+    because it doesn't depend on a dracut update.
+
+-------------------------------------------------------------------
 Mon May 22 21:13:54 UTC 2017 - mwilck@suse.com
 
 - added /usr/lib/modules-load.d/multipath.conf
