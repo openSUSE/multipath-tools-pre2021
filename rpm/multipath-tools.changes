@@ -12,6 +12,7 @@ Tue Mar  7 09:56:07 UTC 2017 - mwilck@suse.com
 Mon Mar  6 14:34:47 UTC 2017 - mwilck@suse.com
 
 - libmultipath: remove calls to dm_udev_complete (bsc#1025602)
+- libmultipath: use existing alias from bindings file (bsc#1005255)
 
 -------------------------------------------------------------------
 Fri Sep 12 13:48:10 CEST 2016 - mwilck@suse.de
