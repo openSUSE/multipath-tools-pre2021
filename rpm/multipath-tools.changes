@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Jun  7 06:46:24 UTC 2017 - mwilck@suse.com
+
+- spec file: re-added multipath.conf
+  (bsc#1039045, bsc#1030314, bsc#1032487, bsc#1037299)
+  * added /usr/lib/modules-load.d/multipath.conf
+
+-------------------------------------------------------------------
 Tue Jun  6 18:47:29 UTC 2017 - mwilck@suse.com
 
 - added /usr/lib/dracut/dracut.conf.d/50-multipath-tools.conf 
