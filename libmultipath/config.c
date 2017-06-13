@@ -25,6 +25,7 @@
 #include "prio.h"
 #include "devmapper.h"
 #include "mpath_cmd.h"
+#include "propsel.h"
 
 static int
 hwe_strmatch (struct hwentry *hwe1, struct hwentry *hwe2)
@@ -318,6 +319,8 @@ set_param_str(char * str)
 static int
 merge_hwe (struct hwentry * dst, struct hwentry * src)
 {
+	int id_len;
+	char *id;
 	merge_str(vendor);
 	merge_str(product);
 	merge_str(revision);
@@ -353,15 +356,14 @@ merge_hwe (struct hwentry * dst, struct hwentry * src)
 	merge_num(san_path_err_forget_rate);
 	merge_num(san_path_err_recovery_time);
 
-	/*
-	 * Make sure features is consistent with
-	 * no_path_retry
-	 */
-	if (dst->no_path_retry == NO_PATH_RETRY_FAIL)
-		remove_feature(&dst->features, "queue_if_no_path");
-	else if (dst->no_path_retry != NO_PATH_RETRY_UNDEF)
-		add_feature(&dst->features, "queue_if_no_path");
-
+	id_len = strlen(dst->vendor) + strlen(dst->product) + 2;
+	id = MALLOC(id_len);
+	if (id != NULL)
+		snprintf(id, id_len, "%s/%s", dst->vendor, dst->product);
+	reconcile_features_with_options(id, &dst->features,
+					&dst->no_path_retry,
+					&dst->retain_hwhandler);
+	FREE(id);
 	return 0;
 }
 
