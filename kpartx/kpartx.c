@@ -402,8 +402,6 @@ main(int argc, char **argv){
 		mapname = dm_mapname(major(buf.st_rdev), minor(buf.st_rdev));
 		if (mapname) {
 			uuid = dm_mapuuid(mapname);
-			if (!uuid)
-				uuid = strdup(mapname);
 			if (!force_devmap && dm_no_partitions(mapname))
 				/* Feature 'no_partitions' is set, return */
 				return 0;
