@@ -62,62 +62,52 @@ xstrdup (const char *s)
 	return t;
 }
 
-int is_loop_device(const char *device)
-{
-	struct stat statbuf;
-	int loopmajor;
-#if 1
-	loopmajor = 7;
-#else
-	FILE *procdev;
-	char line[100], *cp;
-
-	loopmajor = 0;
-
-	if ((procdev = fopen(PROC_DEVICES, "r")) != NULL) {
-
-		while (fgets (line, sizeof(line), procdev)) {
-
-			if ((cp = strstr (line, " loop\n")) != NULL) {
-				*cp='\0';
-				loopmajor=atoi(line);
-				break;
-			}
-		}
-
-		fclose(procdev);
-	}
-#endif
-	return (loopmajor && stat(device, &statbuf) == 0 &&
-		S_ISBLK(statbuf.st_mode) &&
-		major(statbuf.st_rdev) == loopmajor);
-}
-
 #define SIZE(a) (sizeof(a)/sizeof(a[0]))
 
 char *find_loop_by_file(const char *filename)
 {
 	DIR *dir;
 	struct dirent *dent;
-	char dev[64], *found = NULL;
+	char dev[64], *found = NULL, *p;
 	int fd;
 	struct stat statbuf;
 	struct loop_info loopinfo;
+	const char VIRT_BLOCK[] = "/sys/devices/virtual/block";
+	char path[PATH_MAX];
 
-	dir = opendir("/dev");
+	dir = opendir(VIRT_BLOCK);
 	if (!dir)
 		return NULL;
 
 	while ((dent = readdir(dir)) != NULL) {
 		if (strncmp(dent->d_name,"loop",4))
 			continue;
-		if (!strcmp(dent->d_name, "loop-control"))
-			continue;
-		sprintf(dev, "/dev/%s", dent->d_name);
 
-		fd = open (dev, O_RDONLY);
+		if (snprintf(path, PATH_MAX, "%s/%s/dev", VIRT_BLOCK,
+			     dent->d_name) >= PATH_MAX)
+			continue;
+
+		fd = open(path, O_RDONLY);
 		if (fd < 0)
-			break;
+			continue;
+
+		if (read(fd, dev, sizeof(dev)) <= 0) {
+			close(fd);
+			continue;
+		}
+
+		close(fd);
+
+		dev[sizeof(dev)-1] = '\0';
+		p = strchr(dev, '\n');
+		if (p != NULL)
+			*p = '\0';
+		if (snprintf(path, PATH_MAX, "/dev/block/%s", dev) >= PATH_MAX)
+			continue;
+
+		fd = open (path, O_RDONLY);
+		if (fd < 0)
+			continue;
 
 		if (fstat (fd, &statbuf) != 0 ||
 		    !S_ISBLK(statbuf.st_mode)) {
@@ -130,13 +120,12 @@ char *find_loop_by_file(const char *filename)
 			continue;
 		}
 
+		close (fd);
+
 		if (0 == strcmp(filename, loopinfo.lo_name)) {
-			close (fd);
-			found = xstrdup(dev);
+			found = realpath(path, NULL);
 			break;
 		}
-
-		close (fd);
 	}
 	closedir(dir);
 	return found;

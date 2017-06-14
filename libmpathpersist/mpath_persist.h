@@ -43,6 +43,7 @@ extern "C" {
 
 
 /* PR RETURN_STATUS */
+#define MPATH_PR_SKIP			-1  /* skipping this path */
 #define MPATH_PR_SUCCESS		0
 #define MPATH_PR_SYNTAX_ERROR		1   /*  syntax error or invalid parameter */
 					    /* status for check condition */
@@ -59,7 +60,8 @@ extern "C" {
 #define MPATH_PR_RESERV_CONFLICT	11  /* Reservation conflict on the device */
 #define MPATH_PR_FILE_ERROR		12  /* file (device node) problems(e.g. not found)*/
 #define MPATH_PR_DMMP_ERROR		13  /* DMMP related error.(e.g Error in getting dm info */
-#define MPATH_PR_OTHER			14  /*other error/warning has occurred(transport
+#define MPATH_PR_THREAD_ERROR		14  /* pthreads error (e.g. unable to create new thread) */
+#define MPATH_PR_OTHER			15  /*other error/warning has occurred(transport
 					      or driver error) */
 
 /* PR MASK */
@@ -79,6 +81,9 @@ extern "C" {
 #define MPATH_WWUI_DEVICE_NAME		0x00	/* World wide unique initiator device name */
 #define MPATH_WWUI_PORT_IDENTIFIER	0x40	/* World wide unique initiator port identifier	*/
 
+
+
+extern unsigned int mpath_mx_alloc_len;
 
 
 

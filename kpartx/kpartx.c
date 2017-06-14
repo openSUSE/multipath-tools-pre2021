@@ -60,6 +60,31 @@ struct pt {
 int ptct = 0;
 int udev_sync = 1;
 
+/*
+ * UUID format for partitions created on non-DM devices
+ * ${UUID_PREFIX}devnode_${MAJOR}:${MINOR}_${NONDM_UUID_SUFFIX}"
+ * where ${UUID_PREFIX} is "part${PARTNO}-" (see devmapper.c).
+ *
+ * The suffix should be sufficiently unique to avoid incidental conflicts;
+ * the value below is a base64-encoded random number.
+ * The UUID format shouldn't be changed between kpartx releases.
+ */
+#define NONDM_UUID_PREFIX "devnode"
+#define NONDM_UUID_SUFFIX "Wh5pYvM"
+
+static char *
+nondm_create_uuid(dev_t devt)
+{
+#define NONDM_UUID_BUFLEN (34 + sizeof(NONDM_UUID_PREFIX) + \
+			   sizeof(NONDM_UUID_SUFFIX))
+	static char uuid_buf[NONDM_UUID_BUFLEN];
+	snprintf(uuid_buf, sizeof(uuid_buf), "%s_%u:%u_%s",
+		 NONDM_UUID_PREFIX, major(devt), minor(devt),
+		 NONDM_UUID_SUFFIX);
+	uuid_buf[NONDM_UUID_BUFLEN-1] = '\0';
+	return uuid_buf;
+}
+
 static void
 addpts(char *t, ptreader f)
 {
@@ -115,10 +140,13 @@ set_delimiter (char * device, char * delimiter)
 {
 	char * p = device;
 
-	while (*(p++) != 0x0)
+	if (*p == 0x0)
+		return;
+
+	while (*(++p) != 0x0)
 		continue;
 
-	if (isdigit(*(p - 2)))
+	if (isdigit(*(p - 1)))
 		*delimiter = 'p';
 }
 
@@ -137,15 +165,17 @@ strip_slash (char * device)
 static int
 find_devname_offset (char * device)
 {
-	char *p, *q = NULL;
+	char *p, *q;
 
-	p = device;
+	q = p = device;
 
-	while (*p++)
+	while (*p) {
 		if (*p == '/')
-			q = p;
+			q = p + 1;
+		p++;
+	}
 
-	return (int)(q - device) + 1;
+	return (int)(q - device);
 }
 
 static char *
@@ -334,7 +364,13 @@ main(int argc, char **argv){
 
 	if (S_ISREG (buf.st_mode)) {
 		/* already looped file ? */
-		loopdev = find_loop_by_file(device);
+		char rpath[PATH_MAX];
+		if (realpath(device, rpath) == NULL) {
+			fprintf(stderr, "Error: %s: %s\n", device,
+				strerror(errno));
+			exit (1);
+		}
+		loopdev = find_loop_by_file(rpath);
 
 		if (!loopdev && what == DELETE)
 			exit (0);
@@ -355,6 +391,10 @@ main(int argc, char **argv){
 			exit (1);
 		}
 	}
+	else if (!S_ISBLK(buf.st_mode)) {
+		fprintf(stderr, "invalid device: %s\n", device);
+		exit(1);
+	}
 
 	off = find_devname_offset(device);
 
@@ -369,6 +409,15 @@ main(int argc, char **argv){
 				return 0;
 		}
 	}
+
+	/*
+	 * We are called for a non-DM device.
+	 * Make up a fake UUID for the device, unless "-d -f" is given.
+	 * This allows deletion of partitions created with older kpartx
+	 * versions which didn't use the fake UUID during creation.
+	 */
+	if (!uuid && !(what == DELETE && force_devmap))
+		uuid = nondm_create_uuid(buf.st_rdev);
 
 	if (!mapname)
 		mapname = device + off;
@@ -456,7 +505,8 @@ main(int argc, char **argv){
 			break;
 
 		case DELETE:
-			r = dm_remove_partmaps(mapname, uuid, verbose);
+			r = dm_remove_partmaps(mapname, uuid, buf.st_rdev,
+					       verbose);
 			if (loopdev) {
 				if (del_loop(loopdev)) {
 					if (verbose)

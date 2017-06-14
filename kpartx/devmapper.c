@@ -8,10 +8,13 @@
 #include <libdevmapper.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/sysmacros.h>
 #include "devmapper.h"
 
-#define UUID_PREFIX "part%d-"
-#define MAX_PREFIX_LEN 8
+#define _UUID_PREFIX "part"
+#define UUID_PREFIX _UUID_PREFIX "%d-"
+#define _UUID_PREFIX_LEN (sizeof(_UUID_PREFIX) - 1)
+#define MAX_PREFIX_LEN (_UUID_PREFIX_LEN + 4)
 #define PARAMS_SIZE 1024
 
 int dm_prereq(char * str, int x, int y, int z)
@@ -292,7 +295,7 @@ dm_devn (const char * mapname, int *major, int *minor)
 	if (!dm_task_run(dmt))
 		goto out;
 
-	if (!dm_task_get_info(dmt, &info))
+	if (!dm_task_get_info(dmt, &info) || info.exists == 0)
 		goto out;
 
 	*major = info.major;
@@ -389,10 +392,11 @@ dm_type(const char * name, char * type)
 		goto out;
 
 	/* Fetch 1st target */
-	dm_get_next_target(dmt, NULL, &start, &length,
-			   &target_type, &params);
-
-	if (!target_type)
+	if (dm_get_next_target(dmt, NULL, &start, &length,
+			       &target_type, &params) != NULL)
+		/* more than one target */
+		r = -1;
+	else if (!target_type)
 		r = -1;
 	else if (!strcmp(target_type, type))
 		r = 1;
@@ -417,9 +421,13 @@ dm_compare_uuid(const char *mapuuid, const char *partname)
 	if (!partuuid)
 		return 1;
 
-	if (!strncmp(partuuid, "part", 4)) {
-		char *p = strstr(partuuid, "mpath-");
-		if (p && !strcmp(mapuuid, p))
+	if (!strncmp(partuuid, _UUID_PREFIX, _UUID_PREFIX_LEN)) {
+		char *p = partuuid + _UUID_PREFIX_LEN;
+		/* skip partition number */
+		while (isdigit(*p))
+			p++;
+		if (p != partuuid + _UUID_PREFIX_LEN && *p == '-' &&
+		    !strcmp(mapuuid, p + 1))
 			r = 0;
 	}
 	free(partuuid);
@@ -432,6 +440,7 @@ struct remove_data {
 
 static int
 do_foreach_partmaps (const char * mapname, const char *uuid,
+		     dev_t devt,
 		     int (*partmap_func)(const char *, void *),
 		     void *data)
 {
@@ -443,6 +452,7 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 	int major, minor;
 	char dev_t[32];
 	int r = 1;
+	int is_dmdev = 1;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
 		return 1;
@@ -460,15 +470,20 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 		goto out;
 	}
 
-	if (dm_devn(mapname, &major, &minor))
-		goto out;
+	if (dm_devn(mapname, &major, &minor) ||
+	    (major != major(devt) || minor != minor(devt)))
+		/*
+		 * The latter could happen if a dm device "/dev/mapper/loop0"
+		 * exits while kpartx is called on "/dev/loop0".
+		 */
+		is_dmdev = 0;
 
-	sprintf(dev_t, "%d:%d", major, minor);
+	sprintf(dev_t, "%d:%d", major(devt), minor(devt));
 	do {
 		/*
 		 * skip our devmap
 		 */
-		if (!strcmp(names->name, mapname))
+		if (is_dmdev && !strcmp(names->name, mapname))
 			goto next;
 
 		/*
@@ -486,7 +501,7 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 		/*
 		 * skip if devmap target is not "linear"
 		 */
-		if (!dm_type(names->name, "linear")) {
+		if (dm_type(names->name, "linear") != 1) {
 			if (rd->verbose)
 				printf("%s: is not a linear target. Not removing\n",
 				       names->name);
@@ -496,7 +511,7 @@ do_foreach_partmaps (const char * mapname, const char *uuid,
 		/*
 		 * skip if uuids don't match
 		 */
-		if (dm_compare_uuid(uuid, names->name)) {
+		if (uuid && dm_compare_uuid(uuid, names->name)) {
 			if (rd->verbose)
 				printf("%s: is not a kpartx partition. Not removing\n",
 				       names->name);
@@ -537,10 +552,10 @@ remove_partmap(const char *name, void *data)
 }
 
 int
-dm_remove_partmaps (char * mapname, char *uuid, int verbose)
+dm_remove_partmaps (char * mapname, char *uuid, dev_t devt, int verbose)
 {
 	struct remove_data rd = { verbose };
-	return do_foreach_partmaps(mapname, uuid, remove_partmap, &rd);
+	return do_foreach_partmaps(mapname, uuid, devt, remove_partmap, &rd);
 }
 
 #define FEATURE_NO_PART "no_partitions"

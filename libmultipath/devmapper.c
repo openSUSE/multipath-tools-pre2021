@@ -396,19 +396,25 @@ int dm_addmap_reload(struct multipath *mpp, char *params, int flush)
 	if (r)
 		r = dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, !flush,
 				 1, udev_flags, 0);
-	return r;
+	if (r)
+		return r;
+
+	if (dm_is_suspended(mpp->alias))
+		dm_simplecmd(DM_DEVICE_RESUME, mpp->alias, !flush, 1,
+			     udev_flags, 0);
+	return 0;
 }
 
-int dm_map_present(const char * str)
+static int
+do_get_info(const char *name, struct dm_info *info)
 {
-	int r = 0;
+	int r = -1;
 	struct dm_task *dmt;
-	struct dm_info info;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
-		return 0;
+		return r;
 
-	if (!dm_task_set_name(dmt, str))
+	if (!dm_task_set_name(dmt, name))
 		goto out;
 
 	dm_task_no_open_count(dmt);
@@ -416,14 +422,23 @@ int dm_map_present(const char * str)
 	if (!dm_task_run(dmt))
 		goto out;
 
-	if (!dm_task_get_info(dmt, &info))
+	if (!dm_task_get_info(dmt, info))
 		goto out;
 
-	if (info.exists)
-		r = 1;
+	if (!info->exists)
+		goto out;
+
+	r = 0;
 out:
 	dm_task_destroy(dmt);
 	return r;
+}
+
+int dm_map_present(const char * str)
+{
+	struct dm_info info;
+
+	return (do_get_info(str, &info) == 0);
 }
 
 int dm_get_map(const char *name, unsigned long long *size, char *outparams)
@@ -566,7 +581,7 @@ out:
  * returns:
  *    1 : match
  *    0 : no match
- *   -1 : empty map
+ *   -1 : empty map, or more than 1 target
  */
 int dm_type(const char *name, char *type)
 {
@@ -588,10 +603,11 @@ int dm_type(const char *name, char *type)
 		goto out;
 
 	/* Fetch 1st target */
-	dm_get_next_target(dmt, NULL, &start, &length,
-			   &target_type, &params);
-
-	if (!target_type)
+	if (dm_get_next_target(dmt, NULL, &start, &length,
+			       &target_type, &params) != NULL)
+		/* multiple targets */
+		r = -1;
+	else if (!target_type)
 		r = -1;
 	else if (!strcmp(target_type, type))
 		r = 1;
@@ -645,29 +661,15 @@ out:
 static int
 dm_dev_t (const char * mapname, char * dev_t, int len)
 {
-	int r = 1;
-	struct dm_task *dmt;
 	struct dm_info info;
 
-	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
-		return 0;
-
-	if (!dm_task_set_name(dmt, mapname))
-		goto out;
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!dm_task_get_info(dmt, &info) || !info.exists)
-		goto out;
+	if (do_get_info(mapname, &info) != 0)
+		return 1;
 
 	if (snprintf(dev_t, len, "%i:%i", info.major, info.minor) > len)
-		goto out;
+		return 1;
 
-	r = 0;
-out:
-	dm_task_destroy(dmt);
-	return r;
+	return 0;
 }
 
 int
@@ -699,59 +701,16 @@ out:
 }
 
 int
-dm_get_major (char * mapname)
+dm_get_major_minor(const char *name, int *major, int *minor)
 {
-	int r = -1;
-	struct dm_task *dmt;
 	struct dm_info info;
 
-	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
-		return 0;
+	if (do_get_info(name, &info) != 0)
+		return -1;
 
-	if (!dm_task_set_name(dmt, mapname))
-		goto out;
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!dm_task_get_info(dmt, &info))
-		goto out;
-
-	if (!info.exists)
-		goto out;
-
-	r = info.major;
-out:
-	dm_task_destroy(dmt);
-	return r;
-}
-
-int
-dm_get_minor (char * mapname)
-{
-	int r = -1;
-	struct dm_task *dmt;
-	struct dm_info info;
-
-	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
-		return 0;
-
-	if (!dm_task_set_name(dmt, mapname))
-		goto out;
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!dm_task_get_info(dmt, &info))
-		goto out;
-
-	if (!info.exists)
-		goto out;
-
-	r = info.minor;
-out:
-	dm_task_destroy(dmt);
-	return r;
+	*major = info.major;
+	*minor = info.minor;
+	return 0;
 }
 
 static int
@@ -1069,31 +1028,23 @@ out:
 int
 dm_geteventnr (char *name)
 {
-	struct dm_task *dmt;
 	struct dm_info info;
-	int event = -1;
 
-	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
+	if (do_get_info(name, &info) != 0)
 		return -1;
 
-	if (!dm_task_set_name(dmt, name))
-		goto out;
+	return info.event_nr;
+}
 
-	dm_task_no_open_count(dmt);
+int
+dm_is_suspended(const char *name)
+{
+	struct dm_info info;
 
-	if (!dm_task_run(dmt))
-		goto out;
+	if (do_get_info(name, &info) != 0)
+		return -1;
 
-	if (!dm_task_get_info(dmt, &info))
-		goto out;
-
-	if (info.exists)
-		event = info.event_nr;
-
-out:
-	dm_task_destroy(dmt);
-
-	return event;
+	return info.suspended;
 }
 
 char *
@@ -1180,9 +1131,9 @@ do_foreach_partmaps (const char * mapname,
 	do {
 		if (
 		    /*
-		     * if devmap target is "linear"
+		     * if there is only a single "linear" target
 		     */
-		    (dm_type(names->name, TGT_PART) > 0) &&
+		    (dm_type(names->name, TGT_PART) == 1) &&
 
 		    /*
 		     * and the uuid of the target is a partition of the
@@ -1261,26 +1212,12 @@ cancel_remove_partmap (const char *name, void *unused)
 static int
 dm_get_deferred_remove (char * mapname)
 {
-	int r = -1;
-	struct dm_task *dmt;
 	struct dm_info info;
 
-	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
+	if (do_get_info(mapname, &info) != 0)
 		return -1;
 
-	if (!dm_task_set_name(dmt, mapname))
-		goto out;
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!dm_task_get_info(dmt, &info))
-		goto out;
-
-	r = info.deferred_remove;
-out:
-	dm_task_destroy(dmt);
-	return r;
+	return info.deferred_remove;
 }
 
 static int
@@ -1327,9 +1264,6 @@ alloc_dminfo (void)
 int
 dm_get_info (char * mapname, struct dm_info ** dmi)
 {
-	int r = 1;
-	struct dm_task *dmt = NULL;
-
 	if (!mapname)
 		return 1;
 
@@ -1339,32 +1273,13 @@ dm_get_info (char * mapname, struct dm_info ** dmi)
 	if (!*dmi)
 		return 1;
 
-	if (!(dmt = dm_task_create(DM_DEVICE_INFO)))
-		goto out;
-
-	if (!dm_task_set_name(dmt, mapname))
-		goto out;
-
-	dm_task_no_open_count(dmt);
-
-	if (!dm_task_run(dmt))
-		goto out;
-
-	if (!dm_task_get_info(dmt, *dmi))
-		goto out;
-
-	r = 0;
-out:
-	if (r) {
+	if (do_get_info(mapname, *dmi) != 0) {
 		memset(*dmi, 0, sizeof(struct dm_info));
 		FREE(*dmi);
 		*dmi = NULL;
+		return 1;
 	}
-
-	if (dmt)
-		dm_task_destroy(dmt);
-
-	return r;
+	return 0;
 }
 
 struct rename_data {
