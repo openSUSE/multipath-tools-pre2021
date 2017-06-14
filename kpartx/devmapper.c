@@ -421,7 +421,7 @@ dm_compare_uuid(const char *mapuuid, const char *partname)
 
 	partuuid = dm_mapuuid(partname);
 	if (!partuuid)
-		return 0;
+		return 1;
 
 	if (!strncmp(partuuid, _UUID_PREFIX, _UUID_PREFIX_LEN)) {
 		char *p = partuuid + _UUID_PREFIX_LEN;
