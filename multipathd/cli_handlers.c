@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2005 Christophe Varoqui
  */
+
+#define _GNU_SOURCE
+
 #include "checkers.h"
 #include "memory.h"
 #include "vector.h"
@@ -162,9 +165,11 @@ show_maps_json (char ** r, int * len, struct vectors * vecs)
 	struct multipath * mpp;
 	char * c;
 	char * reply;
-	unsigned int maxlen = INITIAL_REPLY_LEN *
-			PRINT_JSON_MULTIPLIER * VECTOR_SIZE(vecs->mpvec);
+	unsigned int maxlen = INITIAL_REPLY_LEN;
 	int again = 1;
+
+	if (VECTOR_SIZE(vecs->mpvec) > 0)
+		maxlen *= PRINT_JSON_MULTIPLIER * VECTOR_SIZE(vecs->mpvec);
 
 	vector_foreach_slot(vecs->mpvec, mpp, i) {
 		if (update_multipath(vecs, mpp->alias, 0)) {
@@ -1332,14 +1337,9 @@ cli_getprstatus (void * v, char ** reply, int * len, void * data)
 
 	condlog(3, "%s: prflag = %u", param, (unsigned int)mpp->prflag);
 
-	*reply =(char *)malloc(2);
-	*len = 2;
-	memset(*reply,0,2);
-
-
-	sprintf(*reply,"%d",mpp->prflag);
-	(*reply)[1]='\0';
-
+	*len = asprintf(reply, "%d", mpp->prflag);
+	if (*len < 0)
+		return 1;
 
 	condlog(3, "%s: reply = %s", param, *reply);
 
