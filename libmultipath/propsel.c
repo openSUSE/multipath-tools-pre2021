@@ -363,11 +363,11 @@ out:
 				pp->dev, c->timeout);
 	}
 	else if (sysfs_get_timeout(pp, &c->timeout) > 0)
-		condlog(3, "%s: checker timeout = %u ms (sysfs setting)",
+		condlog(3, "%s: checker timeout = %u s (sysfs setting)",
 				pp->dev, c->timeout);
 	else {
 		c->timeout = DEF_TIMEOUT;
-		condlog(3, "%s: checker timeout = %u ms (internal default)",
+		condlog(3, "%s: checker timeout = %u s (internal default)",
 				pp->dev, c->timeout);
 	}
 	return 0;
