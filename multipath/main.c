@@ -502,6 +502,74 @@ get_dev_type(char *dev) {
 	return DEV_NONE;
 }
 
+/*
+ * Some multipath commands are dangerous to run while multipathd is running.
+ * For example, "multipath -r" may apply a modified configuration to the kernel,
+ * while multipathd is still using the old configuration, leading to
+ * inconsistent state.
+ *
+ * It is safer to use equivalent multipathd client commands instead.
+ */
+int delegate_to_multipathd(enum mpath_cmds cmd, const struct config *conf)
+{
+#define DELEGATE_MAX_ARGS 5
+	int fd = mpath_connect();
+	char mpd_path[PATH_MAX];
+	char *argv[DELEGATE_MAX_ARGS];
+	char log[4096], *p;
+	char verbosity[2] = { '0', '\0' };
+	int idx = 1, cmd_idx, sz, n, i;
+
+	if (fd == -1)
+		return 0;
+	close(fd);
+
+	if (conf->verbosity > 0 && conf->verbosity < 8)
+		verbosity[0] = '0' + conf->verbosity;
+	argv[idx++] = "-v";
+	argv[idx++] = verbosity;
+
+	cmd_idx = idx;
+	if (cmd == CMD_CREATE && conf->force_reload == FORCE_RELOAD_YES) {
+		argv[idx++] = "reconfigure";
+	} /* Add other translations here */
+
+	if (idx == cmd_idx)
+		/* No command found, no need to delegate */
+		return 0;
+	else if (idx >= DELEGATE_MAX_ARGS) {
+		condlog(0, "internal error - argv overflow");
+		exit(1);
+	}
+
+	argv[idx] = NULL;
+	snprintf(mpd_path, sizeof(mpd_path), "%s/%s", BIN_DIR, "multipathd");
+	argv[0] = mpd_path;
+
+	condlog(1, "delegating command to multipathd");
+
+	sz = sizeof(log);
+	p = log;
+	i = 0;
+	n = snprintf(p, sz, "command: %s", argv[i++]);
+	while (i < idx && n < sz) {
+		sz -= n;
+		p += n;
+		n = snprintf(p, sz, " %s", argv[i++]);
+	}
+	condlog(2, "%s", log);
+	if (n >= sz)
+		condlog(2, "(command on previous line was truncated)");
+
+	if (execv(mpd_path, argv) == -1) {
+		condlog(0, "failed to execute multipathd: %s", strerror(errno));
+		exit(1);
+	}
+
+	/* not reached */
+	return 1;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -695,10 +763,15 @@ main (int argc, char *argv[])
 		} else
 			mpath_disconnect(fd);
 	}
+
 	if (cmd == CMD_REMOVE_WWID && !dev) {
 		condlog(0, "the -w option requires a device");
 		goto out;
 	}
+
+	if (delegate_to_multipathd(cmd, conf))
+		exit(0); /* not reached */
+
 	if (cmd == CMD_RESET_WWIDS) {
 		struct multipath * mpp;
 		int i;
