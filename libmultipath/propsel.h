@@ -33,5 +33,5 @@ int select_marginal_path_double_failed_time(struct config *conf, struct multipat
 int select_ghost_delay(struct config *conf, struct multipath * mp);
 void reconcile_features_with_options(const char *id, char **features,
 				     int* no_path_retry,
-				     int *retain_hwhandler);
+				     int *retain_hwhandler, int *skip_kpartx);
 int select_all_tg_pt (struct config *conf, struct multipath * mp);
