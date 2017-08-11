@@ -26,15 +26,6 @@ ENV{DM_WWN}=="?*", ENV{DM_PART}!="?*", \
 ENV{DM_WWN}=="?*", ENV{DM_PART}=="?*", \
 	SYMLINK+="disk/by-id/wwn-$env{DM_WWN}-part$env{DM_PART}"
 
-# Create persistent by-label/by-uuid links
-ENV{ID_FS_USAGE}=="?*", IMPORT{db}="ID_FS_USAGE"
-ENV{ID_FS_UUID_ENC}=="?*", IMPORT{db}="ID_FS_UUID_ENC"
-ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", \
-	SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
-ENV{ID_FS_LABEL_ENC}=="?*", IMPORT{db}="ID_FS_LABEL_ENC"
-ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", \
-	SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
-
 # Create dm tables for partitions
 ENV{DM_UDEV_PRIMARY_SOURCE_FLAG}!="1", IMPORT{db}="DM_SUBSYSTEM_UDEV_FLAG1"
 # DM_SUBSYSTEM_UDEV_FLAG1 is the "skip_kpartx" flag for multipath
