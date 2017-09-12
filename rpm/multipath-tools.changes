@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Sep 12 21:30:32 UTC 2017 - mwilck@suse.com
+
+- kpartx.rules: don't bump link prio if DM_UDEV_LOW_PRIORITY_FLAG
+  is set (bsc#1047180)
+
+-------------------------------------------------------------------
 Tue Mar 21 16:50:59 CET 2017 - hare@suse.de
 
 - multipathd: fixup check for new path states (bsc#1019798)
