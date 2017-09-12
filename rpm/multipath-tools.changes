@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb 12 21:40:39 UTC 2018 - mwilck@suse.com
+
+- kpartx.rules: don't bump link prio if DM_UDEV_LOW_PRIORITY_FLAG
+  is set (bsc#1047180)
+
+-------------------------------------------------------------------
 Mon Feb 12 14:14:18 UTC 2018 - mwilck@suse.com
 
 - Fix whitespace in dracut conf file (bsc#1080562) 
