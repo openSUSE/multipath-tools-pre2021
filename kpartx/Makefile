@@ -39,6 +39,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(bindir)/$(EXEC)
 	$(RM) $(DESTDIR)$(man8dir)/$(EXEC).8.gz
 	$(RM) $(DESTDIR)$(libudevdir)/kpartx_id
+	$(RM) $(DESTDIR)$(libudevdir)/rules.d/11-dm-parts.rules
 	$(RM) $(DESTDIR)$(libudevdir)/rules.d/66-kpartx.rules
 	$(RM) $(DESTDIR)$(libudevdir)/rules.d/67-kpartx-compat.rules
 
