@@ -4,7 +4,6 @@ ENV{DM_UUID}!="mpath-?*", GOTO="mpath_end"
 
 IMPORT{db}="DM_DISABLE_OTHER_RULES_FLAG_OLD"
 IMPORT{db}="MPATH_DEVICE_READY"
-IMPORT{db}="MPATH_NEEDS_ACTIVATION"
 
 # If this uevent didn't come from dm, don't try to update the
 # device state
@@ -61,13 +60,6 @@ ENV{DM_ACTION}=="PATH_FAILED|PATH_REINSTATED", \
 # otherwise there would be a hang or IO error on access.
 # We'd like to avoid this, especially within udev processing.
 ENV{MPATH_DEVICE_READY}=="0", ENV{DM_NOSCAN}="1"
-
-# If DM_ACTIVATION is set, but can't be satisfied, remember it
-# in MPATH_NEEDS_ACTIVATION, and activate at the next opportunity.
-ENV{MPATH_DEVICE_READY}=="0", ENV{DM_ACTIVATION}=="1", \
-	ENV{MPATH_NEEDS_ACTIVATION}="1", ENV{DM_ACTIVATION}="0"
-ENV{MPATH_DEVICE_READY}!="0", ENV{MPATH_NEEDS_ACTIVATION}=="1", \
-	ENV{DM_ACTIVATION}="1", ENV{MPATH_NEEDS_ACTIVATION}=""
 
 # Also skip all foreign rules if no path is available.
 # Remember the original value of DM_DISABLE_OTHER_RULES_FLAG
