@@ -42,6 +42,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(libudevdir)/rules.d/11-dm-parts.rules
 	$(RM) $(DESTDIR)$(libudevdir)/rules.d/66-kpartx.rules
 	$(RM) $(DESTDIR)$(libudevdir)/rules.d/67-kpartx-compat.rules
+	$(RM) $(DESTDIR)$(libudevdir)/rules.d/68-del-part-nodes.rules
 
 clean:
 	$(RM) core *.o $(EXEC) *.gz
