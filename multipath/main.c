@@ -586,64 +586,54 @@ get_dev_type(char *dev) {
  *
  * It is safer to use equivalent multipathd client commands instead.
  */
-int delegate_to_multipathd(enum mpath_cmds cmd, const struct config *conf)
+int delegate_to_multipathd(enum mpath_cmds cmd, const char *dev,
+			   enum devtypes dev_type, const struct config *conf)
 {
-#define DELEGATE_MAX_ARGS 5
-	int fd = mpath_connect();
-	char mpd_path[PATH_MAX];
-	char *argv[DELEGATE_MAX_ARGS];
-	char log[4096], *p;
-	char verbosity[2] = { '0', '\0' };
-	int idx = 1, cmd_idx, sz, n, i;
+	int fd;
+	char command[1024], *p, *reply;
+	int n, r = 0;
 
+	fd = mpath_connect();
 	if (fd == -1)
 		return 0;
-	close(fd);
 
-	if (conf->verbosity > 0 && conf->verbosity < 8)
-		verbosity[0] = '0' + conf->verbosity;
-	argv[idx++] = "-v";
-	argv[idx++] = verbosity;
+	p = command;
+	*p = '\0';
+	n = sizeof(command);
 
-	cmd_idx = idx;
 	if (cmd == CMD_CREATE && conf->force_reload == FORCE_RELOAD_YES) {
-		argv[idx++] = "reconfigure";
-	} /* Add other translations here */
+		p += snprintf(p, n, "reconfigure");
+	}
+	/* Add other translations here */
 
-	if (idx == cmd_idx)
+	if (strlen(command) == 0)
 		/* No command found, no need to delegate */
 		return 0;
-	else if (idx >= DELEGATE_MAX_ARGS) {
-		condlog(0, "internal error - argv overflow");
+	else if (p >= command + sizeof(command)) {
+		condlog(0, "internal error - command buffer overflow");
+		r = -1;
+		goto out;
+	}
+
+	condlog(3, "delegating command to multipathd");
+	r = mpath_process_cmd(fd, command, &reply, conf->uxsock_timeout);
+
+	if (r == -1) {
+		condlog(1, "error in multipath command %s: %s",
+			command, strerror(errno));
+		goto out;
+	}
+
+	if (reply != NULL && *reply != '\0' && strcmp(reply, "ok\n"))
+		printf("%s", reply);
+	r = 1;
+
+out:
+	FREE(reply);
+	close(fd);
+	if (r < 0)
 		exit(1);
-	}
-
-	argv[idx] = NULL;
-	snprintf(mpd_path, sizeof(mpd_path), "%s/%s", BIN_DIR, "multipathd");
-	argv[0] = mpd_path;
-
-	condlog(1, "delegating command to multipathd");
-
-	sz = sizeof(log);
-	p = log;
-	i = 0;
-	n = snprintf(p, sz, "command: %s", argv[i++]);
-	while (i < idx && n < sz) {
-		sz -= n;
-		p += n;
-		n = snprintf(p, sz, " %s", argv[i++]);
-	}
-	condlog(2, "%s", log);
-	if (n >= sz)
-		condlog(2, "(command on previous line was truncated)");
-
-	if (execv(mpd_path, argv) == -1) {
-		condlog(0, "failed to execute multipathd: %s", strerror(errno));
-		exit(1);
-	}
-
-	/* not reached */
-	return 1;
+	return r;
 }
 
 int
@@ -855,8 +845,8 @@ main (int argc, char *argv[])
 		goto out;
 	}
 
-	if (delegate_to_multipathd(cmd, conf))
-		exit(0); /* not reached */
+	if (delegate_to_multipathd(cmd, dev, dev_type, conf))
+		exit(0);
 
 	if (cmd == CMD_RESET_WWIDS) {
 		struct multipath * mpp;
