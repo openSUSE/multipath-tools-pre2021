@@ -1393,14 +1393,21 @@ path_offline (struct path * pp)
 	char buff[SCSI_STATE_SIZE];
 	int err;
 
-	if (pp->bus != SYSFS_BUS_SCSI)
+	if (pp->bus != SYSFS_BUS_SCSI && pp->bus != SYSFS_BUS_NVME)
 		return PATH_UP;
 
 	parent = pp->udev;
 	while (parent) {
 		const char *subsys = udev_device_get_subsystem(parent);
-		if (subsys && !strncmp(subsys, "scsi", 4))
-			break;
+		condlog(3, "%s: subsys %s\n", pp->dev, subsys);
+		if (subsys) {
+			if (pp->bus == SYSFS_BUS_SCSI &&
+			    !strncmp(subsys, "scsi", 4))
+				break;
+			if (pp->bus == SYSFS_BUS_NVME &&
+			    !strncmp(subsys, "nvme", 4))
+				break;
+		}
 		parent = udev_device_get_parent(parent);
 	}
 
@@ -1421,9 +1428,30 @@ path_offline (struct path * pp)
 
 	condlog(3, "%s: path state = %s", pp->dev, buff);
 
-	if (!strncmp(buff, "offline", 7)) {
-		pp->offline = 1;
-		return PATH_DOWN;
+	if (pp->bus == SYSFS_BUS_SCSI) {
+		if (!strncmp(buff, "offline", 7)) {
+			pp->offline = 1;
+			return PATH_DOWN;
+		}
+		pp->offline = 0;
+		if (!strncmp(buff, "blocked", 7) ||
+		    !strncmp(buff, "quiesce", 7))
+			return PATH_PENDING;
+		else if (!strncmp(buff, "running", 7))
+			return PATH_UP;
+
+	}
+	else if (pp->bus == SYSFS_BUS_NVME) {
+		if (!strncmp(buff, "dead", 4)) {
+			pp->offline = 1;
+			return PATH_DOWN;
+		}
+		pp->offline = 0;
+		if (!strncmp(buff, "new", 3) ||
+		    !strncmp(buff, "deleting", 8))
+			return PATH_PENDING;
+		else if (!strncmp(buff, "live", 4))
+			return PATH_UP;
 	}
 	pp->offline = 0;
 	if (!strncmp(buff, "blocked", 7) || !strncmp(buff, "quiesce", 7))
