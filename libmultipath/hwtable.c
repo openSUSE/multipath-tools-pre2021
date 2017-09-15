@@ -1056,7 +1056,7 @@ static struct hwentry default_hw[] = {
 		.vendor	       = "NVME",
 		.product       = ".*",
 		.uid_attribute = "ID_WWN",
-		.checker_name  = DIRECTIO,
+		.checker_name  = NONE,
 		.retain_hwhandler = RETAIN_HWHANDLER_OFF,
 	},
 #if 0
