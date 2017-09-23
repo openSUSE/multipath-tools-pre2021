@@ -1091,6 +1091,13 @@ static struct hwentry default_hw[] = {
 		.pgpolicy      = MULTIBUS,
 		.no_path_retry = 30,
 	},
+	{
+		/* Magnitude family */
+		.vendor        = "(XIOTECH|XIOtech)",
+		.product       = "Magnitude",
+		.pgpolicy      = MULTIBUS,
+		.no_path_retry = 30,
+	},
 	/*
 	 * Violin Memory
 	 */
