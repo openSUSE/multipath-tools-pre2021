@@ -382,7 +382,8 @@ int select_checker(struct config *conf, struct path *pp)
 	char *origin, *checker_name;
 	struct checker * c = &pp->checker;
 
-	if (pp->detect_checker == DETECT_CHECKER_ON) {
+	if (pp->bus == SYSFS_BUS_SCSI &&
+	    pp->detect_checker == DETECT_CHECKER_ON) {
 		origin = "(setting: storage device autodetected)";
 		if (check_rdac(pp)) {
 			checker_name = RDAC;
