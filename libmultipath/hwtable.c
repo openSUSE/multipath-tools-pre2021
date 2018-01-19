@@ -629,7 +629,7 @@ static struct hwentry default_hw[] = {
 	 */
 	{
 		.vendor	       = "NVME",
-		.product       = "(NetApp |)ONTAP Controller)",
+		.product       = "(NetApp |)ONTAP Controller",
 		.uid_attribute = "ID_WWN",
 		.checker_name  = NONE,
 		.pgpolicy      = MULTIBUS,
