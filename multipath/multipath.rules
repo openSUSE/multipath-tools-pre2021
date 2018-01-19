@@ -18,6 +18,11 @@ GOTO="end_mpath"
 
 LABEL="test_dev"
 
+# The following rule is a temporary workaround for the fact that NVMe related rules
+# are called in 60-persistent-storage.rules, after this file is processed.
+KERNEL=="nvme*[0-9]n*[0-9]", ENV{ID_WWN}=="", ENV{DEVTYPE}=="disk", \
+	ATTRS{wwid}=="?*", ENV{ID_WWN}="$attr{wwid}"
+
 ENV{MPATH_SBIN_PATH}="/sbin"
 TEST!="$env{MPATH_SBIN_PATH}/multipath", ENV{MPATH_SBIN_PATH}="/usr/sbin"
 
