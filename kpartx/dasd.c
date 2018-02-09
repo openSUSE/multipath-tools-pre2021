@@ -122,14 +122,15 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 				/* Couldn't create a device node */
 				return -1;
 			}
-			fd_dasd = open(pathname, O_RDONLY);
-			/*
-			 * The file will vanish when the last process (we)
-			 * has ceased to access it.
-			 */
-			unlink(pathname);
+			if ((fd_dasd = open(pathname, O_RDONLY)) > -1) {
+				/*
+				 * The file will vanish when the last process
+				 * (we) has ceased to access it.
+				 */
+				unlink(pathname);
+			}
 		}
-		if (!fd_dasd) {
+		if (fd_dasd < 0) {
 			/* Couldn't open the device */
 			return -1;
 		}
