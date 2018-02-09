@@ -612,6 +612,11 @@ main (int argc, char *argv[])
 			conf->verbosity = atoi(optarg);
 			break;
 		case 'b':
+			if (!optarg) {
+				printf("no bindings file given\n");
+				usage(argv[0]);
+				exit(1);
+			}
 			conf->bindings_file = strdup(optarg);
 			break;
 		case 'B':
