@@ -15,6 +15,9 @@
 
 int get_pgpolicy_id(char * str)
 {
+	if (!str)
+		return IOPOLICY_UNDEF;
+
 	if (0 == strncmp(str, "failover", 8))
 		return FAILOVER;
 	if (0 == strncmp(str, "multibus", 8))
