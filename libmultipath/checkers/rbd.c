@@ -600,9 +600,11 @@ static int rbd_exec_fn(struct checker *c, thread_fn *fn)
 		setup_thread_attr(&attr, 32 * 1024, 1);
 		r = pthread_create(&ct->thread, &attr, rbd_thread, ct);
 		if (r) {
-			pthread_mutex_unlock(&ct->lock);
+			pthread_spin_lock(&ct->hldr_lock);
 			ct->thread = 0;
 			ct->holders--;
+			pthread_spin_unlock(&ct->hldr_lock);
+			pthread_mutex_unlock(&ct->lock);
 			condlog(3, "rbd%d failed to start rbd thread, using sync mode",
 				ct->rbd_bus_id);
 			return fn(ct, c->message);
