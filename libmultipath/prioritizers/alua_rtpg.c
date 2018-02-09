@@ -321,7 +321,7 @@ get_asymmetric_access_state(int fd, unsigned int tpg, unsigned int timeout)
 	rc = do_rtpg(fd, buf, buflen, timeout);
 	if (rc < 0)
 		goto out;
-	scsi_buflen = (buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]) + 4;
+	scsi_buflen = ((uint64_t)buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]) + 4;
 	if (scsi_buflen > UINT_MAX)
 		scsi_buflen = UINT_MAX;
 	if (buflen < scsi_buflen) {
