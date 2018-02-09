@@ -25,7 +25,7 @@ int execute_program(char *path, char *value, int len)
 	int retval;
 	int count;
 	int status;
-	int fds[2], null_fd;
+	int fds[2], null_fd, stdout_fd;
 	pid_t pid;
 	char *pos;
 	char arg[CALLOUT_MAX_SIZE];
@@ -70,7 +70,8 @@ int execute_program(char *path, char *value, int len)
 		close(STDOUT_FILENO);
 
 		/* dup write side of pipe to STDOUT */
-		if (dup(fds[1]) < 0)
+		stdout_fd = dup(fds[1]);
+		if (stdout_fd < 0)
 			return -1;
 
 		/* Ignore writes to stderr */
@@ -85,6 +86,7 @@ int execute_program(char *path, char *value, int len)
 
 		retval = execv(argv[0], argv);
 		condlog(0, "error execing %s : %s", argv[0], strerror(errno));
+		close(stdout_fd);
 		exit(-1);
 	case -1:
 		condlog(0, "fork failed: %s", strerror(errno));
