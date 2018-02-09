@@ -420,10 +420,15 @@ trigger_udev_change(const struct multipath *mpp)
 {
 	static const char change[] = "change";
 	struct udev_device *udd = get_udev_for_mpp(mpp);
+	int ret;
+
 	if (!udd)
 		return;
 	condlog(3, "triggering %s uevent for %s", change, mpp->alias);
-	sysfs_attr_set_value(udd, "uevent", change, sizeof(change)-1);
+	ret = sysfs_attr_set_value(udd, "uevent", change, sizeof(change)-1);
+	if (ret < 0)
+		condlog(3, "failed to trigger %s uevent: %s", change,
+			strerror(-ret));
 	udev_device_unref(udd);
 }
 
