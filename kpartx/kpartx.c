@@ -320,8 +320,16 @@ main(int argc, char **argv){
 		exit(1);
 	}
 
-	if (stat(device, &buf)) {
+	fd = open(device, O_RDONLY);
+
+	if (fd == -1) {
+		perror(device);
+		exit(1);
+	}
+
+	if (fstat(fd, &buf)) {
 		printf("failed to stat() %s\n", device);
+		close(fd);
 		exit (1);
 	}
 
@@ -331,31 +339,43 @@ main(int argc, char **argv){
 		if (realpath(device, rpath) == NULL) {
 			fprintf(stderr, "Error: %s: %s\n", device,
 				strerror(errno));
+			close(fd);
 			exit (1);
 		}
 		loopdev = find_loop_by_file(rpath);
 
-		if (!loopdev && what == DELETE)
+		if (!loopdev && what == DELETE) {
+			close(fd);
 			exit (0);
+		}
 
 		if (!loopdev) {
 			loopdev = find_unused_loop_device();
 
 			if (set_loop(loopdev, device, 0, &ro)) {
 				fprintf(stderr, "can't set up loop\n");
+				close(fd);
 				exit (1);
 			}
 			loopcreated = 1;
 		}
+		close(fd);
 		device = loopdev;
 
-		if (stat(device, &buf)) {
+		fd = open(device, O_RDONLY);
+		if (fd == -1) {
+			perror(device);
+			exit(1);
+		}
+		if (fstat(fd, &buf)) {
 			printf("failed to stat() %s\n", device);
+			close(fd);
 			exit (1);
 		}
 	}
 	else if (!S_ISBLK(buf.st_mode)) {
 		fprintf(stderr, "invalid device: %s\n", device);
+		close(fd);
 		exit(1);
 	}
 
@@ -383,13 +403,6 @@ main(int argc, char **argv){
 		delim = malloc(DELIM_SIZE);
 		memset(delim, 0, DELIM_SIZE);
 		set_delimiter(mapname, delim);
-	}
-
-	fd = open(device, O_RDONLY);
-
-	if (fd == -1) {
-		perror(device);
-		exit(1);
 	}
 
 	/* add/remove partitions to the kernel devmapper tables */
