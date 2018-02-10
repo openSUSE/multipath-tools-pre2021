@@ -89,7 +89,6 @@ int prio_set_args (struct prio * p, char * args)
 struct prio * add_prio (char *multipath_dir, char * name)
 {
 	char libname[LIB_PRIO_NAMELEN];
-	struct stat stbuf;
 	struct prio * p;
 	char *errstr;
 
@@ -99,11 +98,6 @@ struct prio * add_prio (char *multipath_dir, char * name)
 	snprintf(p->name, PRIO_NAME_LEN, "%s", name);
 	snprintf(libname, LIB_PRIO_NAMELEN, "%s/libprio%s.so",
 		 multipath_dir, name);
-	if (stat(libname,&stbuf) < 0) {
-		condlog(0,"Prioritizer '%s' not found in %s",
-			name, multipath_dir);
-		goto out;
-	}
 	condlog(3, "loading %s prioritizer", libname);
 	p->handle = dlopen(libname, RTLD_NOW);
 	if (!p->handle) {

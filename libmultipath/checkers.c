@@ -95,7 +95,6 @@ struct checker * checker_lookup (char * name)
 struct checker * add_checker (char *multipath_dir, char * name)
 {
 	char libname[LIB_CHECKER_NAMELEN];
-	struct stat stbuf;
 	struct checker * c;
 	char *errstr;
 
@@ -107,11 +106,6 @@ struct checker * add_checker (char *multipath_dir, char * name)
 		goto done;
 	snprintf(libname, LIB_CHECKER_NAMELEN, "%s/libcheck%s.so",
 		 multipath_dir, name);
-	if (stat(libname,&stbuf) < 0) {
-		condlog(0,"Checker '%s' not found in %s",
-			name, multipath_dir);
-		goto out;
-	}
 	condlog(3, "loading %s checker", libname);
 	c->handle = dlopen(libname, RTLD_NOW);
 	if (!c->handle) {
