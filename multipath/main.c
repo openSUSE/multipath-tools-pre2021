@@ -389,9 +389,9 @@ configure (struct config *conf, enum mpath_cmds cmd,
 	if (devpath) {
 		int failed = get_refwwid(cmd, devpath, dev_type,
 					 pathvec, &refwwid);
-		if (!refwwid) {
+		if (failed < 0) {
 			condlog(4, "%s: failed to get wwid", devpath);
-			if (failed == 2 && cmd == CMD_VALID_PATH)
+			if (failed == -EAGAIN && cmd == CMD_VALID_PATH)
 				printf("%s is not a valid multipath device path\n", devpath);
 			else
 				condlog(3, "scope is null");

@@ -418,7 +418,7 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 	char * refwwid;
 	struct multipath * mpp;
 	int map_present;
-	int r = 1, delayed_reconfig, reassign_maps;
+	int r = 1, rc, delayed_reconfig, reassign_maps;
 	struct config *conf;
 
 	map_present = dm_map_present(alias);
@@ -474,26 +474,29 @@ ev_add_map (char * dev, char * alias, struct vectors * vecs)
 			condlog(2, "%s: devmap %s registered", alias, dev);
 			return 0;
 		} else {
-			condlog(2, "%s: uev_add_map failed", dev);
+			condlog(2, "%s: ev_add_map failed", dev);
 			return 1;
 		}
 	}
-	r = get_refwwid(CMD_NONE, dev, DEV_DEVMAP, vecs->pathvec, &refwwid);
+	rc = get_refwwid(CMD_NONE, dev, DEV_DEVMAP, vecs->pathvec, &refwwid);
 
-	if (refwwid) {
+	if (!rc && refwwid) {
 		r = coalesce_paths(vecs, NULL, refwwid, FORCE_RELOAD_NONE,
 				   CMD_NONE);
 		dm_lib_release();
 	}
+	if (refwwid)
+		FREE(refwwid);
 
 	if (!r)
 		condlog(2, "%s: devmap %s added", alias, dev);
-	else if (r == 2)
-		condlog(2, "%s: uev_add_map %s blacklisted", alias, dev);
-	else
-		condlog(0, "%s: uev_add_map %s failed", alias, dev);
-
-	FREE(refwwid);
+	else if (rc == -EAGAIN) {
+		condlog(2, "%s: ev_add_map %s blacklisted", alias, dev);
+		r = 2;
+	} else {
+		condlog(0, "%s: ev_add_map %s failed", alias, dev);
+		r = 1;
+	}
 	return r;
 }
 

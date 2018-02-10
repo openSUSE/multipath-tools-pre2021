@@ -781,13 +781,16 @@ cli_add_map (void * v, char ** reply, int * len, void * data)
 				param, major, minor);
 			rc = get_refwwid(CMD_NONE, param, DEV_DEVMAP,
 					 vecs->pathvec, &refwwid);
-			if (refwwid) {
+			if (!rc && refwwid) {
 				if (coalesce_paths(vecs, NULL, refwwid,
 						   FORCE_RELOAD_NONE, CMD_NONE))
 					condlog(2, "%s: coalesce_paths failed",
 									param);
 				dm_lib_release();
+			}
+			if (refwwid) {
 				FREE(refwwid);
+				refwwid = NULL;
 			}
 		} /*we attempt to create device only once*/
 		count++;

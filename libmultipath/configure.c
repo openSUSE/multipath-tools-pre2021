@@ -1152,13 +1152,13 @@ struct udev_device *get_udev_device(const char *dev, enum devtypes dev_type)
 /*
  * returns:
  * 0 - success
- * 1 - failure
- * 2 - blacklist
+ * -EINVAL - wrong arguments
+ * -ENODEV - device not found  or not accessible
+ * -EAGAIN - device blacklisted
  */
 int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 		vector pathvec, char **wwid)
 {
-	int ret = 1;
 	struct path * pp;
 	char buff[FILE_NAME_SIZE];
 	char * refwwid = NULL, tmpwwid[WWID_SIZE];
@@ -1166,11 +1166,11 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 	struct config *conf;
 
 	if (!wwid)
-		return 1;
+		return -EINVAL;
 	*wwid = NULL;
 
 	if (dev_type == DEV_NONE)
-		return 1;
+		return -EINVAL;
 
 	if (cmd != CMD_REMOVE_WWID)
 		flags |= DI_BLACKLIST;
@@ -1179,16 +1179,17 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 		if (basenamecpy(dev, buff, FILE_NAME_SIZE) == 0) {
 			condlog(1, "basename failed for '%s' (%s)",
 				dev, buff);
-			return 1;
+			return -ENODEV;
 		}
 
 		pp = find_path_by_dev(pathvec, buff);
 		if (!pp) {
 			struct udev_device *udevice =
 				get_udev_device(buff, dev_type);
+			int ret;
 
 			if (!udevice)
-				return 1;
+				return -ENODEV;
 
 			conf = get_multipath_config();
 			ret = store_pathinfo(pathvec, conf, udevice,
@@ -1196,17 +1197,17 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 			put_multipath_config(conf);
 			udev_device_unref(udevice);
 			if (!pp) {
-				if (ret == 1)
+				if (ret == PATHINFO_FAILED)
 					condlog(0, "%s: can't store path info",
 						dev);
-				return ret;
+				return -ENODEV;
 			}
 		}
 		conf = get_multipath_config();
 		if (pp->udev && pp->uid_attribute &&
 		    filter_property(conf, pp->udev) > 0) {
 			put_multipath_config(conf);
-			return 2;
+			return -EAGAIN;
 		}
 		put_multipath_config(conf);
 
@@ -1218,15 +1219,16 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 		strchop(dev);
 		if (devt2devname(buff, FILE_NAME_SIZE, dev)) {
 			condlog(0, "%s: cannot find block device\n", dev);
-			return 1;
+			return -ENODEV;
 		}
 		pp = find_path_by_dev(pathvec, buff);
 		if (!pp) {
 			struct udev_device *udevice =
 				get_udev_device(dev, dev_type);
+			int ret;
 
 			if (!udevice)
-				return 1;
+				return -ENODEV;
 
 			conf = get_multipath_config();
 			ret = store_pathinfo(pathvec, conf, udevice,
@@ -1234,17 +1236,17 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 			put_multipath_config(conf);
 			udev_device_unref(udevice);
 			if (!pp) {
-				if (ret == 1)
+				if (ret == PATHINFO_FAILED)
 					condlog(0, "%s can't store path info",
 						buff);
-				return ret;
+				return -ENODEV;
 			}
 		}
 		conf = get_multipath_config();
 		if (pp->udev && pp->uid_attribute &&
 		    filter_property(conf, pp->udev) > 0) {
 			put_multipath_config(conf);
-			return 2;
+			return -EAGAIN;
 		}
 		put_multipath_config(conf);
 		refwwid = pp->wwid;
@@ -1253,25 +1255,26 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 
 	if (dev_type == DEV_UEVENT) {
 		struct udev_device *udevice = get_udev_device(dev, dev_type);
+		int ret;
 
 		if (!udevice)
-			return 1;
+			return -ENODEV;
 
 		conf = get_multipath_config();
 		ret = store_pathinfo(pathvec, conf, udevice,
 				     flags, &pp);
 		udev_device_unref(udevice);
 		if (!pp) {
-			if (ret == 1)
+			if (ret == PATHINFO_FAILED)
 				condlog(0, "%s: can't store path info",
 					dev);
 			put_multipath_config(conf);
-			return ret;
+			return -ENODEV;
 		}
 		if (pp->udev && pp->uid_attribute &&
 		    filter_property(conf, pp->udev) > 0) {
 			put_multipath_config(conf);
-			return 2;
+			return -EAGAIN;
 		}
 		put_multipath_config(conf);
 		refwwid = pp->wwid;
@@ -1312,7 +1315,7 @@ check:
 			if (filter_wwid(conf->blist_wwid, conf->elist_wwid,
 					refwwid, NULL) > 0) {
 				put_multipath_config(conf);
-				return 2;
+				return -EAGAIN;
 			}
 		}
 		put_multipath_config(conf);
@@ -1323,7 +1326,7 @@ out:
 		return 0;
 	}
 
-	return 1;
+	return -ENODEV;
 }
 
 int reload_map(struct vectors *vecs, struct multipath *mpp, int refresh,
