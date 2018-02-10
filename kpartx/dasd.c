@@ -77,7 +77,7 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 	volume_label_t vlabel;
 	unsigned char *data = NULL;
 	uint64_t blk;
-	int fd_dasd = -1;
+	int fd_dasd = fd, fd_tmp = -1;
 	struct stat sbuf;
 	dev_t dev;
 	char *devname;
@@ -116,13 +116,13 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 
 		sprintf(pathname, "/dev/.kpartx-node-%u-%u",
 			(unsigned int)major(dev), (unsigned int)minor(dev));
-		if ((fd_dasd = open(pathname, O_RDONLY)) == -1) {
+		if ((fd_tmp = open(pathname, O_RDONLY)) == -1) {
 			/* Devicenode does not exist. Try to create one */
 			if (mknod(pathname, 0600 | S_IFBLK, dev) == -1) {
 				/* Couldn't create a device node */
 				return -1;
 			}
-			if ((fd_dasd = open(pathname, O_RDONLY)) > -1) {
+			if ((fd_tmp = open(pathname, O_RDONLY)) > -1) {
 				/*
 				 * The file will vanish when the last process
 				 * (we) has ceased to access it.
@@ -130,15 +130,14 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 				unlink(pathname);
 			}
 		}
-		if (fd_dasd < 0) {
+		if (fd_tmp < 0) {
 			/* Couldn't open the device */
 			return -1;
 		}
+		fd_dasd = fd_tmp;
 	} else if ((unsigned int)major(sbuf.st_rdev) != 94) {
 			/* Not a DASD */
 			return -1;
-	} else {
-		fd_dasd = fd;
 	}
 
 	if (ioctl(fd_dasd, BIODASDINFO, (unsigned long)&info) != 0) {
@@ -288,7 +287,7 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 out:
 	if (data != NULL)
 		free(data);
-	if (fd_dasd != -1 && fd_dasd != fd)
-		close(fd_dasd);
+	if (fd_tmp != -1)
+		close(fd_tmp);
 	return retval;
 }
