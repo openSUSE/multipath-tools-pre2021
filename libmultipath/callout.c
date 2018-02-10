@@ -25,7 +25,7 @@ int execute_program(char *path, char *value, int len)
 	int retval;
 	int count;
 	int status;
-	int fds[2], null_fd, stdout_fd;
+	int fds[2], null_fd, stdout_fd, stderr_fd = -1;
 	pid_t pid;
 	char *pos;
 	char arg[CALLOUT_MAX_SIZE];
@@ -76,17 +76,17 @@ int execute_program(char *path, char *value, int len)
 
 		/* Ignore writes to stderr */
 		null_fd = open("/dev/null", O_WRONLY);
-		if (null_fd > 0) {
-			int err_fd __attribute__ ((unused));
-
+		if (null_fd >= 0) {
 			close(STDERR_FILENO);
-			err_fd = dup(null_fd);
+			stderr_fd = dup(null_fd);
 			close(null_fd);
 		}
 
 		retval = execv(argv[0], argv);
 		condlog(0, "error execing %s : %s", argv[0], strerror(errno));
 		close(stdout_fd);
+		if (stderr_fd >= 0)
+			close(stderr_fd);
 		exit(-1);
 	case -1:
 		condlog(0, "fork failed: %s", strerror(errno));
