@@ -603,6 +603,10 @@ main (int argc, char *argv[])
 		case 1: printf("optarg : %s\n",optarg);
 			break;
 		case 'v':
+			if (!optarg) {
+				conf->verbosity++;
+				break;
+			}
 			if (sizeof(optarg) > sizeof(char *) ||
 			    !isdigit(optarg[0])) {
 				usage (argv[0]);
