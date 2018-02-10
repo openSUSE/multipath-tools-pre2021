@@ -512,11 +512,11 @@ sysfs_get_asymmetric_access_state(struct path *pp, char *buff, int buflen)
 		return 0;
 
 	preferred = strtoul(value, &eptr, 0);
-	if (value == eptr || preferred == ULONG_MAX) {
+	if (value == eptr || preferred > UINT_MAX) {
 		/* Parse error, ignore */
 		return 0;
 	}
-	return  preferred;
+	return preferred;
 }
 
 static void
