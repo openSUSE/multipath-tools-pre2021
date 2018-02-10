@@ -45,9 +45,9 @@ vector_alloc_slot(vector v)
 
 	v->allocated += VECTOR_DEFAULT_SIZE;
 	if (v->slot)
-		new_slot = REALLOC(v->slot, sizeof (void *) * v->allocated);
+		new_slot = REALLOC(v->slot, sizeof (unsigned char *) * v->allocated);
 	else
-		new_slot = (void *) MALLOC(sizeof (void *) * v->allocated);
+		new_slot = (void *) MALLOC(sizeof (unsigned char *) * v->allocated);
 
 	if (!new_slot)
 		v->allocated -= VECTOR_DEFAULT_SIZE;
