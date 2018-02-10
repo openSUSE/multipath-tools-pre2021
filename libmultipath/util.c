@@ -182,10 +182,16 @@ int devt2devname(char *devname, int devname_len, char *devt)
 		/* Newer kernels have /sys/dev/block */
 		sprintf(block_path,"/sys/dev/block/%u:%u", major, minor);
 		if (lstat(block_path, &statbuf) == 0) {
-			if (S_ISLNK(statbuf.st_mode) &&
-			    readlink(block_path, dev, FILE_NAME_SIZE-1) > 0) {
-				char *p = strrchr(dev, '/');
+			int ret;
 
+			if (!S_ISLNK(statbuf.st_mode))
+				goto skip_proc;
+			ret = readlink(block_path, dev, FILE_NAME_SIZE-1);
+			if (ret > 0) {
+				char *p;
+
+				dev[ret - 1] = '\0';
+				p = strrchr(dev, '/');
 				if (!p) {
 					condlog(0, "No sysfs entry for %s",
 						block_path);
