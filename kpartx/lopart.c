@@ -131,24 +131,25 @@ char *find_loop_by_file(const char *filename)
 char *find_unused_loop_device(void)
 {
 	char dev[20], *next_loop_dev = NULL;
-	int fd, next_loop = 0, somedev = 0, someloop = 0, loop_known = 0;
+	int fd, next_loop_fd, next_loop = 0;
+	int somedev = 0, someloop = 0, loop_known = 0;
 	struct stat statbuf;
 	struct loop_info loopinfo;
 	FILE *procdev;
 
 	while (next_loop_dev == NULL) {
-		if (stat("/dev/loop-control", &statbuf) == 0 &&
+		next_loop_fd = open("/dev/loop-control", O_RDWR);
+		if (next_loop_fd < 0)
+			return NULL;
+		if (fstat(next_loop_fd, &statbuf) == 0 &&
 		    S_ISCHR(statbuf.st_mode)) {
-			int next_loop_fd;
-
-			next_loop_fd = open("/dev/loop-control", O_RDWR);
-			if (next_loop_fd < 0)
-				return NULL;
 			next_loop = ioctl(next_loop_fd, LOOP_CTL_GET_FREE);
-			close(next_loop_fd);
-			if (next_loop < 0)
+			if (next_loop < 0) {
+				close(next_loop_fd);
 				return NULL;
+			}
 		}
+		close(next_loop_fd);
 
 		sprintf(dev, "/dev/loop%d", next_loop);
 
