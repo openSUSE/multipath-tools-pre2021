@@ -359,15 +359,15 @@ int libcheck_check(struct checker * c)
 		pthread_spin_lock(&ct->hldr_lock);
 		if (ct->thread) {
 			if (tur_check_async_timeout(c)) {
-				condlog(3, "%s: tur checker timeout",
-					tur_devt(devt, sizeof(devt), ct));
+				condlog(3, "%d:%d: tur checker timeout",
+					major(ct->devt), minor(ct->devt));
 				pthread_cancel(ct->thread);
 				ct->running = 0;
 				MSG(c, MSG_TUR_TIMEOUT);
 				tur_status = PATH_TIMEOUT;
 			} else {
-				condlog(3, "%s: tur checker not finished",
-					tur_devt(devt, sizeof(devt), ct));
+				condlog(3, "%d:%d: tur checker not finished",
+					major(ct->devt), minor(ct->devt));
 				ct->running++;
 				tur_status = PATH_PENDING;
 			}
