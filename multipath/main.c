@@ -151,7 +151,7 @@ usage (char * progname)
 }
 
 static int
-update_paths (struct multipath * mpp)
+update_paths (struct multipath * mpp, int quick)
 {
 	int i, j;
 	struct pathgroup * pgp;
@@ -173,9 +173,12 @@ update_paths (struct multipath * mpp)
 					 * path is not in sysfs anymore
 					 */
 					pp->chkrstate = pp->state = PATH_DOWN;
+					pp->offline = 1;
 					continue;
 				}
 				pp->mpp = mpp;
+				if (quick)
+					continue;
 				conf = get_multipath_config();
 				if (pathinfo(pp, conf, DI_ALL))
 					pp->state = PATH_UNCHECKED;
@@ -183,6 +186,8 @@ update_paths (struct multipath * mpp)
 				continue;
 			}
 			pp->mpp = mpp;
+			if (quick)
+				continue;
 			if (pp->state == PATH_UNCHECKED ||
 			    pp->state == PATH_WILD) {
 				conf = get_multipath_config();
@@ -240,8 +245,7 @@ get_dm_mpvec (enum mpath_cmds cmd, vector curmp, vector pathvec, char * refwwid)
 		 * If not in "fast list mode", we need to fetch information
 		 * about them
 		 */
-		if (cmd != CMD_LIST_SHORT)
-			update_paths(mpp);
+		update_paths(mpp, (cmd == CMD_LIST_SHORT));
 
 		if (cmd == CMD_LIST_LONG)
 			mpp->bestpg = select_path_group(mpp);
