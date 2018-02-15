@@ -332,7 +332,7 @@ struct pathgroup {
 	int priority;
 	int enabled_paths;
 	vector paths;
-	char * selector;
+	struct multipath *mpp;
 };
 
 struct adapter_group {
@@ -371,6 +371,7 @@ int store_hostgroup(vector hostgroupvec, struct host_group *hgp);
 
 int store_path (vector pathvec, struct path * pp);
 int store_pathgroup (vector pgvec, struct pathgroup * pgp);
+int add_pathgroup(struct multipath*, struct pathgroup *);
 
 struct multipath * find_mp_by_alias (vector mp, char * alias);
 struct multipath * find_mp_by_wwid (vector mp, char * wwid);
