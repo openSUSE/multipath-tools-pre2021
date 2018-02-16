@@ -28,6 +28,8 @@
 #include "devmapper.h"
 #include "uevent.h"
 #include "debug.h"
+#include "discovery.h"
+#include "dm-generic.h"
 
 #define MAX(x,y) (x > y) ? x : y
 #define TAIL     (line + len - 1 - c)
@@ -762,6 +764,17 @@ mpd_lookup(char wildcard)
 	return NULL;
 }
 
+int snprint_multipath_attr(const struct gen_multipath* gm,
+			   char *buf, int len, char wildcard)
+{
+	struct multipath *mpp = (struct multipath*)gen_multipath_to_dm(gm);
+	struct multipath_data *mpd = mpd_lookup(wildcard);
+
+	if (mpd == NULL)
+		return 0;
+	return mpd->snprint(buf, len, mpp);
+}
+
 static struct path_data *
 pd_lookup(char wildcard)
 {
@@ -774,6 +787,17 @@ pd_lookup(char wildcard)
 	return NULL;
 }
 
+int snprint_path_attr(const struct gen_path* gp,
+		      char *buf, int len, char wildcard)
+{
+	struct path *pp = (struct path*)gen_path_to_dm(gp);
+	struct path_data *pd = pd_lookup(wildcard);
+
+	if (pd == NULL)
+		return 0;
+	return pd->snprint(buf, len, pp);
+}
+
 static struct pathgroup_data *
 pgd_lookup(char wildcard)
 {
@@ -784,6 +808,17 @@ pgd_lookup(char wildcard)
 			return &pgd[i];
 
 	return NULL;
+}
+
+int snprint_pathgroup_attr(const struct gen_pathgroup* gpg,
+			   char *buf, int len, char wildcard)
+{
+	struct pathgroup *pg = (struct pathgroup*)gen_pathgroup_to_dm(gpg);
+	struct pathgroup_data *pdg = pgd_lookup(wildcard);
+
+	if (pdg == NULL)
+		return 0;
+	return pdg->snprint(buf, len, pg);
 }
 
 int

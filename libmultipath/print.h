@@ -126,3 +126,10 @@ void print_map (struct multipath * mpp, char * params);
 void print_all_paths (vector pathvec, int banner);
 void print_all_paths_custo (vector pathvec, int banner, char *fmt);
 void print_hwtable (vector hwtable);
+
+int snprint_path_attr(const struct gen_path* gp,
+		      char *buf, int len, char wildcard);
+int snprint_pathgroup_attr(const struct gen_pathgroup* gpg,
+			   char *buf, int len, char wildcard);
+int snprint_multipath_attr(const struct gen_multipath* gm,
+			   char *buf, int len, char wildcard);

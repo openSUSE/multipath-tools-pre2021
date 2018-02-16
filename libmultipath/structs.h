@@ -6,6 +6,7 @@
 
 #include "prio.h"
 #include "byteorder.h"
+#include "generic.h"
 
 #define WWID_SIZE		128
 #define SERIAL_SIZE		65
@@ -252,6 +253,7 @@ struct path {
 	int san_path_err_forget_rate;
 	/* configlet pointers */
 	struct hwentry * hwe;
+	struct gen_path generic_path;
 };
 
 typedef int (pgpolicyfn) (struct multipath *);
@@ -324,6 +326,7 @@ struct multipath {
 	int prkey_source;
 	struct be64 reservation_key;
 	unsigned char prflag;
+	struct gen_multipath generic_mp;
 };
 
 struct pathgroup {
@@ -333,6 +336,7 @@ struct pathgroup {
 	int enabled_paths;
 	vector paths;
 	struct multipath *mpp;
+	struct gen_pathgroup generic_pg;
 };
 
 struct adapter_group {
