@@ -29,6 +29,7 @@ struct _vector {
 	void **slot;
 };
 typedef struct _vector *vector;
+typedef const struct _vector *cvector;
 
 #define VECTOR_DEFAULT_SIZE 1
 #define VECTOR_SIZE(V)   ((V) ? ((V)->allocated) / VECTOR_DEFAULT_SIZE : 0)

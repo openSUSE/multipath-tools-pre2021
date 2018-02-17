@@ -85,6 +85,7 @@ int uxsock_timeout;
 #include "lock.h"
 #include "waiter.h"
 #include "wwids.h"
+#include "foreign.h"
 #include "../third-party/valgrind/drd.h"
 
 #define FILE_NAME_SIZE 256
@@ -766,6 +767,15 @@ rescan:
 		mpp->flush_on_last_del = FLUSH_UNDEF;
 		mpp->action = ACT_RELOAD;
 	} else {
+		switch (add_foreign(pp->udev)) {
+		case FOREIGN_CLAIMED:
+		case FOREIGN_OK:
+			orphan_path(pp, "claimed by foreign library");
+			return 0;
+		default:
+			break;
+		}
+
 		if (!should_multipath(pp, vecs->pathvec)) {
 			orphan_path(pp, "only one path");
 			return 0;
@@ -865,6 +875,8 @@ uev_remove_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
 	int ret;
 
 	condlog(2, "%s: remove path (uevent)", uev->kernel);
+	delete_foreign(uev->udev);
+
 	pthread_cleanup_push(cleanup_lock, &vecs->lock);
 	lock(&vecs->lock);
 	pthread_testcancel();
@@ -984,11 +996,26 @@ fail:
 static int
 uev_update_path (struct uevent *uev, struct vectors * vecs)
 {
-	int ro, retval = 0;
+	int ro, retval = 0, rc;
 	struct path * pp;
 	struct config *conf;
 	int disable_changed_wwids;
 	int needs_reinit = 0;
+
+	switch ((rc = change_foreign(uev->udev))) {
+	case FOREIGN_OK:
+		/* known foreign path, ignore event */
+		return 0;
+	case FOREIGN_IGNORED:
+		break;
+	case FOREIGN_ERR:
+		condlog(3, "%s: error in change_foreign", __func__);
+		break;
+	default:
+		condlog(1, "%s: return code %d of change_forein is unsupported",
+			__func__, rc);
+		break;
+	}
 
 	conf = get_multipath_config();
 	disable_changed_wwids = conf->disable_changed_wwids;
@@ -1149,11 +1176,19 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 	 */
 	if (!strncmp(uev->kernel, "dm-", 3)) {
 		if (!strncmp(uev->action, "change", 6)) {
-			r = uev_add_map(uev, vecs);
+			r = add_foreign(uev->udev);
+			if (r == FOREIGN_CLAIMED || r == FOREIGN_OK)
+				r = 0;
+			else
+				r = uev_add_map(uev, vecs);
 			goto out;
 		}
 		if (!strncmp(uev->action, "remove", 6)) {
-			r = uev_remove_map(uev, vecs);
+			r = delete_foreign(uev->udev);
+			if (r == FOREIGN_OK)
+				r = 0;
+			else
+				r = uev_remove_map(uev, vecs);
 			goto out;
 		}
 		goto out;
@@ -1996,7 +2031,7 @@ checkerloop (void *ap)
 						diff_time.tv_sec);
 			}
 		}
-
+		check_foreign();
 		post_config_state(DAEMON_IDLE);
 		conf = get_multipath_config();
 		strict_timing = conf->strict_timing;
@@ -2185,6 +2220,7 @@ reconfigure (struct vectors * vecs)
 
 	free_pathvec(vecs->pathvec, FREE_PATHS);
 	vecs->pathvec = NULL;
+	delete_all_foreign();
 
 	/* Re-read any timezone changes */
 	tzset();
@@ -2435,6 +2471,9 @@ child (void * param)
 		condlog(0, "failed to initialize prioritizers");
 		goto failed;
 	}
+	/* Failing this is non-fatal */
+
+	init_foreign(conf->multipath_dir);
 
 	setlogmask(LOG_UPTO(conf->verbosity + 3));
 
@@ -2586,6 +2625,7 @@ child (void * param)
 	FREE(vecs);
 	vecs = NULL;
 
+	cleanup_foreign();
 	cleanup_checkers();
 	cleanup_prio();
 
