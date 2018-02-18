@@ -33,7 +33,9 @@ int generic_style(const struct gen_multipath* gm,
 	gm->ops->snprint(gm, wwid_buf, sizeof(wwid_buf), 'w');
 
 	if (strcmp(alias_buf, wwid_buf))
-		n = snprintf(buf, len, " (%%w)");
+		n += snprintf(buf, len, "%%n (%%w) [%%G]");
+	else
+		n += snprintf(buf, len, "%%n [%%G]");
 
 	return (n < len ? n : len - 1);
 }

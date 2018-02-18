@@ -343,7 +343,13 @@ snprint_multipath_rev (char * buff, size_t len, struct multipath * mpp)
 }
 
 static int
-snprint_action (char * buff, size_t len, struct multipath * mpp)
+snprint_multipath_foreign (char * buff, size_t len, struct multipath * pp)
+{
+	return snprintf(buff, len, "%s", "--");
+}
+
+static int
+snprint_action (char * buff, size_t len,  struct multipath * mpp)
 {
 	switch (mpp->action) {
 	case ACT_REJECT:
@@ -628,6 +634,12 @@ snprint_path_checker (char * buff, size_t len, struct path * pp)
 	return snprint_str(buff, len, c->name);
 }
 
+static int
+snprint_path_foreign (char * buff, size_t len, struct path * pp)
+{
+	return snprintf(buff, len, "%s", "--");
+}
+
 struct multipath_data mpd[] = {
 	{'n', "name",          0, snprint_name},
 	{'w', "uuid",          0, snprint_multipath_uuid},
@@ -651,6 +663,7 @@ struct multipath_data mpd[] = {
 	{'v', "vend",          0, snprint_multipath_vend},
 	{'p', "prod",          0, snprint_multipath_prod},
 	{'e', "rev",           0, snprint_multipath_rev},
+	{'G', "foreign",       0, snprint_multipath_foreign},
 	{0, NULL, 0 , NULL}
 };
 
@@ -674,6 +687,7 @@ struct path_data pd[] = {
 	{'R', "host WWPN",     0, snprint_host_wwpn},
 	{'r', "target WWPN",   0, snprint_tgt_wwpn},
 	{'a', "host adapter",  0, snprint_host_adapter},
+	{'G', "foreign",       0, snprint_path_foreign},
 	{0, NULL, 0 , NULL}
 };
 
