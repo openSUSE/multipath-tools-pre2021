@@ -188,9 +188,9 @@ struct foreign {
 	void (*release_paths)(const struct context *ctx,
 			      const struct _vector* ppvec);
 
-	const char *name;
 	void *handle;
 	struct context *context;
+	const char name[0];
 };
 
 /**

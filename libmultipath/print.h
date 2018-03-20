@@ -1,5 +1,6 @@
 #ifndef _PRINT_H
 #define _PRINT_H
+#include "dm-generic.h"
 
 #define PRINT_PATH_LONG      "%w %i %d %D %p %t %T %s %o"
 #define PRINT_PATH_INDENT    "%i %d %D %t %T %o"
@@ -144,7 +145,6 @@ void _print_multipath_topology (const struct gen_multipath * gmp,
 void print_all_paths (vector pathvec, int banner);
 void print_all_paths_custo (vector pathvec, int banner, char *fmt);
 void print_hwtable (vector hwtable);
-
 int snprint_path_attr(const struct gen_path* gp,
 		      char *buf, int len, char wildcard);
 int snprint_pathgroup_attr(const struct gen_pathgroup* gpg,

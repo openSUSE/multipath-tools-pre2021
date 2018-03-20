@@ -767,15 +767,6 @@ rescan:
 		mpp->flush_on_last_del = FLUSH_UNDEF;
 		mpp->action = ACT_RELOAD;
 	} else {
-		switch (add_foreign(pp->udev)) {
-		case FOREIGN_CLAIMED:
-		case FOREIGN_OK:
-			orphan_path(pp, "claimed by foreign library");
-			return 0;
-		default:
-			break;
-		}
-
 		if (!should_multipath(pp, vecs->pathvec)) {
 			orphan_path(pp, "only one path");
 			return 0;
@@ -1189,7 +1180,7 @@ uev_trigger (struct uevent * uev, void * trigger_data)
 				r = 0;
 			else
 				r = uev_remove_map(uev, vecs);
-			goto out;
+                        goto out;
 		}
 		goto out;
 	}

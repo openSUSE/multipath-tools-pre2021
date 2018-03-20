@@ -28,8 +28,6 @@
 #include "devmapper.h"
 #include "uevent.h"
 #include "debug.h"
-#include "discovery.h"
-#include "dm-generic.h"
 
 #define MAX(x,y) (((x) > (y)) ? (x) : (y))
 #define MIN(x,y) (((x) > (y)) ? (y) : (x))
@@ -1118,7 +1116,6 @@ int _snprint_multipath_topology(const struct gen_multipath *gmp,
 
 	c += gmp->ops->style(gmp, c, sizeof(style) - (c - style),
 			     verbosity);
-	c += snprintf(c, sizeof(style) - (c - style), " %%d %%s");
 	if(isatty(1))
 		c += sprintf(c, "%c[%dm", 0x1B, 0); /* bold off */
 

@@ -23,7 +23,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
-#include <glob.h>
+#include <dirent.h>
+#include <fnmatch.h>
 #include <dlfcn.h>
 #include <libudev.h>
 #include "vector.h"
@@ -36,6 +37,24 @@
 
 static vector foreigns;
 
+/* This protects vector foreigns */
+static pthread_rwlock_t foreign_lock = PTHREAD_RWLOCK_INITIALIZER;
+
+static void rdlock_foreigns(void)
+{
+	pthread_rwlock_rdlock(&foreign_lock);
+}
+
+static void wrlock_foreigns(void)
+{
+	pthread_rwlock_wrlock(&foreign_lock);
+}
+
+static void unlock_foreigns(void *unused)
+{
+	pthread_rwlock_unlock(&foreign_lock);
+}
+
 #define get_dlsym(foreign, sym, lbl)					\
 	do {								\
 		foreign->sym =	dlsym(foreign->handle, #sym);		\
@@ -46,111 +65,110 @@ static vector foreigns;
 		}							\
 	} while(0)
 
-static void free_foreign(struct foreign **fgn)
+static void free_foreign(struct foreign *fgn)
 {
-	if (fgn == NULL || *fgn == NULL)
+	struct context *ctx;
+
+	if (fgn == NULL)
 		return;
-	if ((*fgn)->context != NULL)
-		(*fgn)->cleanup((*fgn)->context);
-	if ((*fgn)->handle != NULL)
-		dlclose((*fgn)->handle);
-	free(*fgn);
+
+	ctx = fgn->context;
+	fgn->context = NULL;
+	if (ctx != NULL)
+		fgn->cleanup(ctx);
+
+	if (fgn->handle != NULL)
+		dlclose(fgn->handle);
+	free(fgn);
 }
 
-void cleanup_foreign(void)
+void _cleanup_foreign(void)
 {
 	struct foreign *fgn;
 	int i;
 
-	vector_foreach_slot(foreigns, fgn, i)
-		free_foreign(&fgn);
+	if (foreigns == NULL)
+		return;
+
+	vector_foreach_slot_backwards(foreigns, fgn, i) {
+		vector_del_slot(foreigns, i);
+		free_foreign(fgn);
+	}
 	vector_free(foreigns);
 	foreigns = NULL;
 }
 
-int init_foreign(const char *multipath_dir)
+void cleanup_foreign(void)
+{
+	wrlock_foreigns();
+	_cleanup_foreign();
+	unlock_foreigns(NULL);
+}
+
+static const char foreign_pattern[] = "libforeign-*.so";
+
+static int select_foreign_libs(const struct dirent *di)
+{
+
+	return fnmatch(foreign_pattern, di->d_name, FNM_FILE_NAME) == 0;
+}
+
+static int _init_foreign(const char *multipath_dir)
 {
 	char pathbuf[PATH_MAX];
-	static const char base[] = "libforeign-";
-	static const char suffix[] = ".so";
-	glob_t globbuf;
-	int ret = -EINVAL, r, i;
+	struct dirent **di;
+	int r, i;
 
-	if (foreigns != NULL) {
-		condlog(0, "%s: already initialized", __func__);
-		return -EEXIST;
-	}
 	foreigns = vector_alloc();
+	if (foreigns == NULL)
+		return -ENOMEM;
 
-	if (snprintf(pathbuf, sizeof(pathbuf), "%s/%s*%s",
-		     multipath_dir, base, suffix) >= sizeof(pathbuf)) {
-		condlog(1, "%s: path length overflow", __func__);
-		goto err;
-	}
+	r = scandir(multipath_dir, &di, select_foreign_libs, alphasort);
 
-	condlog(4, "%s: looking for %s\n", __func__, pathbuf);
-	memset(&globbuf, 0, sizeof(globbuf));
-	r = glob(pathbuf, 0, NULL, &globbuf);
-
-	if (r == GLOB_NOMATCH) {
+	if (r == 0) {
 		condlog(3, "%s: no foreign multipath libraries found",
 			__func__);
-		globfree(&globbuf);
 		return 0;
-	} else if (r != 0) {
-		char *msg;
-
-		if (errno != 0) {
-			ret = -errno;
-			msg = strerror(errno);
-		} else {
-			ret = -1;
-			msg = (r == GLOB_ABORTED ? "read error" :
-			       "out of memory");
-		}
-		condlog(0, "%s: search for foreign libraries failed: %d (%s)",
-			__func__, r, msg);
-		globfree(&globbuf);
-		goto err;
+	} else if (r < 0) {
+		r = errno;
+		condlog(1, "%s: error %d scanning foreign multipath libraries",
+			__func__, r);
+		_cleanup_foreign();
+		return -r;
 	}
 
-	for (i = 0; i < globbuf.gl_pathc; i++) {
-		char *msg, *fn;
+	pthread_cleanup_push(free, di);
+	for (i = 0; i < r; i++) {
+		const char *msg, *fn, *c;
 		struct foreign *fgn;
 		int len, namesz;
 
-		fn = strrchr(globbuf.gl_pathv[i], '/');
-		if (fn == NULL)
-			fn = globbuf.gl_pathv[i];
-		else
-			fn++;
+		fn = di[i]->d_name;
 
 		len = strlen(fn);
-		if (len <= sizeof(base) + sizeof(suffix) - 2) {
-			condlog(0, "%s: internal error: filename too short: %s",
-				__func__, globbuf.gl_pathv[i]);
+		c = strchr(fn, '-');
+		if (len < sizeof(foreign_pattern) - 1 || c == NULL) {
+			condlog(0, "%s: bad file name %s, fnmatch error?",
+				__func__, fn);
 			continue;
 		}
-
+		c++;
 		condlog(4, "%s: found %s", __func__, fn);
 
-		namesz = len + 3 - sizeof(base) - sizeof(suffix);
+		namesz = len - sizeof(foreign_pattern) + 3;
 		fgn = malloc(sizeof(*fgn) + namesz);
 		if (fgn == NULL)
 			continue;
 		memset(fgn, 0, sizeof(*fgn));
+		strlcpy((char*)fgn + offsetof(struct foreign, name), c, namesz);
 
-		strlcpy((char*)fgn + sizeof(*fgn), fn + sizeof(base) - 1,
-			namesz);
-		fgn->name = (const char*)fgn + sizeof(*fgn);
-
-		fgn->handle = dlopen(globbuf.gl_pathv[i], RTLD_NOW|RTLD_LOCAL);
+		snprintf(pathbuf, sizeof(pathbuf), "%s/%s", multipath_dir, fn);
+		fgn->handle = dlopen(pathbuf, RTLD_NOW|RTLD_LOCAL);
 		msg = dlerror();
 		if (fgn->handle == NULL) {
-			condlog(1, "%s: failed to open %s: %s", __func__,
-				fn, msg);
-			free_foreign(&fgn);
-			continue;
+			condlog(1, "%s: failed to dlopen %s: %s", __func__,
+				pathbuf, msg);
+			goto dl_err;
 		}
 
 		get_dlsym(fgn, init, dl_err);
@@ -170,27 +188,42 @@ int init_foreign(const char *multipath_dir)
 		fgn->context = fgn->init(LIBMP_FOREIGN_API, fgn->name);
 		if (fgn->context == NULL) {
 			condlog(0, "%s: init() failed for %s", __func__, fn);
-			free_foreign(&fgn);
-			continue;
+			goto dl_err;
 		}
 
 		if (vector_alloc_slot(foreigns) == NULL) {
-			free_foreign(&fgn);
-			continue;
+			goto dl_err;
 		}
+
 		vector_set_slot(foreigns, fgn);
-		condlog(3, "foreign library \"%s\" loaded successfully", fgn->name);
+		condlog(3, "foreign library \"%s\" loaded successfully",
+			fgn->name);
 
 		continue;
 
 	dl_err:
-		free_foreign(&fgn);
+		free_foreign(fgn);
 	}
-	globfree(&globbuf);
-
+	pthread_cleanup_pop(1);
 	return 0;
-err:
-	cleanup_foreign();
+}
+
+int init_foreign(const char *multipath_dir)
+{
+	int ret;
+
+	wrlock_foreigns();
+
+	if (foreigns != NULL) {
+		unlock_foreigns(NULL);
+		condlog(0, "%s: already initialized", __func__);
+		return -EEXIST;
+	}
+
+	pthread_cleanup_push(unlock_foreigns, NULL);
+	ret = _init_foreign(multipath_dir);
+	pthread_cleanup_pop(1);
+
 	return ret;
 }
 
@@ -199,29 +232,40 @@ int add_foreign(struct udev_device *udev)
 	struct foreign *fgn;
 	dev_t dt;
 	int j;
+	int r = FOREIGN_IGNORED;
 
 	if (udev == NULL) {
 		condlog(1, "%s called with NULL udev", __func__);
 		return FOREIGN_ERR;
 	}
+
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return FOREIGN_ERR;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	dt = udev_device_get_devnum(udev);
 	vector_foreach_slot(foreigns, fgn, j) {
-		int r = fgn->add(fgn->context, udev);
+		r = fgn->add(fgn->context, udev);
 
 		if (r == FOREIGN_CLAIMED) {
 			condlog(3, "%s: foreign \"%s\" claims device %d:%d",
 				__func__, fgn->name, major(dt), minor(dt));
-			return r;
+			break;
 		} else if (r == FOREIGN_OK) {
 			condlog(4, "%s: foreign \"%s\" owns device %d:%d",
 				__func__, fgn->name, major(dt), minor(dt));
-			return r;
+			break;
 		} else if (r != FOREIGN_IGNORED) {
 			condlog(1, "%s: unexpected return value %d from \"%s\"",
 				__func__, r, fgn->name);
 		}
 	}
-	return FOREIGN_IGNORED;
+
+	pthread_cleanup_pop(1);
+	return r;
 }
 
 int change_foreign(struct udev_device *udev)
@@ -229,25 +273,36 @@ int change_foreign(struct udev_device *udev)
 	struct foreign *fgn;
 	int j;
 	dev_t dt;
+	int r = FOREIGN_IGNORED;
 
 	if (udev == NULL) {
 		condlog(1, "%s called with NULL udev", __func__);
 		return FOREIGN_ERR;
 	}
+
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return FOREIGN_ERR;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	dt = udev_device_get_devnum(udev);
 	vector_foreach_slot(foreigns, fgn, j) {
-		int r = fgn->change(fgn->context, udev);
+		r = fgn->change(fgn->context, udev);
 
 		if (r == FOREIGN_OK) {
 			condlog(4, "%s: foreign \"%s\" completed %d:%d",
 				__func__, fgn->name, major(dt), minor(dt));
-			return r;
+			break;
 		} else if (r != FOREIGN_IGNORED) {
 			condlog(1, "%s: unexpected return value %d from \"%s\"",
 				__func__, r, fgn->name);
 		}
 	}
-	return FOREIGN_IGNORED;
+
+	pthread_cleanup_pop(1);
+	return r;
 }
 
 int delete_foreign(struct udev_device *udev)
@@ -255,31 +310,49 @@ int delete_foreign(struct udev_device *udev)
 	struct foreign *fgn;
 	int j;
 	dev_t dt;
+	int r = FOREIGN_IGNORED;
 
 	if (udev == NULL) {
 		condlog(1, "%s called with NULL udev", __func__);
 		return FOREIGN_ERR;
 	}
+
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return FOREIGN_ERR;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	dt = udev_device_get_devnum(udev);
 	vector_foreach_slot(foreigns, fgn, j) {
-		int r = fgn->delete(fgn->context, udev);
+		r = fgn->delete(fgn->context, udev);
 
 		if (r == FOREIGN_OK) {
 			condlog(3, "%s: foreign \"%s\" deleted device %d:%d",
 				__func__, fgn->name, major(dt), minor(dt));
-			return r;
+			break;
 		} else if (r != FOREIGN_IGNORED) {
 			condlog(1, "%s: unexpected return value %d from \"%s\"",
 				__func__, r, fgn->name);
 		}
 	}
-	return FOREIGN_IGNORED;
+
+	pthread_cleanup_pop(1);
+	return r;
 }
 
 int delete_all_foreign(void)
 {
 	struct foreign *fgn;
 	int j;
+
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return FOREIGN_ERR;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
 
 	vector_foreach_slot(foreigns, fgn, j) {
 		int r;
@@ -290,6 +363,8 @@ int delete_all_foreign(void)
 				__func__, r, fgn->name);
 		}
 	}
+
+	pthread_cleanup_pop(1);
 	return FOREIGN_OK;
 }
 
@@ -298,9 +373,18 @@ void check_foreign(void)
 	struct foreign *fgn;
 	int j;
 
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	vector_foreach_slot(foreigns, fgn, j) {
 		fgn->check(fgn->context);
 	}
+
+	pthread_cleanup_pop(1);
 }
 
 /* Call this after get_path_layout */
@@ -309,17 +393,29 @@ void foreign_path_layout(void)
 	struct foreign *fgn;
 	int i;
 
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	vector_foreach_slot(foreigns, fgn, i) {
 		const struct _vector *vec;
 
 		fgn->lock(fgn->context);
+		pthread_cleanup_push(fgn->unlock, fgn->context);
+
 		vec = fgn->get_paths(fgn->context);
 		if (vec != NULL) {
 			_get_path_layout(vec, LAYOUT_RESET_NOT);
 		}
 		fgn->release_paths(fgn->context, vec);
-		fgn->unlock(fgn->context);
+
+		pthread_cleanup_pop(1);
 	}
+
+	pthread_cleanup_pop(1);
 }
 
 /* Call this after get_multipath_layout */
@@ -328,18 +424,29 @@ void foreign_multipath_layout(void)
 	struct foreign *fgn;
 	int i;
 
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	vector_foreach_slot(foreigns, fgn, i) {
 		const struct _vector *vec;
 
 		fgn->lock(fgn->context);
 		pthread_cleanup_push(fgn->unlock, fgn->context);
+
 		vec = fgn->get_multipaths(fgn->context);
 		if (vec != NULL) {
 			_get_multipath_layout(vec, LAYOUT_RESET_NOT);
 		}
 		fgn->release_multipaths(fgn->context, vec);
+
 		pthread_cleanup_pop(1);
 	}
+
+	pthread_cleanup_pop(1);
 }
 
 int snprint_foreign_topology(char *buf, int len, int verbosity)
@@ -347,6 +454,13 @@ int snprint_foreign_topology(char *buf, int len, int verbosity)
 	struct foreign *fgn;
 	int i;
 	char *c = buf;
+
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return 0;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
 
 	vector_foreach_slot(foreigns, fgn, i) {
 		const struct _vector *vec;
@@ -373,6 +487,7 @@ int snprint_foreign_topology(char *buf, int len, int verbosity)
 		pthread_cleanup_pop(1);
 	}
 
+	pthread_cleanup_pop(1);
 	return c - buf;
 }
 
@@ -411,6 +526,13 @@ int snprint_foreign_paths(char *buf, int len, const char *style, int pretty)
 	int i;
 	char *c = buf;
 
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return 0;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
+
 	vector_foreach_slot(foreigns, fgn, i) {
 		const struct _vector *vec;
 		const struct gen_path *gp;
@@ -434,6 +556,7 @@ int snprint_foreign_paths(char *buf, int len, const char *style, int pretty)
 		pthread_cleanup_pop(1);
 	}
 
+	pthread_cleanup_pop(1);
 	return c - buf;
 }
 
@@ -443,6 +566,13 @@ int snprint_foreign_multipaths(char *buf, int len,
 	struct foreign *fgn;
 	int i;
 	char *c = buf;
+
+	rdlock_foreigns();
+	if (foreigns == NULL) {
+		unlock_foreigns(NULL);
+		return 0;
+	}
+	pthread_cleanup_push(unlock_foreigns, NULL);
 
 	vector_foreach_slot(foreigns, fgn, i) {
 		const struct _vector *vec;
@@ -467,5 +597,6 @@ int snprint_foreign_multipaths(char *buf, int len,
 		pthread_cleanup_pop(1);
 	}
 
+	pthread_cleanup_pop(1);
 	return c - buf;
 }

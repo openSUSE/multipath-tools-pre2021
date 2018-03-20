@@ -26,7 +26,8 @@
 #include <libudev.h>
 #include <pthread.h>
 #include <limits.h>
-#include <glob.h>
+#include <dirent.h>
+#include <errno.h>
 #include "vector.h"
 #include "generic.h"
 #include "foreign.h"
@@ -278,7 +279,7 @@ static int snprint_nvme_path(const struct gen_path *gp,
 		if (pci != NULL)
 			return snprintf(buff, len, "PCI:%s",
 					udev_device_get_sysname(pci));
-		__attribute__ ((fallthrough));
+		/* fall through */
 	default:
 		return snprintf(buff, len, "%s", N_A);
 		break;
@@ -352,17 +353,21 @@ int delete_all(struct context *ctx)
 
 void cleanup(struct context *ctx)
 {
-	if (ctx == NULL)
-		return;
-
 	(void)delete_all(ctx);
 
 	lock(ctx);
+	/*
+	 * Locking is not strictly necessary here, locking in foreign.c
+	 * makes sure that no other code is called with this ctx any more.
+	 * But this should make static checkers feel better.
+	 */
 	pthread_cleanup_push(unlock, ctx);
 	if (ctx->udev)
 		udev_unref(ctx->udev);
+	ctx->udev = NULL;
 	if (ctx->mpvec)
 		vector_free(ctx->mpvec);
+	ctx->mpvec = NULL;
 	pthread_cleanup_pop(1);
 	pthread_mutex_destroy(&ctx->mutex);
 
@@ -439,10 +444,15 @@ _find_path_by_syspath(struct nvme_map *map, const char *syspath)
 	return NULL;
 }
 
+static int no_dotfiles(const struct dirent *di)
+{
+	return di->d_name[0] != '.';
+}
+
 static void _find_slaves(struct context *ctx, struct nvme_map *map)
 {
 	char pathbuf[PATH_MAX];
-	glob_t globbuf;
+	struct dirent **di = NULL;
 	struct nvme_path *path;
 	int r, i;
 
@@ -452,36 +462,28 @@ static void _find_slaves(struct context *ctx, struct nvme_map *map)
 	vector_foreach_slot(map->pathvec, path, i)
 		path->seen = false;
 
-	memset(&globbuf, 0, sizeof(globbuf));
 	snprintf(pathbuf, sizeof(pathbuf),
-		"%s/slaves/*",
+		"%s/slaves",
 		udev_device_get_syspath(map->udev));
 
-	r = glob(pathbuf, 0, NULL, &globbuf);
+	r = scandir(pathbuf, &di, no_dotfiles, alphasort);
 
-	if (r == GLOB_NOMATCH) {
+	if (r == 0) {
 		condlog(3, "%s: %s: no paths for %s", __func__, THIS,
 			udev_device_get_sysname(map->udev));
-		globfree(&globbuf);
 		return;
-	} else if (r != 0) {
-		condlog(1, "%s: %s: error %d searching paths for %d:%d", __func__,
-			THIS, r, major(map->devt), minor(map->devt));
-		globfree(&globbuf);
+	} else if (r < 0) {
+		condlog(1, "%s: %s: error %d scanning paths of %s", __func__,
+			THIS, errno, udev_device_get_sysname(map->udev));
 		return;
 	}
-	for (i = 0; i < globbuf.gl_pathc; i++) {
-		char *fn;
+
+	pthread_cleanup_push(free, di);
+	for (i = 0; i < r; i++) {
+		char *fn = di[i]->d_name;
 		struct udev_device *udev;
 
-		fn = strrchr(globbuf.gl_pathv[i], '/');
-		if (fn == NULL)
-			fn = globbuf.gl_pathv[i];
-		else
-			fn++;
-
-		if (snprintf(pathbuf, sizeof(pathbuf),
-			     "%s/slaves/%s",
+		if (snprintf(pathbuf, sizeof(pathbuf), "%s/slaves/%s",
 			     udev_device_get_syspath(map->udev), fn)
 		    >= sizeof(pathbuf))
 			continue;
@@ -489,7 +491,8 @@ static void _find_slaves(struct context *ctx, struct nvme_map *map)
 		path = _find_path_by_syspath(map, pathbuf);
 		if (path != NULL) {
 			path->seen = true;
-			condlog(4, "%s: %s already known", __func__, fn);
+			condlog(4, "%s: %s already known",
+				__func__, fn);
 			continue;
 		}
 
@@ -508,12 +511,10 @@ static void _find_slaves(struct context *ctx, struct nvme_map *map)
 		path->udev = udev;
 		path->seen = true;
 		path->map = map;
-		path->ctl =
-			udev_device_get_parent_with_subsystem_devtype(udev,
-								      "nvme",
-								      NULL);
+		path->ctl = udev_device_get_parent_with_subsystem_devtype
+			(udev, "nvme", NULL);
 		if (path->ctl == NULL) {
-			condlog(1, "%s: %s; failed to get controller for %s",
+			condlog(1, "%s: %s: failed to get controller for %s",
 				__func__, THIS, fn);
 			cleanup_nvme_path(path);
 			continue;
@@ -528,7 +529,7 @@ static void _find_slaves(struct context *ctx, struct nvme_map *map)
 			udev_device_get_sysname(map->udev));
 		vector_set_slot(map->pathvec, path);
 	}
-	globfree(&globbuf);
+	pthread_cleanup_pop(1);
 
 	map->nr_live = 0;
 	vector_foreach_slot_backwards(map->pathvec, path, i) {
@@ -567,7 +568,11 @@ static int _add_map(struct context *ctx, struct udev_device *ud,
 
 	map->devt = devt;
 	map->udev = udev_device_ref(ud);
-	map->subsys = udev_device_ref(subsys);
+	/*
+	 * subsys is implicitly referenced by map->udev,
+	 * no need to take a reference here.
+	 */
+	map->subsys = subsys;
 	map->gen.ops = &nvme_map_ops;
 
 	map->pathvec = vector_alloc();
