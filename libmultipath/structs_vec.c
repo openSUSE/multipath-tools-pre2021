@@ -69,9 +69,10 @@ int adopt_paths(vector pathvec, struct multipath *mpp)
 			    store_path(mpp->paths, pp))
 					return 1;
 			conf = get_multipath_config();
+			pthread_cleanup_push(put_multipath_config, conf);
 			ret = pathinfo(pp, conf,
 				       DI_PRIO | DI_CHECKER);
-			put_multipath_config(conf);
+			pthread_cleanup_pop(1);
 			if (ret)
 				return 1;
 		}
@@ -354,11 +355,12 @@ void set_no_path_retry(struct config *conf, struct multipath *mpp)
 		dm_queue_if_no_path(mpp->alias, 1);
 		if (mpp->nr_active == 0) {
 			struct config *conf = get_multipath_config();
+
 			/* Enter retry mode */
 			mpp->retry_tick = mpp->no_path_retry * conf->checkint;
+			put_multipath_config(conf);
 			condlog(1, "%s: Entering recovery mode: max_retries=%d",
 				mpp->alias, mpp->no_path_retry);
-			put_multipath_config(conf);
 		}
 		break;
 	}
