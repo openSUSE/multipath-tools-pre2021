@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <urcu.h>
 
 #include "checkers.h"
 
@@ -227,6 +228,7 @@ static void cleanup_func(void *data)
 	pthread_spin_unlock(&ct->hldr_lock);
 	if (!holders)
 		cleanup_context(ct);
+	rcu_unregister_thread();
 }
 
 static int tur_running(struct tur_checker_context *ct)
@@ -255,11 +257,12 @@ static void *tur_thread(void *ctx)
 	int state;
 	char devt[32];
 
-	condlog(3, "%s: tur checker starting up",
-		tur_devt(devt, sizeof(devt), ct));
-
 	/* This thread can be canceled, so setup clean up */
 	tur_thread_cleanup_push(ct);
+	rcu_register_thread();
+
+	condlog(3, "%s: tur checker starting up",
+		tur_devt(devt, sizeof(devt), ct));
 
 	/* TUR checker start up */
 	pthread_mutex_lock(&ct->lock);
