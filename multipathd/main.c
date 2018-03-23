@@ -250,7 +250,7 @@ struct config *get_multipath_config(void)
 	return rcu_dereference(multipath_conf);
 }
 
-void put_multipath_config(struct config *conf)
+void put_multipath_config(void *arg)
 {
 	rcu_read_unlock();
 }
@@ -273,8 +273,10 @@ need_switch_pathgroup (struct multipath * mpp, int refresh)
 		vector_foreach_slot (mpp->pg, pgp, i) {
 			vector_foreach_slot (pgp->paths, pp, j) {
 				conf = get_multipath_config();
+				pthread_cleanup_push(put_multipath_config,
+						     conf);
 				pathinfo(pp, conf, DI_PRIO);
-				put_multipath_config(conf);
+				pthread_cleanup_pop(1);
 			}
 		}
 	}
@@ -668,9 +670,10 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
 			udev_device_unref(pp->udev);
 			pp->udev = udev_device_ref(uev->udev);
 			conf = get_multipath_config();
+			pthread_cleanup_push(put_multipath_config, conf);
 			r = pathinfo(pp, conf,
 				     DI_ALL | DI_BLACKLIST);
-			put_multipath_config(conf);
+			pthread_cleanup_pop(1);
 			if (r == PATHINFO_OK)
 				ret = ev_add_path(pp, vecs, need_do_map);
 			else if (r == PATHINFO_SKIPPED) {
@@ -695,9 +698,10 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
 	 * get path vital state
 	 */
 	conf = get_multipath_config();
+	pthread_cleanup_push(put_multipath_config, conf);
 	ret = alloc_path_with_pathinfo(conf, uev->udev,
 				       uev->wwid, DI_ALL, &pp);
-	put_multipath_config(conf);
+	pthread_cleanup_pop(1);
 	if (!pp) {
 		if (ret == PATHINFO_SKIPPED)
 			return 0;
@@ -1080,8 +1084,9 @@ out:
 			int flag = DI_SYSFS | DI_WWID;
 
 			conf = get_multipath_config();
+			pthread_cleanup_push(put_multipath_config, conf);
 			retval = alloc_path_with_pathinfo(conf, uev->udev, uev->wwid, flag, NULL);
-			put_multipath_config(conf);
+			pthread_cleanup_pop(1);
 
 			if (retval == PATHINFO_SKIPPED) {
 				condlog(3, "%s: spurious uevent, path is blacklisted", uev->kernel);
@@ -1505,8 +1510,10 @@ int update_prio(struct path *pp, int refresh_all)
 			vector_foreach_slot (pgp->paths, pp1, j) {
 				oldpriority = pp1->priority;
 				conf = get_multipath_config();
+				pthread_cleanup_push(put_multipath_config,
+						     conf);
 				pathinfo(pp1, conf, DI_PRIO);
-				put_multipath_config(conf);
+				pthread_cleanup_pop(1);
 				if (pp1->priority != oldpriority)
 					changed = 1;
 			}
@@ -1515,9 +1522,10 @@ int update_prio(struct path *pp, int refresh_all)
 	}
 	oldpriority = pp->priority;
 	conf = get_multipath_config();
+	pthread_cleanup_push(put_multipath_config, conf);
 	if (pp->state != PATH_DOWN)
 		pathinfo(pp, conf, DI_PRIO);
-	put_multipath_config(conf);
+	pthread_cleanup_pop(1);
 
 	if (pp->priority == oldpriority)
 		return 0;
@@ -1681,8 +1689,9 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 
 	if (newstate == PATH_UP) {
 		conf = get_multipath_config();
+		pthread_cleanup_push(put_multipath_config, conf);
 		newstate = get_state(pp, conf, 1, newstate);
-		put_multipath_config(conf);
+		pthread_cleanup_pop(1);
 	} else
 		checker_clear_message(&pp->checker);
 
@@ -1695,8 +1704,9 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
 		condlog(2, "%s: unusable path", pp->dev);
 		conf = get_multipath_config();
+		pthread_cleanup_push(put_multipath_config, conf);
 		pathinfo(pp, conf, 0);
-		put_multipath_config(conf);
+		pthread_cleanup_pop(1);
 		return 1;
 	}
 	if (!pp->mpp) {
@@ -1704,15 +1714,14 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 		    (newstate == PATH_UP || newstate == PATH_GHOST)) {
 			condlog(2, "%s: add missing path", pp->dev);
 			conf = get_multipath_config();
+			pthread_cleanup_push(put_multipath_config, conf);
 			ret = pathinfo(pp, conf, DI_ALL | DI_BLACKLIST);
+			pthread_cleanup_pop(1);
 			if (ret == PATHINFO_OK) {
 				ev_add_path(pp, vecs, 1);
 				pp->tick = 1;
-			} else if (ret == PATHINFO_SKIPPED) {
-				put_multipath_config(conf);
+			} else if (ret == PATHINFO_SKIPPED)
 				return -1;
-			}
-			put_multipath_config(conf);
 		}
 		return 0;
 	}
@@ -2107,6 +2116,7 @@ configure (struct vectors * vecs, int start_waiters)
 
 	vector_foreach_slot (vecs->pathvec, pp, i){
 		conf = get_multipath_config();
+		pthread_cleanup_push(put_multipath_config, conf);
 		if (filter_path(conf, pp) > 0){
 			vector_del_slot(vecs->pathvec, i);
 			free_path(pp);
@@ -2114,7 +2124,7 @@ configure (struct vectors * vecs, int start_waiters)
 		}
 		else
 			pp->checkint = conf->checkint;
-		put_multipath_config(conf);
+		pthread_cleanup_pop(1);
 	}
 	if (map_discovery(vecs)) {
 		condlog(0, "configure failed at map discovery");
@@ -2450,6 +2460,7 @@ child (void * param)
 	int pid_fd = -1;
 	struct config *conf;
 	char *envp;
+	int queue_without_daemon;
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 	signal_init();
@@ -2625,10 +2636,11 @@ child (void * param)
 
 	lock(&vecs->lock);
 	conf = get_multipath_config();
-	if (conf->queue_without_daemon == QUE_NO_DAEMON_OFF)
+	queue_without_daemon = conf->queue_without_daemon;
+	put_multipath_config(conf);
+	if (queue_without_daemon == QUE_NO_DAEMON_OFF)
 		vector_foreach_slot(vecs->mpvec, mpp, i)
 			dm_queue_if_no_path(mpp->alias, 0);
-	put_multipath_config(conf);
 	remove_maps_and_stop_waiters(vecs);
 	unlock(&vecs->lock);
 

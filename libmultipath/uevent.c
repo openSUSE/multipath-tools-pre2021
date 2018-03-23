@@ -112,8 +112,9 @@ uevent_get_wwid(struct uevent *uev)
 	struct config * conf;
 
 	conf = get_multipath_config();
+	pthread_cleanup_push(put_multipath_config, conf);
 	uid_attribute = parse_uid_attribute_by_attrs(conf->uid_attrs, uev->kernel);
-	put_multipath_config(conf);
+	pthread_cleanup_pop(1);
 
 	if (!uid_attribute)
 		return;
@@ -146,6 +147,7 @@ uevent_need_merge(void)
 bool
 uevent_can_discard(struct uevent *uev)
 {
+	int invalid = 0;
 	struct config * conf;
 
 	/*
@@ -157,13 +159,14 @@ uevent_can_discard(struct uevent *uev)
 	 * filter paths devices by devnode
 	 */
 	conf = get_multipath_config();
+	pthread_cleanup_push(put_multipath_config, conf);
 	if (filter_devnode(conf->blist_devnode, conf->elist_devnode,
-			   uev->kernel) > 0) {
-		put_multipath_config(conf);
-		return true;
-	}
-	put_multipath_config(conf);
+			   uev->kernel) > 0)
+		invalid = 1;
+	pthread_cleanup_pop(1);
 
+	if (invalid)
+		return true;
 	return false;
 }
 
