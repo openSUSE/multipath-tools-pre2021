@@ -13,4 +13,11 @@ ACTION=="remove", GOTO="kpartx_compat_end"
 ENV{DM_MPATH}=="?*", ENV{DM_PART}=="?*", \
 	SYMLINK+="mapper/$env{DM_MPATH}_part$env{DM_PART}"
 
+# Compatibility links for multipath with user_friendly_names (non-empty alias).
+# This creates links like "disk/by-id/scsi-mpatha" and "disk/by-id/scsi-mpathc-part3".
+# The DM_SERIAL links are created in 66-kpartx.rules. We only need to create
+# the compatibility links if the DM_NAME and DM_SERIAL based names differ.
+ENV{DM_TYPE}=="?*", SYMLINK!="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}", \
+	SYMLINK+="disk/by-id/$env{DM_TYPE}-$env{DM_NAME}"
+
 LABEL="kpartx_compat_end"
