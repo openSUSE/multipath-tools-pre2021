@@ -566,10 +566,8 @@ static struct hwentry default_hw[] = {
 		.vendor        = "IBM",
 		.product       = "^IPR",
 		.no_path_retry = NO_PATH_RETRY_QUEUE,
-		.hwhandler     = "1 alua",
 		.pgpolicy      = GROUP_BY_PRIO,
 		.pgfailback    = -FAILBACK_IMMEDIATE,
-		.prio_name     = PRIO_ALUA,
 	},
 	{
 		/* SAS RAID Controller Module (RSSM) */
