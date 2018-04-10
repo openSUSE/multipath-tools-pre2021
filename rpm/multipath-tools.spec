@@ -1,7 +1,7 @@
 #
 # spec file for package multipath-tools
 #
-# Copyright (c) 2017 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2018 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -31,7 +31,7 @@ PreReq:         %insserv_prereq %fillup_prereq coreutils grep
 Version:        0.5.0
 Release:        0
 Summary:        Tools to Manage Multipathed Devices with the device-mapper
-License:        GPL-2.0
+License:        GPL-2.0-only AND LGPL-2.0-or-later
 Group:          System/Base
 %{?systemd_requires}
 %define has_systemd 1
@@ -80,6 +80,7 @@ Authors:
 Summary:        Manages partition tables on device-mapper devices
 Group:          System/Base
 Requires:       device-mapper
+License:	GPL-2.0-only
 
 %description -n kpartx
 The kpartx program maps linear devmaps to device partitions, which
@@ -159,7 +160,11 @@ exit 0
 
 %files
 %defattr(-,root,root)
-%doc AUTHOR COPYING README ChangeLog
+%license LICENSES/LGPL-2.0
+%license LICENSES/LGPL-2.1
+%license LICENSES/GPL-2.0
+%license README.licenses
+%doc AUTHOR README ChangeLog
 %doc multipath.conf*
 %{_udevrulesdir}/11-dm-mpath.rules
 %{_udevrulesdir}/56-multipath.rules
@@ -191,6 +196,7 @@ exit 0
 
 %files -n kpartx
 %defattr(-,root,root)
+%license LICENSES/GPL-2.0
 /sbin/kpartx
 %{_udevrulesdir}/66-kpartx.rules
 %{_udevrulesdir}/67-kpartx-compat.rules
