@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Apr 10 19:13:29 UTC 2018 - mwilck@suse.com
+
+- multipath-tools.spec: fix license tags and use %license
+  (bsc#1088801)
+- multipath-tools: create LICENSES dir with the text of all used licences
+  (bsc#1088801)
+
+-------------------------------------------------------------------
 Mon Feb 12 21:40:39 UTC 2018 - mwilck@suse.com
 
 - kpartx.rules: don't bump link prio if DM_UDEV_LOW_PRIORITY_FLAG
