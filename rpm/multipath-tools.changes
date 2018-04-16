@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Apr 16 19:42:26 UTC 2018 - mwilck@suse.com
+
+- spec file: create /usr/share/licenses
+  (bsc#1088801)
+
+-------------------------------------------------------------------
 Tue Apr 10 19:13:29 UTC 2018 - mwilck@suse.com
 
 - multipath-tools.spec: fix license tags and use %license
