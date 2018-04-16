@@ -116,6 +116,7 @@ make CC="%__cc" OPTFLAGS="$RPM_OPT_FLAGS" LIB=%{_lib} SYSTEMDPATH=%{_sysdir}
 %install
 make DESTDIR=$RPM_BUILD_ROOT LIB=%{_lib} SYSTEMDPATH=%{_sysdir} install
 mkdir -p $RPM_BUILD_ROOT/var/cache/multipath/
+mkdir -p $RPM_BUILD_ROOT%{_defaultlicensedir}
 rm $RPM_BUILD_ROOT/%_lib/libmpathpersist.so
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 mkdir -p $RPM_BUILD_ROOT/usr/lib/modules-load.d
