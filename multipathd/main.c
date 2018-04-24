@@ -2916,7 +2916,7 @@ int mpath_pr_event_handle(struct path *pp)
 
 	mpp = pp->mpp;
 
-	if (get_be64(mpp->reservation_key))
+	if (!get_be64(mpp->reservation_key))
 		return -1;
 
 	pthread_attr_init(&attr);
