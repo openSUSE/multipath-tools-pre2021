@@ -1,0 +1,3 @@
+obsoleted by path detection patch series, in particular
+    - c36f2f42 * libmultipath: change find_multipaths option to multi-value
+    - 2fd588e8 * multipath -u -i: respect entries in WWIDs file
