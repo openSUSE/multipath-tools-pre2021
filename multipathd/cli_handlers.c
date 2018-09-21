@@ -894,7 +894,12 @@ int resize_map(struct multipath *mpp, unsigned long long size,
 
 	mpp->size = size;
 	update_mpp_paths(mpp, vecs->pathvec);
-	setup_map(mpp, params, PARAMS_SIZE);
+	if (setup_map(mpp, params, PARAMS_SIZE) != 0) {
+		condlog(0, "%s: failed to setup map for resize : %s",
+			mpp->alias, strerror(errno));
+		mpp->size = orig_size;
+		return 1;
+	}
 	mpp->action = ACT_RESIZE;
 	mpp->force_udev_reload = 1;
 	if (domap(mpp, params, 1) <= 0) {
