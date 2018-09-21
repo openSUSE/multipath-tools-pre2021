@@ -915,7 +915,7 @@ ev_remove_path (struct path *pp, struct vectors * vecs, int need_do_map)
 			/*
 			 * flush_map will fail if the device is open
 			 */
-			strncpy(alias, mpp->alias, WWID_SIZE);
+			strlcpy(alias, mpp->alias, WWID_SIZE);
 			if (mpp->flush_on_last_del == FLUSH_ENABLED) {
 				condlog(2, "%s Last path deleted, disabling queueing", mpp->alias);
 				mpp->retry_tick = 0;
