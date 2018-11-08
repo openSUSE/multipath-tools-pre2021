@@ -193,7 +193,6 @@ void cleanup_func(void *data)
 	pthread_spin_lock(&ct->hldr_lock);
 	ct->holders--;
 	holders = ct->holders;
-	ct->running = 0;
 	ct->thread = 0;
 	pthread_spin_unlock(&ct->hldr_lock);
 	if (!holders)
@@ -309,7 +308,6 @@ libcheck_check (struct checker * c)
 			} else {
 				condlog(3, "%d:%d: tur checker not finished",
 					TUR_DEVT(ct));
-				ct->running++;
 				tur_status = PATH_PENDING;
 			}
 		} else {
