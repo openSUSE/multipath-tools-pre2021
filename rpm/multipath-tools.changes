@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Nov  8 11:31:43 UTC 2018 - Martin Wilck <mwilck@suse.com>
+
+- tur checker: fix "TUR checker done" case (bsc#1110671)
+
+-------------------------------------------------------------------
 Tue Nov 21 15:35:53 UTC 2017 - mwilck@suse.com
 
 - libmultipath: fix unit to seconds in log message for checker timeout
