@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 13 21:11:33 UTC 2018 - Martin Wilck <mwilck@suse.com>
+
+- multipathd: Add delayed path reintegration (fate#326836,
+  bsc#1114771, bsc#1111270)
+  * add delay_watch_checks and delay_wait_checks config options
+
+-------------------------------------------------------------------
 Thu Nov  8 11:31:43 UTC 2018 - Martin Wilck <mwilck@suse.com>
 
 - tur checker: fix "TUR checker done" case (bsc#1110671)
