@@ -12,8 +12,6 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <limits.h>
 #include <linux/oom.h>
 #include <libudev.h>
@@ -68,6 +66,7 @@ static int use_watchdog;
 #include "pgpolicies.h"
 #include "uevent.h"
 #include "log.h"
+#include "uxsock.h"
 
 #include "mpath_cmd.h"
 #include "mpath_persist.h"
@@ -91,12 +90,24 @@ static int use_watchdog;
 #define FILE_NAME_SIZE 256
 #define CMDSIZE 160
 
-#define LOG_MSG(a, b) \
-do { \
-	if (pp->offline) \
-		condlog(a, "%s: %s - path offline", pp->mpp->alias, pp->dev); \
-	else if (strlen(b)) \
-		condlog(a, "%s: %s - %s", pp->mpp->alias, pp->dev, b); \
+#define LOG_MSG(lvl, verb, pp)					\
+do {								\
+	if (lvl <= verb) {					\
+		if (pp->offline)				\
+			condlog(lvl, "%s: %s - path offline",	\
+				pp->mpp->alias, pp->dev);	\
+		else  {						\
+			const char *__m =			\
+				checker_message(&pp->checker);	\
+								\
+			if (strlen(__m))			      \
+				condlog(lvl, "%s: %s - %s checker%s", \
+					pp->mpp->alias,		      \
+					pp->dev,		      \
+					checker_name(&pp->checker),   \
+					__m);			      \
+		}						      \
+	}							      \
 } while(0)
 
 struct mpath_event_param
@@ -196,10 +207,9 @@ static void config_cleanup(void *arg)
 	pthread_mutex_unlock(&config_lock);
 }
 
-void post_config_state(enum daemon_status state)
+static void __post_config_state(enum daemon_status state)
 {
-	pthread_mutex_lock(&config_lock);
-	if (state != running_state) {
+	if (state != running_state && running_state != DAEMON_SHUTDOWN) {
 		enum daemon_status old_state = running_state;
 
 		running_state = state;
@@ -208,7 +218,14 @@ void post_config_state(enum daemon_status state)
 		do_sd_notify(old_state);
 #endif
 	}
-	pthread_mutex_unlock(&config_lock);
+}
+
+void post_config_state(enum daemon_status state)
+{
+	pthread_mutex_lock(&config_lock);
+	pthread_cleanup_push(config_cleanup, NULL);
+	__post_config_state(state);
+	pthread_cleanup_pop(1);
 }
 
 int set_config_state(enum daemon_status state)
@@ -220,7 +237,9 @@ int set_config_state(enum daemon_status state)
 	if (running_state != state) {
 		enum daemon_status old_state = running_state;
 
-		if (running_state != DAEMON_IDLE) {
+		if (running_state == DAEMON_SHUTDOWN)
+			rc = EINVAL;
+		else if (running_state != DAEMON_IDLE) {
 			struct timespec ts;
 
 			clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -762,8 +781,8 @@ uev_remove_map (struct uevent * uev, struct vectors * vecs)
 		goto out;
 	}
 	if (strcmp(mpp->alias, alias)) {
-		condlog(2, "%s: minor number mismatch (map %d, event %d)",
-			mpp->alias, mpp->dmi->minor, minor);
+		condlog(2, "%s: map alias mismatch: have \"%s\", got \"%s\")",
+			uev->kernel, mpp->alias, alias);
 		goto out;
 	}
 
@@ -1486,12 +1505,28 @@ uevqloop (void * ap)
 static void *
 uxlsnrloop (void * ap)
 {
-	if (cli_init()) {
-		condlog(1, "Failed to init uxsock listener");
-		return NULL;
-	}
+	long ux_sock;
+
 	pthread_cleanup_push(rcu_unregister, NULL);
 	rcu_register_thread();
+
+	ux_sock = ux_socket_listen(DEFAULT_SOCKET);
+	if (ux_sock == -1) {
+		condlog(1, "could not create uxsock: %d", errno);
+		exit_daemon();
+		goto out;
+	}
+	pthread_cleanup_push(uxsock_cleanup, (void *)ux_sock);
+
+	if (cli_init()) {
+		condlog(1, "Failed to init uxsock listener");
+		exit_daemon();
+		goto out_sock;
+	}
+
+	/* Tell main thread that thread has started */
+	post_config_state(DAEMON_CONFIGURE);
+
 	set_handler_callback(LIST+PATHS, cli_list_paths);
 	set_handler_callback(LIST+PATHS+FMT, cli_list_paths_fmt);
 	set_handler_callback(LIST+PATHS+RAW+FMT, cli_list_paths_raw);
@@ -1546,8 +1581,12 @@ uxlsnrloop (void * ap)
 	set_handler_callback(UNSETPRKEY+MAP, cli_unsetprkey);
 
 	umask(077);
-	uxsock_listen(&uxsock_trigger, ap);
-	pthread_cleanup_pop(1);
+	uxsock_listen(&uxsock_trigger, ux_sock, ap);
+
+out_sock:
+	pthread_cleanup_pop(1); /* uxsock_cleanup */
+out:
+	pthread_cleanup_pop(1); /* rcu_unregister */
 	return NULL;
 }
 
@@ -1813,7 +1852,7 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	int add_active;
 	int disable_reinstate = 0;
 	int oldchkrstate = pp->chkrstate;
-	int retrigger_tries, checkint;
+	int retrigger_tries, checkint, max_checkint, verbosity;
 	struct config *conf;
 	int ret;
 
@@ -1829,16 +1868,38 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	conf = get_multipath_config();
 	retrigger_tries = conf->retrigger_tries;
 	checkint = conf->checkint;
+	max_checkint = conf->max_checkint;
+	verbosity = conf->verbosity;
 	put_multipath_config(conf);
-	if (!pp->mpp && pp->initialized == INIT_MISSING_UDEV &&
-	    pp->retriggers < retrigger_tries) {
-		condlog(2, "%s: triggering change event to reinitialize",
-			pp->dev);
-		pp->initialized = INIT_REQUESTED_UDEV;
-		pp->retriggers++;
-		sysfs_attr_set_value(pp->udev, "uevent", "change",
-				     strlen("change"));
-		return 0;
+
+	if (pp->checkint == CHECKINT_UNDEF) {
+		condlog(0, "%s: BUG: checkint is not set", pp->dev);
+		pp->checkint = checkint;
+	};
+
+	if (!pp->mpp && pp->initialized == INIT_MISSING_UDEV) {
+		if (pp->retriggers < retrigger_tries) {
+			condlog(2, "%s: triggering change event to reinitialize",
+				pp->dev);
+			pp->initialized = INIT_REQUESTED_UDEV;
+			pp->retriggers++;
+			sysfs_attr_set_value(pp->udev, "uevent", "change",
+					     strlen("change"));
+			return 0;
+		} else {
+			condlog(1, "%s: not initialized after %d udev retriggers",
+				pp->dev, retrigger_tries);
+			/*
+			 * Make sure that the "add missing path" code path
+			 * below may reinstate the path later, if it ever
+			 * comes up again.
+			 * The WWID needs not be cleared; if it was set, the
+			 * state hadn't been INIT_MISSING_UDEV in the first
+			 * place.
+			 */
+			pp->initialized = INIT_FAILED;
+			return 0;
+		}
 	}
 
 	/*
@@ -1871,7 +1932,8 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	}
 
 	if (newstate == PATH_WILD || newstate == PATH_UNCHECKED) {
-		condlog(2, "%s: unusable path", pp->dev);
+		condlog(2, "%s: unusable path - checker failed", pp->dev);
+		LOG_MSG(2, verbosity, pp);
 		conf = get_multipath_config();
 		pthread_cleanup_push(put_multipath_config, conf);
 		pathinfo(pp, conf, 0);
@@ -1879,18 +1941,26 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 		return 1;
 	}
 	if (!pp->mpp) {
-		if (!strlen(pp->wwid) && pp->initialized != INIT_MISSING_UDEV &&
+		if (!strlen(pp->wwid) && pp->initialized == INIT_FAILED &&
 		    (newstate == PATH_UP || newstate == PATH_GHOST)) {
 			condlog(2, "%s: add missing path", pp->dev);
 			conf = get_multipath_config();
 			pthread_cleanup_push(put_multipath_config, conf);
 			ret = pathinfo(pp, conf, DI_ALL | DI_BLACKLIST);
 			pthread_cleanup_pop(1);
-			if (ret == PATHINFO_OK) {
+			/* INIT_OK implies ret == PATHINFO_OK */
+			if (pp->initialized == INIT_OK) {
 				ev_add_path(pp, vecs, 1);
 				pp->tick = 1;
-			} else if (ret == PATHINFO_SKIPPED)
-				return -1;
+			} else {
+				/*
+				 * We failed multiple times to initialize this
+				 * path properly. Don't re-check too often.
+				 */
+				pp->checkint = max_checkint;
+				if (ret == PATHINFO_SKIPPED)
+					return -1;
+			}
 		}
 		return 0;
 	}
@@ -1949,7 +2019,7 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 		int oldstate = pp->state;
 		pp->state = newstate;
 
-		LOG_MSG(1, checker_message(&pp->checker));
+		LOG_MSG(1, verbosity, pp);
 
 		/*
 		 * upon state change, reset the checkint
@@ -1971,8 +2041,12 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 					pp->wait_checks = pp->mpp->delay_wait_checks;
 					pp->watch_checks = 0;
 				}
-			}else
+			} else {
 				fail_path(pp, 0);
+				if (pp->wait_checks > 0)
+					pp->wait_checks =
+						pp->mpp->delay_wait_checks;
+			}
 
 			/*
 			 * cancel scheduled failback
@@ -2037,11 +2111,7 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 				return 0;
 			}
 		} else {
-			unsigned int max_checkint;
-			LOG_MSG(4, checker_message(&pp->checker));
-			conf = get_multipath_config();
-			max_checkint = conf->max_checkint;
-			put_multipath_config(conf);
+			LOG_MSG(4, verbosity, pp);
 			if (pp->checkint != max_checkint) {
 				/*
 				 * double the next check delay.
@@ -2071,9 +2141,9 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 			log_checker_err = conf->log_checker_err;
 			put_multipath_config(conf);
 			if (log_checker_err == LOG_CHKR_ERR_ONCE)
-				LOG_MSG(3, checker_message(&pp->checker));
+				LOG_MSG(3, verbosity, pp);
 			else
-				LOG_MSG(2, checker_message(&pp->checker));
+				LOG_MSG(2, verbosity, pp);
 		}
 	}
 
@@ -2100,19 +2170,6 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 			switch_pathgroup(pp->mpp);
 	}
 	return 1;
-}
-
-static void init_path_check_interval(struct vectors *vecs)
-{
-	struct config *conf;
-	struct path *pp;
-	unsigned int i;
-
-	vector_foreach_slot (vecs->pathvec, pp, i) {
-		conf = get_multipath_config();
-		pp->checkint = conf->checkint;
-		put_multipath_config(conf);
-	}
 }
 
 static void *
@@ -2161,7 +2218,9 @@ checkerloop (void *ap)
 		if (rc == ETIMEDOUT) {
 			condlog(4, "timeout waiting for DAEMON_IDLE");
 			continue;
-		}
+		} else if (rc == EINVAL)
+			/* daemon shutdown */
+			break;
 
 		pthread_cleanup_push(cleanup_lock, &vecs->lock);
 		lock(&vecs->lock);
@@ -2285,18 +2344,17 @@ configure (struct vectors * vecs)
 		goto fail;
 	}
 
+	conf = get_multipath_config();
+	pthread_cleanup_push(put_multipath_config, conf);
 	vector_foreach_slot (vecs->pathvec, pp, i){
-		conf = get_multipath_config();
-		pthread_cleanup_push(put_multipath_config, conf);
 		if (filter_path(conf, pp) > 0){
 			vector_del_slot(vecs->pathvec, i);
 			free_path(pp);
 			i--;
 		}
-		else
-			pp->checkint = conf->checkint;
-		pthread_cleanup_pop(1);
 	}
+	pthread_cleanup_pop(1);
+
 	if (map_discovery(vecs)) {
 		condlog(0, "configure failed at map discovery");
 		goto fail;
@@ -2663,33 +2721,10 @@ child (void * param)
 
 	envp = getenv("LimitNOFILE");
 
-	if (envp) {
+	if (envp)
 		condlog(2,"Using systemd provided open fds limit of %s", envp);
-	} else if (conf->max_fds) {
-		struct rlimit fd_limit;
-
-		if (getrlimit(RLIMIT_NOFILE, &fd_limit) < 0) {
-			condlog(0, "can't get open fds limit: %s",
-				strerror(errno));
-			fd_limit.rlim_cur = 0;
-			fd_limit.rlim_max = 0;
-		}
-		if (fd_limit.rlim_cur < conf->max_fds) {
-			fd_limit.rlim_cur = conf->max_fds;
-			if (fd_limit.rlim_max < conf->max_fds)
-				fd_limit.rlim_max = conf->max_fds;
-			if (setrlimit(RLIMIT_NOFILE, &fd_limit) < 0) {
-				condlog(0, "can't set open fds limit to "
-					"%lu/%lu : %s",
-					fd_limit.rlim_cur, fd_limit.rlim_max,
-					strerror(errno));
-			} else {
-				condlog(3, "set open fds limit to %lu/%lu",
-					fd_limit.rlim_cur, fd_limit.rlim_max);
-			}
-		}
-
-	}
+	else
+		set_max_fds(conf->max_fds);
 
 	vecs = gvecs = init_vecs();
 	if (!vecs)
@@ -2718,12 +2753,26 @@ child (void * param)
 	 */
 	conf = NULL;
 
-	/*
-	 * Signal start of configuration
-	 */
-	post_config_state(DAEMON_CONFIGURE);
+	pthread_cleanup_push(config_cleanup, NULL);
+	pthread_mutex_lock(&config_lock);
 
-	init_path_check_interval(vecs);
+	__post_config_state(DAEMON_IDLE);
+	rc = pthread_create(&uxlsnr_thr, &misc_attr, uxlsnrloop, vecs);
+	if (!rc) {
+		/* Wait for uxlsnr startup */
+		while (running_state == DAEMON_IDLE)
+			pthread_cond_wait(&config_cond, &config_lock);
+	}
+	pthread_cleanup_pop(1);
+
+	if (rc) {
+		condlog(0, "failed to create cli listener: %d", rc);
+		goto failed;
+	}
+	else if (running_state != DAEMON_CONFIGURE) {
+		condlog(0, "cli listener failed to start");
+		goto failed;
+	}
 
 	if (poll_dmevents) {
 		if (init_dmevent_waiter(vecs)) {
@@ -2746,10 +2795,6 @@ child (void * param)
 		goto failed;
 	}
 	pthread_attr_destroy(&uevent_attr);
-	if ((rc = pthread_create(&uxlsnr_thr, &misc_attr, uxlsnrloop, vecs))) {
-		condlog(0, "failed to create cli listener: %d", rc);
-		goto failed;
-	}
 
 	/*
 	 * start threads
@@ -2984,15 +3029,16 @@ main (int argc, char *argv[])
 			logsink = -1;
 			break;
 		case 'k':
+			logsink = 0;
 			conf = load_config(DEFAULT_CONFIGFILE);
 			if (!conf)
 				exit(1);
 			if (verbosity)
 				conf->verbosity = verbosity;
 			uxsock_timeout = conf->uxsock_timeout;
-			uxclnt(optarg, uxsock_timeout + 100);
+			err = uxclnt(optarg, uxsock_timeout + 100);
 			free_config(conf);
-			exit(0);
+			return err;
 		case 'B':
 			bindings_read_only = 1;
 			break;
@@ -3013,6 +3059,7 @@ main (int argc, char *argv[])
 		char * s = cmd;
 		char * c = s;
 
+		logsink = 0;
 		conf = load_config(DEFAULT_CONFIGFILE);
 		if (!conf)
 			exit(1);
@@ -3028,9 +3075,9 @@ main (int argc, char *argv[])
 			optind++;
 		}
 		c += snprintf(c, s + CMDSIZE - c, "\n");
-		uxclnt(s, uxsock_timeout + 100);
+		err = uxclnt(s, uxsock_timeout + 100);
 		free_config(conf);
-		exit(0);
+		return err;
 	}
 
 	if (foreground) {

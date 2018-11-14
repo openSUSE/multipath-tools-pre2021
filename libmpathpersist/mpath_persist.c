@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/resource.h>
 
 #define __STDC_FORMAT_MACROS 1
 
@@ -48,15 +47,7 @@ mpath_lib_init (void)
 		return NULL;
 	}
 
-	if (conf->max_fds) {
-		struct rlimit fd_limit;
-
-		fd_limit.rlim_cur = conf->max_fds;
-		fd_limit.rlim_max = conf->max_fds;
-		if (setrlimit(RLIMIT_NOFILE, &fd_limit) < 0)
-			condlog(0, "can't set open fds limit to %d : %s",
-				   conf->max_fds, strerror(errno));
-	}
+	set_max_fds(conf->max_fds);
 
 	return conf;
 }
@@ -568,11 +559,10 @@ int mpath_prout_reg(struct multipath *mpp,int rq_servact, int rq_scope,
 	}
 	if (rollback && ((rq_servact == MPATH_PROUT_REG_SA) && sa_key != 0 )){
 		condlog (3, "%s: ERROR: initiating pr out rollback", mpp->wwid);
+		memcpy(&paramp->key, &paramp->sa_key, 8);
+		memset(&paramp->sa_key, 0, 8);
 		for( i=0 ; i < count ; i++){
 			if(thread[i].param.status == MPATH_PR_SUCCESS) {
-				memcpy(&thread[i].param.paramp->key, &thread[i].param.paramp->sa_key, 8);
-				memset(&thread[i].param.paramp->sa_key, 0, 8);
-				thread[i].param.status = MPATH_PR_SUCCESS;
 				rc = pthread_create(&thread[i].id, &attr, mpath_prout_pthread_fn,
 						(void *)(&thread[i].param));
 				if (rc){

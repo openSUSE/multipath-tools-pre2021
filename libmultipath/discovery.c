@@ -103,6 +103,7 @@ store_pathinfo (vector pathvec, struct config *conf,
 	err = store_path(pathvec, pp);
 	if (err)
 		goto out;
+	pp->checkint = conf->checkint;
 
 out:
 	if (err)
@@ -661,7 +662,7 @@ sysfs_set_session_tmo(struct multipath *mpp, struct path *pp)
 		} else {
 			snprintf(value, 11, "%u", mpp->fast_io_fail);
 			if (sysfs_attr_set_value(session_dev, "recovery_tmo",
-						 value, 11) <= 0) {
+						 value, strlen(value)) <= 0) {
 				condlog(3, "%s: Failed to set recovery_tmo, "
 					" error %d", pp->dev, errno);
 			}
@@ -693,7 +694,7 @@ sysfs_set_nexus_loss_tmo(struct multipath *mpp, struct path *pp)
 	if (mpp->dev_loss) {
 		snprintf(value, 11, "%u", mpp->dev_loss);
 		if (sysfs_attr_set_value(sas_dev, "I_T_nexus_loss_timeout",
-					 value, 11) <= 0)
+					 value, strlen(value)) <= 0)
 			condlog(3, "%s: failed to update "
 				"I_T Nexus loss timeout, error %d",
 				pp->dev, errno);
@@ -1496,7 +1497,7 @@ sysfs_pathinfo(struct path * pp, vector hwtable)
 	}
 }
 
-static int
+static void
 scsi_ioctl_pathinfo (struct path * pp, struct config *conf, int mask)
 {
 	struct udev_device *parent;
@@ -1506,7 +1507,7 @@ scsi_ioctl_pathinfo (struct path * pp, struct config *conf, int mask)
 		detect_alua(pp, conf);
 
 	if (!(mask & DI_SERIAL))
-		return 0;
+		return;
 
 	parent = pp->udev;
 	while (parent) {
@@ -1525,27 +1526,24 @@ scsi_ioctl_pathinfo (struct path * pp, struct config *conf, int mask)
 		parent = udev_device_get_parent(parent);
 	}
 	if (!attr_path || pp->sg_id.host_no == -1)
-		return 0;
+		return;
 
 	if (get_vpd_sysfs(parent, 0x80, pp->serial, SERIAL_SIZE) <= 0) {
 		if (get_serial(pp->serial, SERIAL_SIZE, pp->fd)) {
-			condlog(2, "%s: fail to get serial", pp->dev);
-			return 0;
+			condlog(3, "%s: fail to get serial", pp->dev);
+			return;
 		}
 	}
 
 	condlog(3, "%s: serial = %s", pp->dev, pp->serial);
-	return 0;
+	return;
 }
 
-static int
-cciss_ioctl_pathinfo (struct path * pp, int mask)
+static void
+cciss_ioctl_pathinfo(struct path *pp)
 {
-	if (mask & DI_SERIAL) {
-		get_serial(pp->serial, SERIAL_SIZE, pp->fd);
-		condlog(3, "%s: serial = %s", pp->dev, pp->serial);
-	}
-	return 0;
+	get_serial(pp->serial, SERIAL_SIZE, pp->fd);
+	condlog(3, "%s: serial = %s", pp->dev, pp->serial);
 }
 
 int
@@ -1592,8 +1590,8 @@ get_state (struct path * pp, struct config *conf, int daemon, int oldstate)
 		checker_name(c), checker_state_name(state));
 	if (state != PATH_UP && state != PATH_GHOST &&
 	    strlen(checker_message(c)))
-		condlog(3, "%s: checker msg is \"%s\"",
-			pp->dev, checker_message(c));
+		condlog(3, "%s: %s checker%s",
+			pp->dev, checker_name(c), checker_message(c));
 	return state;
 }
 
@@ -1937,21 +1935,16 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 	if (mask & DI_SERIAL)
 		get_geometry(pp);
 
-	if (path_state == PATH_UP && pp->bus == SYSFS_BUS_SCSI &&
-	    scsi_ioctl_pathinfo(pp, conf, mask))
-		goto blank;
+	if (path_state == PATH_UP && pp->bus == SYSFS_BUS_SCSI)
+		scsi_ioctl_pathinfo(pp, conf, mask);
 
-	if (pp->bus == SYSFS_BUS_CCISS &&
-	    cciss_ioctl_pathinfo(pp, mask))
-		goto blank;
+	if (pp->bus == SYSFS_BUS_CCISS && mask & DI_SERIAL)
+		cciss_ioctl_pathinfo(pp);
 
 	if (mask & DI_CHECKER) {
 		if (path_state == PATH_UP) {
 			pp->chkrstate = pp->state = get_state(pp, conf, 0,
 							      path_state);
-			if (pp->state == PATH_UNCHECKED ||
-			    pp->state == PATH_WILD)
-				goto blank;
 			if (pp->state == PATH_TIMEOUT)
 				pp->state = PATH_DOWN;
 			if (pp->state == PATH_UP && !pp->size) {
@@ -2004,9 +1997,9 @@ blank:
 	/*
 	 * Recoverable error, for example faulty or offline path
 	 */
-	memset(pp->wwid, 0, WWID_SIZE);
 	pp->chkrstate = pp->state = PATH_DOWN;
-	pp->initialized = INIT_FAILED;
+	if (pp->initialized == INIT_FAILED)
+		memset(pp->wwid, 0, WWID_SIZE);
 
 	return PATHINFO_OK;
 }

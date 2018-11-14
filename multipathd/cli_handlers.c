@@ -720,6 +720,10 @@ cli_add_path (void * v, char ** reply, int * len, void * data)
 		udevice = udev_device_new_from_subsystem_sysname(udev,
 								 "block",
 								 param);
+		if (!udevice) {
+			condlog(0, "%s: can't find path", param);
+			return 1;
+		}
 		conf = get_multipath_config();
 		pthread_cleanup_push(put_multipath_config, conf);
 		r = store_pathinfo(vecs->pathvec, conf,
@@ -732,7 +736,6 @@ cli_add_path (void * v, char ** reply, int * len, void * data)
 			condlog(0, "%s: failed to store path info", param);
 			return 1;
 		}
-		pp->checkint = conf->checkint;
 	}
 	return ev_add_path(pp, vecs, 1);
 blacklisted:
@@ -1121,12 +1124,17 @@ cli_switch_group(void * v, char ** reply, int * len, void * data)
 int
 cli_reconfigure(void * v, char ** reply, int * len, void * data)
 {
+	int rc;
+
 	condlog(2, "reconfigure (operator)");
 
-	if (set_config_state(DAEMON_CONFIGURE) == ETIMEDOUT) {
+	rc = set_config_state(DAEMON_CONFIGURE); 
+	if (rc == ETIMEDOUT) {
 		condlog(2, "timeout starting reconfiguration");
 		return 1;
-	}
+	} else if (rc == EINVAL)
+		/* daemon shutting down */
+		return 1;
 	return 0;
 }
 

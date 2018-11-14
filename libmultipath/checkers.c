@@ -8,6 +8,19 @@
 #include "checkers.h"
 #include "vector.h"
 
+struct checker_class {
+	struct list_head node;
+	void *handle;
+	int refcount;
+	int sync;
+	char name[CHECKER_NAME_LEN];
+	int (*check)(struct checker *);
+	int (*init)(struct checker *);       /* to allocate the context */
+	void (*free)(struct checker *);      /* to free the context */
+	const char **msgtable;
+	short msgtable_size;
+};
+
 char *checker_state_names[] = {
 	"wild",
 	"unchecked",
@@ -23,38 +36,30 @@ char *checker_state_names[] = {
 
 static LIST_HEAD(checkers);
 
-char * checker_state_name (int i)
+const char *checker_state_name(int i)
 {
 	return checker_state_names[i];
 }
 
-int init_checkers (char *multipath_dir)
+static struct checker_class *alloc_checker_class(void)
 {
-	if (!add_checker(multipath_dir, DEFAULT_CHECKER))
-		return 1;
-	return 0;
-}
+	struct checker_class *c;
 
-struct checker * alloc_checker (void)
-{
-	struct checker *c;
-
-	c = MALLOC(sizeof(struct checker));
+	c = MALLOC(sizeof(struct checker_class));
 	if (c) {
 		INIT_LIST_HEAD(&c->node);
 		c->refcount = 1;
-		c->fd = -1;
 	}
 	return c;
 }
 
-void free_checker (struct checker * c)
+void free_checker_class(struct checker_class *c)
 {
 	if (!c)
 		return;
 	c->refcount--;
 	if (c->refcount) {
-		condlog(3, "%s checker refcount %d",
+		condlog(4, "%s checker refcount %d",
 			c->name, c->refcount);
 		return;
 	}
@@ -71,17 +76,17 @@ void free_checker (struct checker * c)
 
 void cleanup_checkers (void)
 {
-	struct checker * checker_loop;
-	struct checker * checker_temp;
+	struct checker_class *checker_loop;
+	struct checker_class *checker_temp;
 
 	list_for_each_entry_safe(checker_loop, checker_temp, &checkers, node) {
-		free_checker(checker_loop);
+		free_checker_class(checker_loop);
 	}
 }
 
-struct checker * checker_lookup (char * name)
+static struct checker_class *checker_class_lookup(const char *name)
 {
-	struct checker * c;
+	struct checker_class *c;
 
 	if (!name || !strlen(name))
 		return NULL;
@@ -92,14 +97,15 @@ struct checker * checker_lookup (char * name)
 	return NULL;
 }
 
-struct checker * add_checker (char *multipath_dir, char * name)
+static struct checker_class *add_checker_class(const char *multipath_dir,
+					       const char *name)
 {
 	char libname[LIB_CHECKER_NAMELEN];
 	struct stat stbuf;
-	struct checker * c;
+	struct checker_class *c;
 	char *errstr;
 
-	c = alloc_checker();
+	c = alloc_checker_class();
 	if (!c)
 		return NULL;
 	snprintf(c->name, CHECKER_NAME_LEN, "%s", name);
@@ -141,13 +147,28 @@ struct checker * add_checker (char *multipath_dir, char * name)
 	if (!c->free)
 		goto out;
 
+	c->msgtable_size = 0;
+	c->msgtable = dlsym(c->handle, "libcheck_msgtable");
+
+	if (c->msgtable != NULL) {
+		const char **p;
+
+		for (p = c->msgtable;
+		     *p && (p - c->msgtable) < CHECKER_MSGTABLE_SIZE; p++)
+			/* nothing */;
+
+		c->msgtable_size = p - c->msgtable;
+	} else
+		c->msgtable_size = 0;
+	condlog(3, "checker %s: message table size = %d",
+		c->name, c->msgtable_size);
+
 done:
-	c->fd = -1;
 	c->sync = 1;
 	list_add(&c->node, &checkers);
 	return c;
 out:
-	free_checker(c);
+	free_checker_class(c);
 	return NULL;
 }
 
@@ -160,16 +181,16 @@ void checker_set_fd (struct checker * c, int fd)
 
 void checker_set_sync (struct checker * c)
 {
-	if (!c)
+	if (!c || !c->cls)
 		return;
-	c->sync = 1;
+	c->cls->sync = 1;
 }
 
 void checker_set_async (struct checker * c)
 {
-	if (!c)
+	if (!c || !c->cls)
 		return;
-	c->sync = 0;
+	c->cls->sync = 0;
 }
 
 void checker_enable (struct checker * c)
@@ -188,11 +209,11 @@ void checker_disable (struct checker * c)
 
 int checker_init (struct checker * c, void ** mpctxt_addr)
 {
-	if (!c)
+	if (!c || !c->cls)
 		return 1;
 	c->mpcontext = mpctxt_addr;
-	if (c->init)
-		return c->init(c);
+	if (c->cls->init)
+		return c->cls->init(c);
 	return 0;
 }
 
@@ -204,15 +225,16 @@ void checker_clear (struct checker *c)
 
 void checker_put (struct checker * dst)
 {
-	struct checker * src;
+	struct checker_class *src;
 
-	if (!dst || !strlen(dst->name))
+	if (!dst)
 		return;
-	src = checker_lookup(dst->name);
-	if (dst->free)
-		dst->free(dst);
+	src = dst->cls;
+
+	if (src && src->free)
+		src->free(dst);
 	checker_clear(dst);
-	free_checker(src);
+	free_checker_class(src);
 }
 
 int checker_check (struct checker * c, int path_state)
@@ -222,76 +244,103 @@ int checker_check (struct checker * c, int path_state)
 	if (!c)
 		return PATH_WILD;
 
-	c->message[0] = '\0';
+	c->msgid = CHECKER_MSGID_NONE;
 	if (c->disable) {
-		MSG(c, "checker disabled");
+		c->msgid = CHECKER_MSGID_DISABLED;
 		return PATH_UNCHECKED;
 	}
-	if (!strncmp(c->name, NONE, 4))
+	if (!strncmp(c->cls->name, NONE, 4))
 		return path_state;
 
 	if (c->fd < 0) {
-		MSG(c, "no usable fd");
+		c->msgid = CHECKER_MSGID_NO_FD;
 		return PATH_WILD;
 	}
-	r = c->check(c);
+	r = c->cls->check(c);
 
 	return r;
 }
 
-int checker_selected (struct checker * c)
+int checker_selected(const struct checker *c)
 {
 	if (!c)
 		return 0;
-	if (!strncmp(c->name, NONE, 4))
-		return 1;
-	return (c->check) ? 1 : 0;
+	return c->cls != NULL;
 }
 
-char * checker_name (struct checker * c)
+const char *checker_name(const struct checker *c)
 {
-	if (!c)
+	if (!c || !c->cls)
 		return NULL;
-	return c->name;
+	return c->cls->name;
 }
 
-char * checker_message (struct checker * c)
+int checker_is_sync(const struct checker *c)
 {
-	if (!c)
-		return NULL;
-	return c->message;
+	return c && c->cls && c->cls->sync;
+}
+
+static const char *generic_msg[CHECKER_GENERIC_MSGTABLE_SIZE] = {
+	[CHECKER_MSGID_NONE] = "",
+	[CHECKER_MSGID_DISABLED] = " is disabled",
+	[CHECKER_MSGID_NO_FD] = " has no usable fd",
+	[CHECKER_MSGID_INVALID] = " provided invalid message id",
+	[CHECKER_MSGID_UP] = " reports path is up",
+	[CHECKER_MSGID_DOWN] = " reports path is down",
+	[CHECKER_MSGID_GHOST] = " reports path is ghost",
+	[CHECKER_MSGID_UNSUPPORTED] = " doesn't support this device",
+};
+
+const char *checker_message(const struct checker *c)
+{
+	int id;
+
+	if (!c || c->msgid < 0 ||
+	    (c->msgid >= CHECKER_GENERIC_MSGTABLE_SIZE &&
+	     c->msgid < CHECKER_FIRST_MSGID))
+		goto bad_id;
+
+	if (c->msgid < CHECKER_GENERIC_MSGTABLE_SIZE)
+		return generic_msg[c->msgid];
+
+	id = c->msgid - CHECKER_FIRST_MSGID;
+	if (id < c->cls->msgtable_size)
+		return c->cls->msgtable[id];
+
+bad_id:
+	return generic_msg[CHECKER_MSGID_NONE];
 }
 
 void checker_clear_message (struct checker *c)
 {
 	if (!c)
 		return;
-	c->message[0] = '\0';
+	c->msgid = CHECKER_MSGID_NONE;
 }
 
-void checker_get (char *multipath_dir, struct checker * dst, char * name)
+void checker_get(const char *multipath_dir, struct checker *dst,
+		 const char *name)
 {
-	struct checker * src = NULL;
+	struct checker_class *src = NULL;
 
 	if (!dst)
 		return;
 
 	if (name && strlen(name)) {
-		src = checker_lookup(name);
+		src = checker_class_lookup(name);
 		if (!src)
-			src = add_checker(multipath_dir, name);
+			src = add_checker_class(multipath_dir, name);
 	}
-	if (!src) {
-		dst->check = NULL;
+	dst->cls = src;
+	if (!src)
 		return;
-	}
-	dst->fd = src->fd;
-	dst->sync = src->sync;
-	strncpy(dst->name, src->name, CHECKER_NAME_LEN);
-	strncpy(dst->message, src->message, CHECKER_MSG_LEN);
-	dst->check = src->check;
-	dst->init = src->init;
-	dst->free = src->free;
-	dst->handle = NULL;
+
 	src->refcount++;
+}
+
+int init_checkers(const char *multipath_dir)
+{
+	if (!add_checker_class(multipath_dir, DEFAULT_CHECKER))
+		return 1;
+	return 0;
 }
