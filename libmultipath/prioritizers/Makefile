@@ -21,6 +21,11 @@ LIBS = \
 	libprioana.so \
 	libpriosysfs.so
 
+ifneq ($(call check_file,/usr/include/linux/nvme_ioctl.h),0)
+	LIBS += libprioana.so
+	CFLAGS += -I../nvme
+endif
+
 all: $(LIBS)
 
 libprio%.so: %.o
