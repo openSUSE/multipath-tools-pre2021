@@ -301,6 +301,10 @@ Generate a random priority between 1 and 10.
 Generate the path priority based on the regular expression and the
 priority provided as argument. Requires prio_args keyword.
 .TP
+.I ana
+(Hardware-dependent)
+Generate the path priority based on the NVMe ANA settings.
+.TP
 .I datacore
 (Hardware-dependent)
 Generate the path priority for some DataCore storage arrays. Requires prio_args
@@ -1202,6 +1206,10 @@ Active/Standby mode exclusively.
 .I 1 alua
 (Hardware-dependent)
 Hardware handler for SCSI-3 ALUA compatible arrays.
+.TP
+.I 1 ana
+(Hardware-dependent)
+Hardware handler for NVMe ANA compatible arrays.
 .PP
 The default is: \fB<unset>\fR
 .PP
