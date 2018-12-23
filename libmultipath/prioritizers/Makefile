@@ -21,6 +21,11 @@ LIBS = \
 	libprioana.so \
 	libpriosysfs.so
 
+ifneq ($(call check_file,/usr/include/linux/nvme_ioctl.h),0)
+	LIBS += libprioana.so
+	CFLAGS += -I../nvme
+endif
+
 all: $(LIBS)
 
 libpriopath_latency.so: path_latency.o  ../checkers/libsg.o
