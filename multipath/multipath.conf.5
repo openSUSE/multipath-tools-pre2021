@@ -304,6 +304,9 @@ priority provided as argument. Requires prio_args keyword.
 .I path_latency
 Generate the path priority based on a latency algorithm.
 Requires prio_args keyword.
+.I ana
+(Hardware-dependent)
+Generate the path priority based on the NVMe ANA settings.
 .TP
 .I datacore
 (Hardware-dependent)
@@ -1221,6 +1224,10 @@ Active/Standby mode exclusively.
 .I 1 alua
 (Hardware-dependent)
 Hardware handler for SCSI-3 ALUA compatible arrays.
+.TP
+.I 1 ana
+(Hardware-dependent)
+Hardware handler for NVMe ANA compatible arrays.
 .PP
 The default is: \fB<unset>\fR
 .PP

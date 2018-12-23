@@ -18,7 +18,7 @@ LIBS = \
 	libpriorandom.so \
 	libpriordac.so \
 	libprioweightedpath.so \
-	libpriopath_latency.so \
+	libprioana.so \
 	libpriosysfs.so
 
 all: $(LIBS)
