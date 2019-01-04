@@ -43,6 +43,7 @@
 #include "wwids.h"
 #include "sysfs.h"
 #include "io_err_stat.h"
+#include "exit.h"
 
 /* Time in ms to wait for pending checkers in setup_map() */
 #define WAIT_CHECKERS_PENDING_MS 10
@@ -1139,6 +1140,12 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 
 	vector_foreach_slot (pathvec, pp1, k) {
 		int invalid;
+
+		if (should_exit()) {
+			ret = CP_FAIL;
+			goto out;
+		}
+
 		/* skip this path for some reason */
 
 		/* 1. if path has no unique id or wwid blacklisted */

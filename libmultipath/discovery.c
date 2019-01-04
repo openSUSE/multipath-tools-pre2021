@@ -35,6 +35,7 @@
 #include "foreign.h"
 #include "configure.h"
 #include "print.h"
+#include "exit.h"
 
 struct vpd_vendor_page vpd_vendor_pages[VPD_VP_ARRAY_SIZE] = {
 	[VPD_VP_UNDEF]	= { 0x00, "undef" },
@@ -199,6 +200,9 @@ path_discovery (vector pathvec, int flag)
 				udev_enumerate_get_list_entry(udev_iter)) {
 		const char *devtype;
 		const char *devpath;
+
+		if (should_exit())
+			break;
 
 		devpath = udev_list_entry_get_name(entry);
 		condlog(4, "Discover device %s", devpath);
