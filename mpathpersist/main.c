@@ -7,6 +7,7 @@
 #include "vector.h"
 #include "config.h"
 #include "structs.h"
+#include "exit.h"
 #include <getopt.h>
 #include <libudev.h>
 #include "mpath_persist.h"
@@ -42,6 +43,10 @@ int construct_transportid(const char * inp, struct transportid transid[], int nu
 
 int logsink;
 struct config *multipath_conf;
+int should_exit(void)
+{
+	return 0;
+}
 
 struct config *get_multipath_config(void)
 {

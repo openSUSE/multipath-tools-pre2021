@@ -33,6 +33,7 @@
 #include "unaligned.h"
 #include "prioritizers/alua_rtpg.h"
 #include "foreign.h"
+#include "exit.h"
 
 int
 alloc_path_with_pathinfo (struct config *conf, struct udev_device *udevice,
@@ -160,6 +161,9 @@ path_discovery (vector pathvec, int flag)
 	udev_list_entry_foreach(entry,
 				udev_enumerate_get_list_entry(udev_iter)) {
 		const char *devtype;
+
+		if (should_exit())
+			break;
 		devpath = udev_list_entry_get_name(entry);
 		condlog(4, "Discover device %s", devpath);
 		udevice = udev_device_new_from_syspath(udev, devpath);
