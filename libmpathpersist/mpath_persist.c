@@ -188,7 +188,7 @@ int mpath_persistent_reserve_in (int fd, int rq_servact,
 
 	condlog(3, "alias = %s", alias);
 	map_present = dm_map_present(alias);
-	if (map_present && !dm_is_mpath(alias)){
+	if (map_present && dm_is_mpath(alias) != 1){
 		condlog( 0, "%s: not a multipath device.", alias);
 		ret = MPATH_PR_DMMP_ERROR;
 		goto out;
@@ -283,7 +283,7 @@ int mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
 	condlog(3, "alias = %s", alias);
 	map_present = dm_map_present(alias);
 
-	if (map_present && !dm_is_mpath(alias)){
+	if (map_present && dm_is_mpath(alias) != 1){
 		condlog(3, "%s: not a multipath device.", alias);
 		ret = MPATH_PR_DMMP_ERROR;
 		goto out;
@@ -889,7 +889,8 @@ int update_map_pr(struct multipath *mpp)
 	if (!get_be64(mpp->reservation_key))
 	{
 		/* Nothing to do. Assuming pr mgmt feature is disabled*/
-		condlog(3, "%s: reservation_key not set in multipath.conf", mpp->alias);
+		condlog(4, "%s: reservation_key not set in multipath.conf",
+			mpp->alias);
 		return MPATH_PR_SUCCESS;
 	}
 

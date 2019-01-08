@@ -23,6 +23,28 @@ enum actions {
 	ACT_IMPOSSIBLE,
 };
 
+/*
+ * Return value of domap()
+ * DAEMON_RETRY is only used for ACT_CREATE (see domap()).
+ */
+enum {
+	DOMAP_RETRY	= -1,
+	DOMAP_FAIL	= 0,
+	DOMAP_OK	= 1,
+	DOMAP_EXIST	= 2,
+	DOMAP_DRY	= 3
+};
+
+/*
+ * Return value of coalesce_paths()
+ * CP_RETRY is only used in non-daemon case (multipath).
+ */
+enum {
+	CP_OK = 0,
+	CP_FAIL,
+	CP_RETRY,
+};
+
 #define FLUSH_ONE 1
 #define FLUSH_ALL 2
 

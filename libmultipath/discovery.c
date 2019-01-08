@@ -1106,7 +1106,9 @@ get_vpd_sgio (int fd, int pg, char * str, int maxlen)
 
 	memset(buff, 0x0, 4096);
 	if (sgio_get_vpd(buff, 4096, fd, pg) < 0) {
-		condlog(3, "failed to issue vpd inquiry for pg%02x",
+		int lvl = pg == 0x80 || pg == 0x83 ? 3 : 4;
+
+		condlog(lvl, "failed to issue vpd inquiry for pg%02x",
 			pg);
 		return -errno;
 	}
@@ -1382,7 +1384,7 @@ common_sysfs_pathinfo (struct path * pp)
 	devt = udev_device_get_devnum(pp->udev);
 	snprintf(pp->dev_t, BLK_DEV_SIZE, "%d:%d", major(devt), minor(devt));
 
-	condlog(3, "%s: dev_t = %s", pp->dev, pp->dev_t);
+	condlog(4, "%s: dev_t = %s", pp->dev, pp->dev_t);
 
 	if (sysfs_get_size(pp, &pp->size))
 		return PATHINFO_FAILED;
@@ -1433,7 +1435,7 @@ path_offline (struct path * pp)
 	}
 
 
-	condlog(3, "%s: path state = %s", pp->dev, buff);
+	condlog(4, "%s: path state = %s", pp->dev, buff);
 
 	if (pp->bus == SYSFS_BUS_SCSI) {
 		if (!strncmp(buff, "offline", 7)) {
@@ -1552,8 +1554,6 @@ get_state (struct path * pp, struct config *conf, int daemon, int oldstate)
 	struct checker * c = &pp->checker;
 	int state;
 
-	condlog(3, "%s: get_state", pp->dev);
-
 	if (!checker_selected(c)) {
 		if (daemon) {
 			if (pathinfo(pp, conf, DI_SYSFS) != PATHINFO_OK) {
@@ -1601,6 +1601,7 @@ get_prio (struct path * pp)
 	struct prio * p;
 	struct config *conf;
 	int checker_timeout;
+	int old_prio;
 
 	if (!pp)
 		return 0;
@@ -1621,13 +1622,14 @@ get_prio (struct path * pp)
 	conf = get_multipath_config();
 	checker_timeout = conf->checker_timeout;
 	put_multipath_config(conf);
+	old_prio = pp->priority;
 	pp->priority = prio_getprio(p, pp, checker_timeout);
 	if (pp->priority < 0) {
 		condlog(3, "%s: %s prio error", pp->dev, prio_name(p));
 		pp->priority = PRIO_UNDEF;
 		return 1;
 	}
-	condlog(3, "%s: %s prio = %u",
+	condlog((old_prio == pp->priority ? 4 : 3), "%s: %s prio = %u",
 		pp->dev, prio_name(p), pp->priority);
 	return 0;
 }
@@ -1865,11 +1867,11 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 			udev_device_get_sysattr_value(pp->udev, "hidden");
 
 		if (hidden && !strcmp(hidden, "1")) {
-			condlog(3, "%s: hidden", pp->dev);
+			condlog(4, "%s: hidden", pp->dev);
 			return PATHINFO_SKIPPED;
 		}
 		if (is_claimed_by_foreign(pp->udev) ||
-			 filter_property(conf, pp->udev) > 0)
+		    filter_property(conf, pp->udev, 4) > 0)
 			return PATHINFO_SKIPPED;
 	}
 
@@ -1878,7 +1880,7 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 			   pp->dev) > 0)
 		return PATHINFO_SKIPPED;
 
-	condlog(3, "%s: mask = 0x%x", pp->dev, mask);
+	condlog(4, "%s: mask = 0x%x", pp->dev, mask);
 
 	/*
 	 * Sanity check: we need the device number to

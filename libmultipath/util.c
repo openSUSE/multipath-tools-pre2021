@@ -104,7 +104,7 @@ get_word (char * sentence, char ** word)
 	}
 	strncpy(*word, sentence, len);
 	strchop(*word);
-	condlog(4, "*word = %s, len = %i", *word, len);
+	condlog(5, "*word = %s, len = %i", *word, len);
 
 	if (*p == '\0')
 		return 0;
@@ -191,7 +191,8 @@ int devt2devname(char *devname, int devname_len, char *devt)
 				return 0;
 			}
 		}
-		goto skip_proc;
+		condlog(4, "%s is invalid", block_path);
+		return 1;
 	}
 	memset(block_path, 0, sizeof(block_path));
 
@@ -220,7 +221,7 @@ int devt2devname(char *devname, int devname_len, char *devt)
 		}
 	}
 	fclose(fd);
-skip_proc:
+
 	if (strncmp(block_path,"/sys/block", 10)) {
 		condlog(3, "No device found for %u:%u", major, minor);
 		return 1;
@@ -504,4 +505,9 @@ void free_scandir_result(struct scandir_result *res)
 	for (i = 0; i < res->n; i++)
 		FREE(res->di[i]);
 	FREE(res->di);
+}
+
+void close_fd(void *arg)
+{
+	close((long)arg);
 }

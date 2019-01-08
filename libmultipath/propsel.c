@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 
+#include "nvme-lib.h"
 #include "checkers.h"
 #include "memory.h"
 #include "vector.h"
@@ -74,6 +75,8 @@ static const char cmdline_origin[] =
 	"(setting: multipath command line [-p] flag)";
 static const char autodetect_origin[] =
 	"(setting: storage device autodetected)";
+static const char marginal_path_origin[] =
+	"(setting: implied by marginal_path check)";
 
 #define do_default(dest, value)						\
 do {									\
@@ -563,13 +566,25 @@ detect_prio(struct config *conf, struct path * pp)
 {
 	struct prio *p = &pp->prio;
 	char buff[512];
-	char *default_prio = PRIO_ALUA;
+	char *default_prio;
 
-	if (pp->tpgs <= 0)
-		return;
-	if (pp->tpgs == 2 || !check_rdac(pp)) {
-		if (sysfs_get_asymmetric_access_state(pp, buff, 512) >= 0)
+	switch(pp->bus) {
+	case SYSFS_BUS_NVME:
+		if (nvme_id_ctrl_ana(pp->fd, NULL) == 0)
+			return;
+		default_prio = PRIO_ANA;
+		break;
+	case SYSFS_BUS_SCSI:
+		if (pp->tpgs <= 0)
+			return;
+		if ((pp->tpgs == 2 || !check_rdac(pp)) &&
+		    sysfs_get_asymmetric_access_state(pp, buff, 512) >= 0)
 			default_prio = PRIO_SYSFS;
+		else
+			default_prio = PRIO_ALUA;
+		break;
+	default:
+		return;
 	}
 	prio_get(conf->multipath_dir, p, default_prio, DEFAULT_PRIO_ARGS);
 }
@@ -870,8 +885,9 @@ int select_delay_watch_checks(struct config *conf, struct multipath *mp)
 	mp_set_conf(delay_watch_checks);
 	mp_set_default(delay_watch_checks, DEFAULT_DELAY_CHECKS);
 out:
-	print_off_int_undef(buff, 12, mp->delay_watch_checks);
-	condlog(3, "%s: delay_watch_checks = %s %s", mp->alias, buff, origin);
+	if (print_off_int_undef(buff, 12, mp->delay_watch_checks) != 0)
+		condlog(3, "%s: delay_watch_checks = %s %s",
+			mp->alias, buff, origin);
 	return 0;
 }
 
@@ -886,8 +902,91 @@ int select_delay_wait_checks(struct config *conf, struct multipath *mp)
 	mp_set_conf(delay_wait_checks);
 	mp_set_default(delay_wait_checks, DEFAULT_DELAY_CHECKS);
 out:
-	print_off_int_undef(buff, 12, mp->delay_wait_checks);
-	condlog(3, "%s: delay_wait_checks = %s %s", mp->alias, buff, origin);
+	if (print_off_int_undef(buff, 12, mp->delay_wait_checks) != 0)
+		condlog(3, "%s: delay_wait_checks = %s %s",
+			mp->alias, buff, origin);
+	return 0;
+
+}
+
+static int san_path_deprecated_warned;
+#define warn_san_path_deprecated(v, x)					\
+	do {								\
+		if (v->x > 0 && !san_path_deprecated_warned) {		\
+		san_path_deprecated_warned = 1;				\
+		condlog(1, "WARNING: option %s is deprecated, "		\
+			"please use marginal_path options instead",	\
+			#x);						\
+		}							\
+	} while(0)
+
+int select_san_path_err_threshold(struct config *conf, struct multipath *mp)
+{
+	const char *origin;
+	char buff[12];
+
+	if (marginal_path_check_enabled(mp)) {
+		mp->san_path_err_threshold = NU_NO;
+		origin = marginal_path_origin;
+		goto out;
+	}
+	mp_set_mpe(san_path_err_threshold);
+	mp_set_ovr(san_path_err_threshold);
+	mp_set_hwe(san_path_err_threshold);
+	mp_set_conf(san_path_err_threshold);
+	mp_set_default(san_path_err_threshold, DEFAULT_ERR_CHECKS);
+out:
+	if (print_off_int_undef(buff, 12, mp->san_path_err_threshold) != 0)
+		condlog(3, "%s: san_path_err_threshold = %s %s",
+			mp->alias, buff, origin);
+	warn_san_path_deprecated(mp, san_path_err_threshold);
+	return 0;
+}
+
+int select_san_path_err_forget_rate(struct config *conf, struct multipath *mp)
+{
+	const char *origin;
+	char buff[12];
+
+	if (marginal_path_check_enabled(mp)) {
+		mp->san_path_err_forget_rate = NU_NO;
+		origin = marginal_path_origin;
+		goto out;
+	}
+	mp_set_mpe(san_path_err_forget_rate);
+	mp_set_ovr(san_path_err_forget_rate);
+	mp_set_hwe(san_path_err_forget_rate);
+	mp_set_conf(san_path_err_forget_rate);
+	mp_set_default(san_path_err_forget_rate, DEFAULT_ERR_CHECKS);
+out:
+	if (print_off_int_undef(buff, 12, mp->san_path_err_forget_rate) != 0)
+		condlog(3, "%s: san_path_err_forget_rate = %s %s", mp->alias,
+			buff, origin);
+	warn_san_path_deprecated(mp, san_path_err_forget_rate);
+	return 0;
+
+}
+
+int select_san_path_err_recovery_time(struct config *conf, struct multipath *mp)
+{
+	const char *origin;
+	char buff[12];
+
+	if (marginal_path_check_enabled(mp)) {
+		mp->san_path_err_recovery_time = NU_NO;
+		origin = marginal_path_origin;
+		goto out;
+	}
+	mp_set_mpe(san_path_err_recovery_time);
+	mp_set_ovr(san_path_err_recovery_time);
+	mp_set_hwe(san_path_err_recovery_time);
+	mp_set_conf(san_path_err_recovery_time);
+	mp_set_default(san_path_err_recovery_time, DEFAULT_ERR_CHECKS);
+out:
+	if (print_off_int_undef(buff, 12, mp->san_path_err_recovery_time) != 0)
+		condlog(3, "%s: san_path_err_recovery_time = %s %s", mp->alias,
+			buff, origin);
+	warn_san_path_deprecated(mp, san_path_err_recovery_time);
 	return 0;
 
 }
@@ -903,9 +1002,10 @@ int select_marginal_path_err_sample_time(struct config *conf, struct multipath *
 	mp_set_conf(marginal_path_err_sample_time);
 	mp_set_default(marginal_path_err_sample_time, DEFAULT_ERR_CHECKS);
 out:
-	print_off_int_undef(buff, 12, mp->marginal_path_err_sample_time);
-	condlog(3, "%s: marginal_path_err_sample_time = %s %s", mp->alias, buff,
-			origin);
+	if (print_off_int_undef(buff, 12, mp->marginal_path_err_sample_time)
+	    != 0)
+		condlog(3, "%s: marginal_path_err_sample_time = %s %s",
+			mp->alias, buff, origin);
 	return 0;
 }
 
@@ -920,9 +1020,10 @@ int select_marginal_path_err_rate_threshold(struct config *conf, struct multipat
 	mp_set_conf(marginal_path_err_rate_threshold);
 	mp_set_default(marginal_path_err_rate_threshold, DEFAULT_ERR_CHECKS);
 out:
-	print_off_int_undef(buff, 12, mp->marginal_path_err_rate_threshold);
-	condlog(3, "%s: marginal_path_err_rate_threshold = %s %s", mp->alias, buff,
-			origin);
+	if (print_off_int_undef(buff, 12, mp->marginal_path_err_rate_threshold)
+	    != 0)
+		condlog(3, "%s: marginal_path_err_rate_threshold = %s %s",
+			mp->alias, buff, origin);
 	return 0;
 }
 
@@ -937,9 +1038,10 @@ int select_marginal_path_err_recheck_gap_time(struct config *conf, struct multip
 	mp_set_conf(marginal_path_err_recheck_gap_time);
 	mp_set_default(marginal_path_err_recheck_gap_time, DEFAULT_ERR_CHECKS);
 out:
-	print_off_int_undef(buff, 12, mp->marginal_path_err_recheck_gap_time);
-	condlog(3, "%s: marginal_path_err_recheck_gap_time = %s %s", mp->alias, buff,
-			origin);
+	if (print_off_int_undef(buff, 12,
+				mp->marginal_path_err_recheck_gap_time) != 0)
+		condlog(3, "%s: marginal_path_err_recheck_gap_time = %s %s",
+			mp->alias, buff, origin);
 	return 0;
 }
 
@@ -954,9 +1056,10 @@ int select_marginal_path_double_failed_time(struct config *conf, struct multipat
 	mp_set_conf(marginal_path_double_failed_time);
 	mp_set_default(marginal_path_double_failed_time, DEFAULT_ERR_CHECKS);
 out:
-	print_off_int_undef(buff, 12, mp->marginal_path_double_failed_time);
-	condlog(3, "%s: marginal_path_double_failed_time = %s %s", mp->alias, buff,
-			origin);
+	if (print_off_int_undef(buff, 12, mp->marginal_path_double_failed_time)
+	    != 0)
+		condlog(3, "%s: marginal_path_double_failed_time = %s %s",
+			mp->alias, buff, origin);
 	return 0;
 }
 
@@ -1008,8 +1111,8 @@ int select_ghost_delay (struct config *conf, struct multipath * mp)
 	mp_set_conf(ghost_delay);
 	mp_set_default(ghost_delay, DEFAULT_GHOST_DELAY);
 out:
-	print_off_int_undef(buff, 12, mp->ghost_delay);
-	condlog(3, "%s: ghost_delay = %s %s", mp->alias, buff, origin);
+	if (print_off_int_undef(buff, 12, mp->ghost_delay) != 0)
+		condlog(3, "%s: ghost_delay = %s %s", mp->alias, buff, origin);
 	return 0;
 }
 

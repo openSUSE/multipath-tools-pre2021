@@ -18,6 +18,7 @@
 #include "configure.h"
 #include "libdevmapper.h"
 #include "io_err_stat.h"
+#include "switchgroup.h"
 
 /*
  * creates or updates mpp->paths reading mpp->pg
@@ -60,6 +61,12 @@ int adopt_paths(vector pathvec, struct multipath *mpp)
 
 	vector_foreach_slot (pathvec, pp, i) {
 		if (!strncmp(mpp->wwid, pp->wwid, WWID_SIZE)) {
+			if (pp->size != 0 && mpp->size != 0 &&
+			    pp->size != mpp->size) {
+				condlog(3, "%s: size mismatch for %s, not adding path",
+					pp->dev, mpp->alias);
+				continue;
+			}
 			condlog(3, "%s: ownership set to %s",
 				pp->dev, mpp->alias);
 			pp->mpp = mpp;
@@ -96,14 +103,14 @@ void orphan_path(struct path *pp, const char *reason)
 	pp->fd = -1;
 }
 
-void orphan_paths(vector pathvec, struct multipath *mpp)
+void orphan_paths(vector pathvec, struct multipath *mpp, const char *reason)
 {
 	int i;
 	struct path * pp;
 
 	vector_foreach_slot (pathvec, pp, i) {
 		if (pp->mpp == mpp) {
-			orphan_path(pp, "map flushed");
+			orphan_path(pp, reason);
 		}
 	}
 }
@@ -113,12 +120,10 @@ remove_map(struct multipath * mpp, struct vectors * vecs, int purge_vec)
 {
 	int i;
 
-	condlog(4, "%s: remove multipath map", mpp->alias);
-
 	/*
 	 * clear references to this map
 	 */
-	orphan_paths(vecs->pathvec, mpp);
+	orphan_paths(vecs->pathvec, mpp, "map removed internally");
 
 	if (purge_vec &&
 	    (i = find_slot(vecs->mpvec, (void *)mpp)) != -1)
@@ -134,8 +139,10 @@ void
 remove_map_by_alias(const char *alias, struct vectors * vecs, int purge_vec)
 {
 	struct multipath * mpp = find_mp_by_alias(vecs->mpvec, alias);
-	if (mpp)
+	if (mpp) {
+		condlog(2, "%s: removing map by alias", alias);
 		remove_map(mpp, vecs, purge_vec);
+	}
 }
 
 void
@@ -255,6 +262,9 @@ void sync_paths(struct multipath *mpp, vector pathvec)
 int
 update_multipath_strings(struct multipath *mpp, vector pathvec, int is_daemon)
 {
+	struct pathgroup *pgp;
+	int i;
+
 	if (!mpp)
 		return 1;
 
@@ -271,6 +281,10 @@ update_multipath_strings(struct multipath *mpp, vector pathvec, int is_daemon)
 
 	if (update_multipath_status(mpp))
 		return 1;
+
+	vector_foreach_slot(mpp->pg, pgp, i)
+		if (pgp->paths)
+			path_group_prio_update(pgp);
 
 	return 0;
 }
@@ -407,6 +421,12 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
 			vector_del_slot(mpp->paths, i);
 			i--;
 
+			/* Make sure mpp->hwe doesn't point to freed memory.
+			 * We call extract_hwe_from_path() below to restore
+			 * mpp->hwe
+			 */
+			if (mpp->hwe == pp->hwe)
+				mpp->hwe = NULL;
 			if ((j = find_slot(vecs->pathvec,
 					   (void *)pp)) != -1)
 				vector_del_slot(vecs->pathvec, j);
@@ -416,6 +436,7 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
 				mpp->alias, pp->dev, pp->dev_t);
 		}
 	}
+	extract_hwe_from_path(mpp);
 	return count;
 }
 

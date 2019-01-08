@@ -15,6 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "nvme-lib.h"
+#include <sys/types.h>
 #include <sys/sysmacros.h>
 #include <libudev.h>
 #include <stdio.h>
@@ -27,6 +29,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include "util.h"
 #include "vector.h"
 #include "generic.h"
@@ -40,17 +43,22 @@ static const char N_A[] = "n/a";
 const char *THIS;
 
 struct nvme_map;
+struct nvme_pathgroup {
+	struct gen_pathgroup gen;
+	struct _vector pathvec;
+};
+
 struct nvme_path {
 	struct gen_path gen;
 	struct udev_device *udev;
 	struct udev_device *ctl;
 	struct nvme_map *map;
 	bool seen;
-};
-
-struct nvme_pathgroup {
-	struct gen_pathgroup gen;
-	vector pathvec;
+	/*
+	 * The kernel works in failover mode.
+	 * Each path has a separate path group.
+	 */
+	struct nvme_pathgroup pg;
 };
 
 struct nvme_map {
@@ -58,12 +66,9 @@ struct nvme_map {
 	struct udev_device *udev;
 	struct udev_device *subsys;
 	dev_t devt;
-	/* Just one static pathgroup for NVMe for now */
-	struct nvme_pathgroup pg;
-	struct gen_pathgroup *gpg;
 	struct _vector pgvec;
-	vector pathvec;
 	int nr_live;
+	int ana_supported;
 };
 
 #define NAME_LEN 64 /* buffer length for temp attributes */
@@ -76,29 +81,33 @@ struct nvme_map {
 #define const_gen_path_to_nvme(g) ((const struct nvme_path*)(g))
 #define gen_path_to_nvme(g) ((struct nvme_path*)(g))
 #define nvme_path_to_gen(n) &((n)->gen)
+#define nvme_pg_to_path(x) (VECTOR_SLOT(&((x)->pathvec), 0))
+#define nvme_path_to_pg(x) &((x)->pg)
 
 static void cleanup_nvme_path(struct nvme_path *path)
 {
 	condlog(5, "%s: %p %p", __func__, path, path->udev);
 	if (path->udev)
 		udev_device_unref(path->udev);
+	vector_reset(&path->pg.pathvec);
+
 	/* ctl is implicitly referenced by udev, no need to unref */
 	free(path);
 }
 
 static void cleanup_nvme_map(struct nvme_map *map)
 {
-	if (map->pathvec) {
-		struct nvme_path *path;
-		int i;
+	struct nvme_pathgroup *pg;
+	struct nvme_path *path;
+	int i;
 
-		vector_foreach_slot_backwards(map->pathvec, path, i) {
-			condlog(5, "%s: %d %p", __func__, i, path);
-			cleanup_nvme_path(path);
-			vector_del_slot(map->pathvec, i);
-		}
+	vector_foreach_slot_backwards(&map->pgvec, pg, i) {
+		path = nvme_pg_to_path(pg);
+		condlog(5, "%s: %d %p", __func__, i, path);
+		cleanup_nvme_path(path);
+		vector_del_slot(&map->pgvec, i);
 	}
-	vector_free(map->pathvec);
+	vector_reset(&map->pgvec);
 	if (map->udev)
 		udev_device_unref(map->udev);
 	/* subsys is implicitly referenced by udev, no need to unref */
@@ -139,10 +148,11 @@ static int snprint_nvme_map(const struct gen_multipath *gmp,
 		return snprintf(buff, len, "%s",
 				udev_device_get_sysname(nvm->udev));
 	case 'n':
-		return snprintf(buff, len, "%s:NQN:%s",
-				udev_device_get_sysname(nvm->subsys),
+		return snprintf(buff, len, "%s:nsid.%s",
 				udev_device_get_sysattr_value(nvm->subsys,
-							      "subsysnqn"));
+							      "subsysnqn"),
+				udev_device_get_sysattr_value(nvm->udev,
+							      "nsid"));
 	case 'w':
 		return snprintf(buff, len, "%s",
 				udev_device_get_sysattr_value(nvm->udev,
@@ -178,11 +188,14 @@ static int snprint_nvme_map(const struct gen_multipath *gmp,
 			return snprintf(buff, len, "%s", "rw");
 	case 'G':
 		return snprintf(buff, len, "%s", THIS);
+	case 'h':
+		if (nvm->ana_supported == YNU_YES)
+			return snprintf(buff, len, "ANA");
 	default:
-		return snprintf(buff, len, N_A);
 		break;
 	}
-	return 0;
+
+	return snprintf(buff, len, N_A);
 }
 
 static const struct _vector*
@@ -190,19 +203,13 @@ nvme_pg_get_paths(const struct gen_pathgroup *gpg) {
 	const struct nvme_pathgroup *gp = const_gen_pg_to_nvme(gpg);
 
 	/* This is all used under the lock, no need to copy */
-	return gp->pathvec;
+	return &gp->pathvec;
 }
 
 static void
 nvme_pg_rel_paths(const struct gen_pathgroup *gpg, const struct _vector *v)
 {
 	/* empty */
-}
-
-static int snprint_nvme_pg(const struct gen_pathgroup *gmp,
-			   char *buff, int len, char wildcard)
-{
-	return snprintf(buff, len, N_A);
 }
 
 static int snprint_hcil(const struct nvme_path *np, char *buf, int len)
@@ -244,6 +251,23 @@ static int snprint_nvme_path(const struct gen_path *gp,
 	case 'o':
 		sysfs_attr_get_value(np->ctl, "state", fld, sizeof(fld));
 		return snprintf(buff, len, "%s", fld);
+	case 'T':
+		if (sysfs_attr_get_value(np->udev, "ana_state", fld,
+					 sizeof(fld)) > 0)
+			return snprintf(buff, len, "%s", fld);
+		break;
+	case 'p':
+		if (sysfs_attr_get_value(np->udev, "ana_state", fld,
+					 sizeof(fld)) > 0) {
+			rstrip(fld);
+			if (!strcmp(fld, "optimized"))
+				return snprintf(buff, len, "%d", 50);
+			else if (!strcmp(fld, "non-optimized"))
+				return snprintf(buff, len, "%d", 10);
+			else
+				return snprintf(buff, len, "%d", 0);
+		}
+		break;
 	case 's':
 		snprintf(fld, sizeof(fld), "%s",
 			 udev_device_get_sysattr_value(np->ctl,
@@ -281,10 +305,28 @@ static int snprint_nvme_path(const struct gen_path *gp,
 					udev_device_get_sysname(pci));
 		/* fall through */
 	default:
-		return snprintf(buff, len, "%s", N_A);
 		break;
 	}
+	return snprintf(buff, len, "%s", N_A);
 	return 0;
+}
+
+static int snprint_nvme_pg(const struct gen_pathgroup *gmp,
+			   char *buff, int len, char wildcard)
+{
+	const struct nvme_pathgroup *pg = const_gen_pg_to_nvme(gmp);
+	const struct nvme_path *path = nvme_pg_to_path(pg);
+
+	switch (wildcard) {
+	case 't':
+		return snprint_nvme_path(nvme_path_to_gen(path),
+					 buff, len, 'T');
+	case 'p':
+		return snprint_nvme_path(nvme_path_to_gen(path),
+					 buff, len, 'p');
+	default:
+		return snprintf(buff, len, N_A);
+	}
 }
 
 static int nvme_style(const struct gen_multipath* gm,
@@ -432,7 +474,7 @@ static struct nvme_map *_find_nvme_map_by_devt(const struct context *ctx,
 static struct nvme_path *
 _find_path_by_syspath(struct nvme_map *map, const char *syspath)
 {
-	struct nvme_path *path;
+	struct nvme_pathgroup *pg;
 	char real[PATH_MAX];
 	const char *ppath;
 	int i;
@@ -443,7 +485,9 @@ _find_path_by_syspath(struct nvme_map *map, const char *syspath)
 		ppath = syspath;
 	}
 
-	vector_foreach_slot(map->pathvec, path, i) {
+	vector_foreach_slot(&map->pgvec, pg, i) {
+		struct nvme_path *path = nvme_pg_to_path(pg);
+
 		if (!strcmp(ppath,
 			    udev_device_get_syspath(path->udev)))
 			return path;
@@ -531,20 +575,57 @@ out:
 	return blkdev;
 }
 
+static void test_ana_support(struct nvme_map *map, struct udev_device *ctl)
+{
+	const char *dev_t;
+	char sys_path[64];
+	long fd;
+	int rc;
+
+	if (map->ana_supported != YNU_UNDEF)
+		return;
+
+	dev_t = udev_device_get_sysattr_value(ctl, "dev");
+	if (snprintf(sys_path, sizeof(sys_path), "/dev/char/%s", dev_t)
+	    >= sizeof(sys_path))
+		return;
+
+	fd = open(sys_path, O_RDONLY);
+	if (fd == -1) {
+		condlog(2, "%s: error opening %s", __func__, sys_path);
+		return;
+	}
+
+	pthread_cleanup_push(close_fd, (void *)fd);
+	rc = nvme_id_ctrl_ana(fd, NULL);
+	if (rc < 0)
+		condlog(2, "%s: error in nvme_id_ctrl: %s", __func__,
+			strerror(errno));
+	else {
+		map->ana_supported = (rc == 1 ? YNU_YES : YNU_NO);
+		condlog(3, "%s: NVMe ctrl %s: ANA %s supported", __func__, dev_t,
+			rc == 1 ? "is" : "is not");
+	}
+	pthread_cleanup_pop(1);
+}
+
 static void _find_controllers(struct context *ctx, struct nvme_map *map)
 {
 	char pathbuf[PATH_MAX], realbuf[PATH_MAX];
 	struct dirent **di = NULL;
 	struct scandir_result sr;
 	struct udev_device *subsys;
+	struct nvme_pathgroup *pg;
 	struct nvme_path *path;
 	int r, i, n;
 
 	if (map == NULL || map->udev == NULL)
 		return;
 
-	vector_foreach_slot(map->pathvec, path, i)
+	vector_foreach_slot(&map->pgvec, pg, i) {
+		path = nvme_pg_to_path(pg);
 		path->seen = false;
+	}
 
 	subsys = udev_device_get_parent_with_subsystem_devtype(map->udev,
 							       "nvme-subsystem",
@@ -606,7 +687,8 @@ static void _find_controllers(struct context *ctx, struct nvme_map *map)
 		if (udev == NULL)
 			continue;
 
-		path = _find_path_by_syspath(map, udev_device_get_syspath(udev));
+		path = _find_path_by_syspath(map,
+					     udev_device_get_syspath(udev));
 		if (path != NULL) {
 			path->seen = true;
 			condlog(4, "%s: %s already known",
@@ -630,24 +712,32 @@ static void _find_controllers(struct context *ctx, struct nvme_map *map)
 			cleanup_nvme_path(path);
 			continue;
 		}
+		test_ana_support(map, path->ctl);
 
-		if (vector_alloc_slot(map->pathvec) == NULL) {
+		path->pg.gen.ops = &nvme_pg_ops;
+		if (vector_alloc_slot(&path->pg.pathvec) == NULL) {
 			cleanup_nvme_path(path);
 			continue;
 		}
+		vector_set_slot(&path->pg.pathvec, path);
+		if (vector_alloc_slot(&map->pgvec) == NULL) {
+			cleanup_nvme_path(path);
+			continue;
+		}
+		vector_set_slot(&map->pgvec, &path->pg);
 		condlog(3, "%s: %s: new path %s added to %s",
 			__func__, THIS, udev_device_get_sysname(udev),
 			udev_device_get_sysname(map->udev));
-		vector_set_slot(map->pathvec, path);
 	}
 	pthread_cleanup_pop(1);
 
 	map->nr_live = 0;
-	vector_foreach_slot_backwards(map->pathvec, path, i) {
+	vector_foreach_slot_backwards(&map->pgvec, pg, i) {
+		path = nvme_pg_to_path(pg);
 		if (!path->seen) {
 			condlog(1, "path %d not found in %s any more",
 				i, udev_device_get_sysname(map->udev));
-			vector_del_slot(map->pathvec, i);
+			vector_del_slot(&map->pgvec, i);
 			cleanup_nvme_path(path);
 		} else {
 			static const char live_state[] = "live";
@@ -661,7 +751,7 @@ static void _find_controllers(struct context *ctx, struct nvme_map *map)
 	}
 	condlog(3, "%s: %s: map %s has %d/%d live paths", __func__, THIS,
 		udev_device_get_sysname(map->udev), map->nr_live,
-		VECTOR_SIZE(map->pathvec));
+		VECTOR_SIZE(&map->pgvec));
 }
 
 static int _add_map(struct context *ctx, struct udev_device *ud,
@@ -685,19 +775,6 @@ static int _add_map(struct context *ctx, struct udev_device *ud,
 	 */
 	map->subsys = subsys;
 	map->gen.ops = &nvme_map_ops;
-
-	map->pathvec = vector_alloc();
-	if (map->pathvec == NULL) {
-		cleanup_nvme_map(map);
-		return FOREIGN_ERR;
-	}
-
-	map->pg.gen.ops = &nvme_pg_ops;
-	map->pg.pathvec = map->pathvec;
-	map->gpg = nvme_pg_to_gen(&map->pg);
-
-	map->pgvec.allocated = 1;
-	map->pgvec.slot = (void**)&map->gpg;
 
 	if (vector_alloc_slot(ctx->mpvec) == NULL) {
 		cleanup_nvme_map(map);
@@ -842,8 +919,8 @@ const struct _vector * get_paths(const struct context *ctx)
 	condlog(5, "%s called for \"%s\"", __func__, THIS);
 	vector_foreach_slot(ctx->mpvec, gm, i) {
 		const struct nvme_map *nm = const_gen_mp_to_nvme(gm);
-		paths = vector_convert(paths, nm->pathvec,
-				       struct gen_path, identity);
+		paths = vector_convert(paths, &nm->pgvec,
+				       struct nvme_pathgroup, nvme_pg_to_path);
 	}
 	return paths;
 }

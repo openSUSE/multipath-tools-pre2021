@@ -44,6 +44,10 @@
 #include "sysfs.h"
 #include "io_err_stat.h"
 
+/* Time in ms to wait for pending checkers in setup_map() */
+#define WAIT_CHECKERS_PENDING_MS 10
+#define WAIT_ALL_CHECKERS_PENDING_MS 90
+
 /* group paths in pg by host adapter
  */
 int group_by_host_adapter(struct pathgroup *pgp, vector adapters)
@@ -257,12 +261,43 @@ int rr_optimize_path_order(struct pathgroup *pgp)
 	return 0;
 }
 
+static int wait_for_pending_paths(struct multipath *mpp,
+				  struct config *conf,
+				  int n_pending, int goal, int wait_ms)
+{
+	static const struct timespec millisec =
+		{ .tv_sec = 0, .tv_nsec = 1000*1000 };
+	int i, j;
+	struct path *pp;
+	struct pathgroup *pgp;
+	struct timespec ts;
+
+	do {
+		vector_foreach_slot(mpp->pg, pgp, i) {
+			vector_foreach_slot(pgp->paths, pp, j) {
+				if (pp->state != PATH_PENDING)
+					continue;
+				pp->state = get_state(pp, conf,
+						      0, PATH_PENDING);
+				if (pp->state != PATH_PENDING &&
+				    --n_pending <= goal)
+					return 0;
+			}
+		}
+		ts = millisec;
+		while (nanosleep(&ts, &ts) != 0 && errno == EINTR)
+			/* nothing */;
+	} while (--wait_ms > 0);
+
+	return n_pending;
+}
+
 int setup_map(struct multipath *mpp, char *params, int params_size,
 	      struct vectors *vecs)
 {
 	struct pathgroup * pgp;
 	struct config *conf;
-	int i;
+	int i, n_paths;
 
 	/*
 	 * don't bother if devmap size is unknown
@@ -314,6 +349,9 @@ int setup_map(struct multipath *mpp, char *params, int params_size,
 	select_marginal_path_err_rate_threshold(conf, mpp);
 	select_marginal_path_err_recheck_gap_time(conf, mpp);
 	select_marginal_path_double_failed_time(conf, mpp);
+	select_san_path_err_threshold(conf, mpp);
+	select_san_path_err_forget_rate(conf, mpp);
+	select_san_path_err_recovery_time(conf, mpp);
 	select_skip_kpartx(conf, mpp);
 	select_max_sectors_kb(conf, mpp);
 	select_ghost_delay(conf, mpp);
@@ -322,12 +360,24 @@ int setup_map(struct multipath *mpp, char *params, int params_size,
 	sysfs_set_scsi_tmo(mpp, conf->checkint);
 	pthread_cleanup_pop(1);
 
-	if (mpp->marginal_path_double_failed_time > 0 &&
-	    mpp->marginal_path_err_sample_time > 0 &&
-	    mpp->marginal_path_err_recheck_gap_time > 0 &&
-	    mpp->marginal_path_err_rate_threshold >= 0)
+	if (marginal_path_check_enabled(mpp)) {
+		if (delay_check_enabled(mpp)) {
+			condlog(1, "%s: WARNING: both marginal_path and delay_checks error detection selected",
+				mpp->alias);
+			condlog(0, "%s: unexpected behavior may occur!",
+				mpp->alias);
+		}
 		start_io_err_stat_thread(vecs);
-	/*
+	}
+	if (san_path_check_enabled(mpp) && delay_check_enabled(mpp)) {
+		condlog(1, "%s: WARNING: both san_path_err and delay_checks error detection selected",
+			mpp->alias);
+		condlog(0, "%s: unexpected behavior may occur!",
+			mpp->alias);
+	}
+
+	n_paths = VECTOR_SIZE(mpp->paths);
+        /*
 	 * assign paths to path groups -- start with no groups and all paths
 	 * in mpp->paths
 	 */
@@ -341,6 +391,30 @@ int setup_map(struct multipath *mpp, char *params, int params_size,
 	if (mpp->pgpolicyfn && mpp->pgpolicyfn(mpp))
 		return 1;
 
+	/*
+	 * If async state detection is used, see if pending state checks
+	 * have finished, to get nr_active right. We can't wait until the
+	 * checkers time out, as that may take 30s or more, and we are
+	 * holding the vecs lock.
+	 */
+	if (conf->force_sync == 0 && n_paths > 0) {
+		int n_pending = pathcount(mpp, PATH_PENDING);
+
+		if (n_pending > 0)
+			n_pending = wait_for_pending_paths(
+				mpp, conf, n_pending, 0,
+				WAIT_CHECKERS_PENDING_MS);
+		/* ALL paths pending - wait some more, but be satisfied
+		   with only some paths finished */
+		if (n_pending == n_paths)
+			n_pending = wait_for_pending_paths(
+				mpp, conf, n_pending,
+				n_paths >= 4 ? 2 : 1,
+				WAIT_ALL_CHECKERS_PENDING_MS);
+		if (n_pending > 0)
+			condlog(2, "%s: setting up map with %d/%d path checkers pending",
+				mpp->alias, n_pending, n_paths);
+	}
 	mpp->nr_active = pathcount(mpp, PATH_UP) + pathcount(mpp, PATH_GHOST);
 
 	/*
@@ -789,15 +863,6 @@ fail:
 	return 1;
 }
 
-/*
- * Return value:
- */
-#define DOMAP_RETRY	-1
-#define DOMAP_FAIL	0
-#define DOMAP_OK	1
-#define DOMAP_EXIST	2
-#define DOMAP_DRY	3
-
 int domap(struct multipath *mpp, char *params, int is_daemon)
 {
 	int r = DOMAP_FAIL;
@@ -999,8 +1064,8 @@ out:
 int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 		    int force_reload, enum mpath_cmds cmd)
 {
-	int r = 1;
-	int k, i;
+	int ret = CP_FAIL;
+	int k, i, r;
 	int is_daemon = (cmd == CMD_NONE) ? 1 : 0;
 	char params[PARAMS_SIZE];
 	struct multipath * mpp;
@@ -1010,6 +1075,7 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 	vector pathvec = vecs->pathvec;
 	struct config *conf;
 	int allow_queueing;
+	uint64_t *size_mismatch_seen;
 
 	/* ignore refwwid if it's empty */
 	if (refwwid && !strlen(refwwid))
@@ -1020,6 +1086,14 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 			pp1->mpp = NULL;
 		}
 	}
+
+	if (VECTOR_SIZE(pathvec) == 0)
+		return CP_OK;
+	size_mismatch_seen = calloc((VECTOR_SIZE(pathvec) - 1) / 64 + 1,
+				    sizeof(uint64_t));
+	if (size_mismatch_seen == NULL)
+		return CP_FAIL;
+
 	vector_foreach_slot (pathvec, pp1, k) {
 		int invalid;
 		/* skip this path for some reason */
@@ -1039,8 +1113,8 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 			continue;
 		}
 
-		/* 2. if path already coalesced */
-		if (pp1->mpp)
+		/* 2. if path already coalesced, or seen and discarded */
+		if (pp1->mpp || is_bit_set_in_array(k, size_mismatch_seen))
 			continue;
 
 		/* 3. if path has disappeared */
@@ -1089,9 +1163,10 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 				 * ouch, avoid feeding that to the DM
 				 */
 				condlog(0, "%s: size %llu, expected %llu. "
-					"Discard", pp2->dev_t, pp2->size,
+					"Discard", pp2->dev, pp2->size,
 					mpp->size);
 				mpp->action = ACT_REJECT;
+				set_bit_in_array(i, size_mismatch_seen);
 			}
 		}
 		verify_paths(mpp, vecs);
@@ -1120,8 +1195,10 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 					"ignoring" : "removing");
 				remove_map(mpp, vecs, 0);
 				continue;
-			} else /* if (r == DOMAP_RETRY) */
-				return r;
+			} else /* if (r == DOMAP_RETRY && !is_daemon) */ {
+				ret = CP_RETRY;
+				goto out;
+			}
 		}
 		if (r == DOMAP_DRY)
 			continue;
@@ -1163,7 +1240,7 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 		if (newmp) {
 			if (mpp->action != ACT_REJECT) {
 				if (!vector_alloc_slot(newmp))
-					return 1;
+					goto out;
 				vector_set_slot(newmp, mpp);
 			}
 			else
@@ -1194,7 +1271,10 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 				condlog(2, "%s: remove (dead)", alias);
 		}
 	}
-	return 0;
+	ret = CP_OK;
+out:
+	free(size_mismatch_seen);
+	return ret;
 }
 
 struct udev_device *get_udev_device(const char *dev, enum devtypes dev_type)
@@ -1290,7 +1370,7 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 		conf = get_multipath_config();
 		pthread_cleanup_push(put_multipath_config, conf);
 		if (pp->udev && pp->uid_attribute &&
-		    filter_property(conf, pp->udev) > 0)
+		    filter_property(conf, pp->udev, 3) > 0)
 			invalid = 1;
 		pthread_cleanup_pop(1);
 		if (invalid)
@@ -1330,7 +1410,7 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 		conf = get_multipath_config();
 		pthread_cleanup_push(put_multipath_config, conf);
 		if (pp->udev && pp->uid_attribute &&
-		    filter_property(conf, pp->udev) > 0)
+		    filter_property(conf, pp->udev, 3) > 0)
 			invalid = 1;
 		pthread_cleanup_pop(1);
 		if (invalid)
@@ -1359,7 +1439,7 @@ int get_refwwid(enum mpath_cmds cmd, char *dev, enum devtypes dev_type,
 		conf = get_multipath_config();
 		pthread_cleanup_push(put_multipath_config, conf);
 		if (pp->udev && pp->uid_attribute &&
-		    filter_property(conf, pp->udev) > 0)
+		    filter_property(conf, pp->udev, 3) > 0)
 			invalid = 1;
 		pthread_cleanup_pop(1);
 		if (invalid)

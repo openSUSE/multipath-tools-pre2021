@@ -334,6 +334,10 @@ priority provided as argument. Requires prio_args keyword.
 Generate the path priority based on a latency algorithm.
 Requires prio_args keyword.
 .TP
+.I ana
+(Hardware-dependent)
+Generate the path priority based on the NVMe ANA settings.
+.TP
 .I datacore
 (Hardware-dependent)
 Generate the path priority for some DataCore storage arrays. Requires prio_args
@@ -898,6 +902,46 @@ The default is: \fB/etc/multipath/conf.d/\fR
 .
 .
 .TP
+.B san_path_err_threshold
+If set to a value greater than 0, multipathd will watch paths and check how many
+times a path has been failed due to errors.If the number of failures on a particular
+path is greater then the san_path_err_threshold, then the path will not reinstate
+till san_path_err_recovery_time. These path failures should occur within a
+san_path_err_forget_rate checks, if not we will consider the path is good enough
+to reinstantate. See "Shaky paths detection" below.
+.RS
+.TP
+The default is: \fBno\fR
+.RE
+.
+.
+.TP
+.B san_path_err_forget_rate
+If set to a value greater than 0, multipathd will check whether the path failures
+has exceeded  the san_path_err_threshold within this many checks i.e
+san_path_err_forget_rate . If so we will not reinstante the path till
+san_path_err_recovery_time. See "Shaky paths detection" below.
+.RS
+.TP
+The default is: \fBno\fR
+.RE
+.
+.
+.TP
+.B san_path_err_recovery_time
+If set to a value greater than 0, multipathd will make sure that when path failures
+has exceeded the san_path_err_threshold within san_path_err_forget_rate then the path
+will be placed in failed state for san_path_err_recovery_time duration.Once san_path_err_recovery_time
+has timeout  we will reinstante the failed path .
+san_path_err_recovery_time value should be in secs.
+See "Shaky paths detection" below.
+.RS
+.TP
+The default is: \fBno\fR
+.RE
+.
+.
+.TP
 .B marginal_path_double_failed_time
 One of the four parameters of supporting path check based on accounting IO
 error such as intermittent error. When a path failed event occurs twice in
@@ -905,7 +949,7 @@ error such as intermittent error. When a path failed event occurs twice in
 other three parameters are set, multipathd will fail the path and enqueue
 this path into a queue of which members are sent a couple of continuous
 direct reading asynchronous IOs at a fixed sample rate of 10HZ to start IO
-error accounting process.
+error accounting process. See "Shaky paths detection" below.
 .RS
 .TP
 The default is: \fBno\fR
@@ -927,7 +971,7 @@ If the rate of IO error on a particular path is greater than the
 \fImarginal_path_err_recheck_gap_time\fR seconds unless there is only one
 active path. After \fImarginal_path_err_recheck_gap_time\fR expires, the path
 will be requeueed for rechecking. If checking result is good enough, the
-path will be reinstated.
+path will be reinstated. See "Shaky paths detection" below.
 .RS
 .TP
 The default is: \fBno\fR
@@ -941,7 +985,7 @@ of supporting path check based on accounting IO error such as intermittent
 error. Refer to \fImarginal_path_err_sample_time\fR. If the rate of IO errors
 on a particular path is greater than this parameter, then the path will not
 reinstate for \fImarginal_path_err_recheck_gap_time\fR seconds unless there is
-only one active path.
+only one active path. See "Shaky paths detection" below.
 .RS
 .TP
 The default is: \fBno\fR
@@ -958,7 +1002,7 @@ value, the failed path of  which the IO error rate is larger than
 \fImarginal_path_err_recheck_gap_time\fR seconds. When
 \fImarginal_path_err_recheck_gap_time\fR seconds expires, the path will be
 requeueed for checking. If checking result is good enough, the path will be
-reinstated, or else it will keep failed.
+reinstated, or else it will keep failed. See "Shaky paths detection" below.
 .RS
 .TP
 The default is: \fBno\fR
@@ -970,7 +1014,7 @@ The default is: \fBno\fR
 If set to a value greater than 0, multipathd will watch paths that have
 recently become valid for this many checks. If they fail again while they are
 being watched, when they next become valid, they will not be used until they
-have stayed up for \fIdelay_wait_checks\fR checks.
+have stayed up for \fIdelay_wait_checks\fR checks. See "Shaky paths detection" below.
 .RS
 .TP
 The default is: \fBno\fR
@@ -982,7 +1026,7 @@ The default is: \fBno\fR
 If set to a value greater than 0, when a device that has recently come back
 online fails again within \fIdelay_watch_checks\fR checks, the next time it
 comes back online, it will marked and delayed, and not used until it has passed
-\fIdelay_wait_checks\fR checks.
+\fIdelay_wait_checks\fR checks. See "Shaky paths detection" below.
 .RS
 .TP
 The default is: \fBno\fR
@@ -1304,6 +1348,12 @@ section:
 .TP
 .B deferred_remove
 .TP
+.B san_path_err_threshold
+.TP
+.B san_path_err_forget_rate
+.TP
+.B san_path_err_recovery_time
+.TP
 .B marginal_path_err_sample_time
 .TP
 .B marginal_path_err_rate_threshold
@@ -1398,6 +1448,10 @@ Active/Standby mode exclusively.
 .I 1 alua
 (Hardware-dependent)
 Hardware handler for SCSI-3 ALUA compatible arrays.
+.TP
+.I 1 ana
+(Hardware-dependent)
+Hardware handler for NVMe ANA compatible arrays.
 .PP
 The default is: \fB<unset>\fR
 .PP
@@ -1454,6 +1508,12 @@ section:
 .B detect_checker
 .TP
 .B deferred_remove
+.TP
+.B san_path_err_threshold
+.TP
+.B san_path_err_forget_rate
+.TP
+.B san_path_err_recovery_time
 .TP
 .B marginal_path_err_sample_time
 .TP
@@ -1531,6 +1591,12 @@ the values are taken from the \fIdevices\fR or \fIdefaults\fR sections:
 .TP
 .B deferred_remove
 .TP
+.B san_path_err_threshold
+.TP
+.B san_path_err_forget_rate
+.TP
+.B san_path_err_recovery_time
+.TP
 .B marginal_path_err_sample_time
 .TP
 .B marginal_path_err_rate_threshold
@@ -1582,6 +1648,69 @@ variable.
 If none of the \fIgetuid_callout\fR or \fIuid_attribute\fR parameters
 are present multipath will try to use the sysfs attribute
 \fIvpd_pg83\fR to generate the WWID.
+.
+.
+.\" ----------------------------------------------------------------------------
+.SH "Shaky paths detection"
+.\" ----------------------------------------------------------------------------
+.
+A common problem in SAN setups is the occurence of intermittent errors: a
+path is unreachable, then reachable again for a short time, disappears again,
+and so forth. This happens typically on unstable interconnects. It is
+undesirable to switch pathgroups unnecessarily on such frequent, unreliable
+events. \fImultipathd\fR supports three different methods for detecting this
+situation and dealing with it. All methods share the same basic mode of
+operation: If a path is found to be \(dqshaky\(dq or \(dqflipping\(dq,
+and appears to be in healthy status, it is not reinstated (put back to use)
+immediately. Instead, it is watched for some time, and only reinstated
+if the healthy state appears to be stable. The logic of determining
+\(dqshaky\(dq condition, as well as the logic when to reinstate,
+differs between the three methods.
+.TP 8
+.B \(dqdelay_checks\(dq failure tracking
+If a path fails again within a
+\fIdelay_watch_checks\fR interval after a failure, don't
+reinstate it until it passes a \fIdelay_wait_checks\fR interval
+in always good status.
+The intervals are measured in \(dqticks\(dq, i.e. the
+time between path checks by multipathd, which is variable and controlled by the
+\fIpolling_interval\fR and \fImax_polling_interval\fR parameters.
+.TP
+.B \(dqmarginal_path\(dq failure tracking
+If a second failure event (good->bad transition) occurs within
+\fImarginal_path_double_failed_time\fR seconds after a failure, high-frequency
+monitoring is started for the affected path: I/O is sent at a rate of 10 per
+second. This is done for \fImarginal_path_err_sample_time\fR seconds. During
+this period, the path is not reinstated. If the
+rate of errors remains below \fImarginal_path_err_rate_threshold\fR during the
+monitoring period, the path is reinstated. Otherwise, it
+is kept in failed state for \fImarginal_path_err_recheck_gap_time\fR, and
+after that, it is monitored again. For this method, time intervals are measured
+in seconds.
+.TP
+.B \(dqsan_path_err\(dq failure tracking
+multipathd counts path failures for each path. Once the number of failures
+exceeds the value given by \fIsan_path_err_threshold\fR, the path is not
+reinstated for \fIsan_path_err_recovery_time\fR ticks. While counting
+failures, multipathd \(dqforgets\(dq one past failure every
+\(dqsan_path_err_forget_rate\(dq ticks; thus if errors don't occur more
+often then once in the forget rate interval, the failure count doesn't
+increase and the threshold is never reached. As for the \fIdelay_xy\fR method,
+intervals are measured in \(dqticks\(dq.
+.
+.RS 8
+.LP
+This method is \fBdeprecated\fR in favor of the \(dqmarginal_path\(dq failure
+tracking method, and only offered for backward compatibility.
+.
+.RE
+.LP
+See the documentation
+of the individual options above for details.
+It is \fBstrongly discouraged\fR to use more than one of these methods for any
+given multipath map, because the two concurrent methods may interact in
+unpredictable ways. If the \(dqmarginal_path\(dq method is active, the
+\(dqsan_path_err\(dq parameters are implicitly set to 0.
 .
 .
 .\" ----------------------------------------------------------------------------

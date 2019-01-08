@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 size_t strchop(char *);
 int basenamecpy (const char *src, char *dst, size_t size);
@@ -24,6 +25,7 @@ int safe_write(int fd, const void *buf, size_t count);
 void set_max_fds(int max_fds);
 
 #define KERNEL_VERSION(maj, min, ptc) ((((maj) * 256) + (min)) * 256 + (ptc))
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 #define safe_sprintf(var, format, args...)	\
 	snprintf(var, sizeof(var), format, ##args) >= sizeof(var)
@@ -33,10 +35,27 @@ void set_max_fds(int max_fds);
 #define pthread_cleanup_push_cast(f, arg)		\
 	pthread_cleanup_push(((void (*)(void *))&f), (arg))
 
+void close_fd(void *arg);
+
 struct scandir_result {
 	struct dirent **di;
 	int n;
 };
 void free_scandir_result(struct scandir_result *);
+
+static inline bool is_bit_set_in_array(unsigned int bit, const uint64_t *arr)
+{
+	return arr[bit / 64] & (1ULL << (bit % 64)) ? 1 : 0;
+}
+
+static inline void set_bit_in_array(unsigned int bit, uint64_t *arr)
+{
+	arr[bit / 64] |= (1ULL << (bit % 64));
+}
+
+static inline void clear_bit_in_array(unsigned int bit, uint64_t *arr)
+{
+	arr[bit / 64] &= ~(1ULL << (bit % 64));
+}
 
 #endif /* _UTIL_H */

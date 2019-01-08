@@ -9,7 +9,7 @@
 #include "generic.h"
 
 #define WWID_SIZE		128
-#define SERIAL_SIZE		65
+#define SERIAL_SIZE		128
 #define NODE_NAME_SIZE		224
 #define PATH_STR_SIZE		16
 #define PARAMS_SIZE		4096
@@ -280,6 +280,10 @@ struct path {
 	int initialized;
 	int retriggers;
 	int wwid_changed;
+	unsigned int path_failures;
+	time_t dis_reinstate_time;
+	int disable_reinstate;
+	int san_path_err_forget_rate;
 	time_t io_err_dis_reinstate_time;
 	int io_err_disable_reinstate;
 	int io_err_pathfail_cnt;
@@ -318,6 +322,9 @@ struct multipath {
 	int deferred_remove;
 	int delay_watch_checks;
 	int delay_wait_checks;
+	int san_path_err_threshold;
+	int san_path_err_forget_rate;
+	int san_path_err_recovery_time;
 	int marginal_path_err_sample_time;
 	int marginal_path_err_rate_threshold;
 	int marginal_path_err_recheck_gap_time;
@@ -369,6 +376,27 @@ struct multipath {
 	int all_tg_pt;
 	struct gen_multipath generic_mp;
 };
+
+static inline int marginal_path_check_enabled(const struct multipath *mpp)
+{
+	return mpp->marginal_path_double_failed_time > 0 &&
+		mpp->marginal_path_err_sample_time > 0 &&
+		mpp->marginal_path_err_recheck_gap_time > 0 &&
+		mpp->marginal_path_err_rate_threshold >= 0;
+}
+
+static inline int san_path_check_enabled(const struct multipath *mpp)
+{
+	return mpp->san_path_err_threshold > 0 &&
+		mpp->san_path_err_forget_rate > 0 &&
+		mpp->san_path_err_recovery_time > 0;
+}
+
+static inline int delay_check_enabled(const struct multipath *mpp)
+{
+	return mpp->delay_watch_checks != NU_NO ||
+		mpp->delay_wait_checks != NU_NO;
+}
 
 struct pathgroup {
 	long id;
