@@ -1137,7 +1137,7 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 		int invalid;
 
 		if (should_exit())
-			return CP_FAIL;
+			goto out;
 
 		/* skip this path for some reason */
 
