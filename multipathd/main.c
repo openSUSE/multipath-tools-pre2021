@@ -2972,7 +2972,7 @@ child (void * param)
 			lock_cleanup_pop(vecs->lock);
 			post_config_state(DAEMON_IDLE);
 #ifdef USE_SYSTEMD
-			if (!startup_done) {
+			if (!startup_done && !should_exit()) {
 				sd_notify(0, "READY=1");
 				startup_done = 1;
 			}
