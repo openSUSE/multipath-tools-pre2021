@@ -137,7 +137,7 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 			/* Not a DASD */
 			return -1;
 	} else {
-		fd_dasd = fd;
+		fd_dasd = dup(fd);
 	}
 
 	if (ioctl(fd_dasd, BIODASDINFO, (unsigned long)&info) != 0) {
@@ -190,7 +190,7 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 		memcpy (&vlabel, data, sizeof(vlabel));
 	else {
 		bzero(&vlabel,4);
-		memcpy (&vlabel.vollbl, data, sizeof(vlabel) - 4);
+		memcpy ((char *)&vlabel + 4, data, sizeof(vlabel) - 4);
 	}
 	vtoc_ebcdic_dec(vlabel.vollbl, type, 4);
 
@@ -288,7 +288,6 @@ read_dasd_pt(int fd, struct slice all, struct slice *sp, int ns)
 out:
 	if (data != NULL)
 		free(data);
-	if (fd_dasd != -1 && fd_dasd != fd)
-		close(fd_dasd);
+	close(fd_dasd);
 	return retval;
 }
