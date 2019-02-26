@@ -416,6 +416,7 @@ int setup_map(struct multipath *mpp, char *params, int params_size,
 				mpp->alias, n_pending, n_paths);
 	}
 	mpp->nr_active = pathcount(mpp, PATH_UP) + pathcount(mpp, PATH_GHOST);
+	condlog(2, "setup_map: nr_active = %d", mpp->nr_active);
 
 	/*
 	 * ponders each path group and determine highest prio pg

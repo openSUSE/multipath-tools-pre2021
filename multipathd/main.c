@@ -373,6 +373,7 @@ static void set_no_path_retry(struct multipath *mpp)
 	char is_queueing = 0;
 
 	mpp->nr_active = pathcount(mpp, PATH_UP) + pathcount(mpp, PATH_GHOST);
+	condlog(2, "set_no_path_retry: nr_active = %d", mpp->nr_active);
 	if (mpp->features && strstr(mpp->features, "queue_if_no_path"))
 		is_queueing = 1;
 

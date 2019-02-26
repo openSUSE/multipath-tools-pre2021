@@ -440,6 +440,17 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
 	return count;
 }
 
+static void check_nr_active(const struct multipath *mpp)
+{
+	int nu = pathcount(mpp, PATH_UP);
+	int ng = pathcount(mpp, PATH_GHOST);
+
+	if (mpp->nr_active != nu + ng)
+		condlog(1, "%s: nr_active mismatch %d != %d + %d (%d pending)",
+			mpp->alias,
+			mpp->nr_active, nu, ng, pathcount(mpp, PATH_PENDING));
+}
+
 /*
  * mpp->no_path_retry:
  *   -2 (QUEUE) : queue_if_no_path enabled, never turned off
@@ -449,7 +460,9 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
  */
 void update_queue_mode_del_path(struct multipath *mpp)
 {
-	if (--mpp->nr_active == 0) {
+	--mpp->nr_active;
+	check_nr_active(mpp);
+	if (mpp->nr_active == 0) {
 		if (mpp->no_path_retry > 0)
 			enter_recovery_mode(mpp);
 		else if (mpp->no_path_retry != NO_PATH_RETRY_QUEUE)
@@ -468,6 +481,7 @@ void update_queue_mode_add_path(struct multipath *mpp)
 		condlog(1, "%s: Recovered to normal mode", mpp->alias);
 	}
 	condlog(2, "%s: remaining active paths: %d", mpp->alias, mpp->nr_active);
+	check_nr_active(mpp);
 }
 
 vector get_used_hwes(const struct _vector *pathvec)
