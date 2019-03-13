@@ -450,7 +450,7 @@ int select_checker(struct config *conf, struct path *pp)
 		if (check_rdac(pp)) {
 			checker_name = RDAC;
 			goto out;
-		} else if (pp->tpgs > 0) {
+		} else if (get_tpgs(pp) != TPGS_NONE) {
 			checker_name = TUR;
 			goto out;
 		}
@@ -511,10 +511,11 @@ detect_prio(struct config *conf, struct path * pp)
 	struct prio *p = &pp->prio;
 	char buff[512];
 	char *default_prio = PRIO_ALUA;
+	int tpgs = get_tpgs(pp);
 
-	if (pp->tpgs <= 0)
+	if (tpgs == TPGS_NONE)
 		return;
-	if (pp->tpgs == 2 || !check_rdac(pp)) {
+	if (tpgs == TPGS_EXPLICIT || !check_rdac(pp)) {
 		if (sysfs_get_asymmetric_access_state(pp, buff, 512) >= 0)
 			default_prio = PRIO_SYSFS;
 	}
@@ -535,6 +536,7 @@ int select_prio(struct config *conf, struct path *pp)
 	char *origin;
 	struct mpentry * mpe;
 	struct prio * p = &pp->prio;
+	int log_prio = 3;
 
 	if (pp->detect_prio == DETECT_PRIO_ON) {
 		detect_prio(conf, pp);
@@ -555,14 +557,16 @@ out:
 	 * fetch tpgs mode for alua, if its not already obtained
 	 */
 	if (!strncmp(prio_name(p), PRIO_ALUA, PRIO_NAME_LEN)) {
-		int tpgs = 0;
-		unsigned int timeout = conf->checker_timeout;
+		int tpgs = get_tpgs(pp);
 
-		if(!pp->tpgs &&
-		   (tpgs = get_target_port_group_support(pp, timeout)) >= 0)
-			pp->tpgs = tpgs;
+		if (tpgs == TPGS_NONE) {
+			prio_get(conf->multipath_dir,
+				 p, DEFAULT_PRIO, DEFAULT_PRIO_ARGS);
+			origin = "(setting: emergency fallback - alua failed)";
+			log_prio = 1;
+		}
 	}
-	condlog(3, "%s: prio = %s %s", pp->dev, prio_name(p), origin);
+	condlog(log_prio, "%s: prio = %s %s", pp->dev, prio_name(p), origin);
 	condlog(3, "%s: prio args = \"%s\" %s", pp->dev, prio_args(p), origin);
 	return 0;
 }

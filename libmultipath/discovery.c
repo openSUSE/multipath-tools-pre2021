@@ -853,6 +853,13 @@ detect_alua(struct path * pp)
 	pp->tpgs = tpgs;
 }
 
+int get_tpgs(struct path *pp)
+{
+	if (pp->tpgs == TPGS_UNDEF)
+		detect_alua(pp);
+	return pp->tpgs;
+}
+
 #define DEFAULT_SGIO_LEN 254
 
 /* Query VPD page @pg. Returns number of INQUIRY bytes
@@ -1536,9 +1543,6 @@ scsi_ioctl_pathinfo (struct path * pp, struct config *conf, int mask)
 {
 	struct udev_device *parent;
 	const char *attr_path = NULL;
-
-	if (pp->tpgs == TPGS_UNDEF)
-		detect_alua(pp);
 
 	if (!(mask & DI_SERIAL))
 		return 0;
