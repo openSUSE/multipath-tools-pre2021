@@ -23,9 +23,6 @@ LIBS = \
 
 all: $(LIBS)
 
-libprioalua.so: alua.o alua_rtpg.o
-	$(CC) $(LDFLAGS) $(SHARED_FLAGS) -o $@ $^
-
 libpriopath_latency.so: path_latency.o  ../checkers/libsg.o
 	$(CC) $(LDFLAGS) $(SHARED_FLAGS) -o $@ $^ -lm
 
