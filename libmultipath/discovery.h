@@ -46,8 +46,10 @@ int sysfs_set_scsi_tmo (struct multipath *mpp, int checkint);
 int sysfs_get_timeout(struct path *pp, unsigned int *timeout);
 int sysfs_get_host_pci_name(struct path *pp, char *pci_name);
 int sysfs_get_iscsi_ip_address(struct path *pp, char *ip_address);
-ssize_t sysfs_get_vpd (struct udev_device * udev, int pg, unsigned char * buff,
-		       size_t len);
+ssize_t sysfs_get_vpd (struct udev_device *udev, unsigned char pg,
+		       unsigned char *buff, size_t len);
+ssize_t sysfs_get_inquiry(struct udev_device * udev,
+			  unsigned char *buff, size_t len);
 int sysfs_get_asymmetric_access_state(struct path *pp,
 				      char *buff, int buflen);
 int get_uid(struct path * pp, int path_state, struct udev_device *udev);
