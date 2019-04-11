@@ -1978,9 +1978,6 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 		} else {
 			condlog(3, "%s: path inaccessible", pp->dev);
 			pp->chkrstate = pp->state = path_state;
-			if (path_state == PATH_PENDING ||
-			    path_state == PATH_DOWN)
-				pp->priority = 0;
 		}
 	}
 
