@@ -847,8 +847,22 @@ main (int argc, char *argv[])
 	    dev_type == DEV_UEVENT) {
 		int fd;
 
-		fd = mpath_connect();
-		if (fd == -1) {
+		/*
+		 * "multipath -u" may be run before the daemon is started. In
+		 * this case, systemd might own the socket but might delay
+		 * multipathd startup until some other unit (udev settle!)
+		 * has finished starting. With many LUNs, the listen backlog
+		 * may be exceeded, which would cause connect() to block. This
+		 * causes udev workers calling "multipath -u" to hang, and
+		 * thus creates a deadlock, until "udev settle" times out.
+		 * To avoid this, call connect() in non-blocking mode here,
+		 * and take EAGAIN as indication for a filled-up systemd
+		 * backlog.
+		 */
+		fd = __mpath_connect(1);
+		if (fd == -EAGAIN)
+			condlog(3, "%s: daemon backlog exceeded", dev);
+		else if (fd < 0) {
 			condlog(3, "%s: daemon is not running", dev);
 			if (!systemd_service_enabled(dev)) {
 				printf("%s is not a valid "
