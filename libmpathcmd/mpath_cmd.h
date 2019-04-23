@@ -36,6 +36,21 @@ extern "C" {
 
 /*
  * DESCRIPTION:
+ *	Same as mpath_connect() (see below) except for the "nonblocking"
+ *	parameter.
+ *	If "nonblocking" is set, connects in non-blocking mode. This is
+ *	useful to avoid blocking if the listening socket's backlog is
+ *	exceeded. In this case, -EAGAIN will be returned.
+ *	Even with "nonblocking" set, the returned file descriptor is in
+ *	blocking mode in case of success.
+ *
+ * RETURNS:
+ *	A file descriptor on success. -1 on failure (with errno set).
+ */
+int __mpath_connect(int nonblocking);
+
+/*
+ * DESCRIPTION:
  *	Connect to the running multipathd daemon. On systems with the
  *	multipathd.socket systemd unit file installed, this command will
  *	start multipathd if it is not already running. This function
