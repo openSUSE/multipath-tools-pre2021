@@ -7,6 +7,7 @@
 #include <poll.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "mpath_cmd.h"
 
@@ -74,10 +75,11 @@ static size_t write_all(int fd, const void *buf, size_t len)
 /*
  * connect to a unix domain socket
  */
-int mpath_connect(void)
+int __mpath_connect(int nonblocking)
 {
-	int fd, len;
+	int fd, len, err;
 	struct sockaddr_un addr;
+	int flags = 0;
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_LOCAL;
@@ -87,14 +89,37 @@ int mpath_connect(void)
 
 	fd = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (fd == -1)
-		return -1;
+		return -errno;
 
-	if (connect(fd, (struct sockaddr *)&addr, len) == -1) {
-		close(fd);
-		return -1;
+	if (nonblocking) {
+		flags = fcntl(fd, F_GETFL, 0);
+		if (flags != -1)
+			(void)fcntl(fd, F_SETFL, flags|O_NONBLOCK);
 	}
 
+	if (connect(fd, (struct sockaddr *)&addr, len) == -1) {
+		err = -errno;
+		close(fd);
+		return err;
+	}
+
+	if (nonblocking && flags != -1)
+		(void)fcntl(fd, F_SETFL, flags);
+
 	return fd;
+}
+
+/*
+ * connect to a unix domain socket
+ */
+int mpath_connect(void)
+{
+	int fd = __mpath_connect(0);
+
+	if (fd >= 0)
+		return fd;
+	errno = -fd;
+	return -1;
 }
 
 int mpath_disconnect(int fd)
