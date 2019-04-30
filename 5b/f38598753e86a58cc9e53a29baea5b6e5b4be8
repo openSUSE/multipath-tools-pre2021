@@ -1,0 +1,3 @@
+bsc#1110060, bsc#1110439
+
+SLE15: multipathd: check for DAEMON_SHUTDOWN in configure

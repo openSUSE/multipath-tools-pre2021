@@ -1,8 +1,1 @@
 bsc#1110060, bsc#1110439
-
-Upstream:
-19a01975 multipathd: protect all access to running_state
-
-plus "multipathd: allow shutdown during configure()"
-plus "libmultipath: coalesce_paths(): avoid size_mismatch_seen leak"
-plus "multipathd: check for shutdown before signaling READY=1 to systemd"
