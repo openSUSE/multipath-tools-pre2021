@@ -63,14 +63,8 @@
 #include "propsel.h"
 #include "time-util.h"
 #include "file.h"
-#include "exit.h"
 
 int logsink;
-int should_exit(void)
-{
-	return 0;
-}
-
 struct udev *udev;
 struct config *multipath_conf;
 
