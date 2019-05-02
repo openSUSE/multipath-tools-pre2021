@@ -22,6 +22,7 @@
 #include "vector.h"
 #include "structs.h"
 #include "log.h"
+#include "exit.h"
 
 size_t
 strchop(char *str)
@@ -469,4 +470,18 @@ void free_scandir_result(struct scandir_result *res)
 void close_fd(void *arg)
 {
 	close((long)arg);
+}
+
+static int (*__should_exit)(void);
+
+int should_exit(void) {
+	if (__should_exit)
+		return __should_exit();
+	else
+		return 0;
+}
+
+void set_should_exit_fn(int(*fn)(void))
+{
+	__should_exit = fn;
 }
