@@ -23,6 +23,7 @@
 #include "structs.h"
 #include "config.h"
 #include "log.h"
+#include "exit.h"
 
 size_t
 strchop(char *str)
@@ -421,4 +422,20 @@ struct bitfield *alloc_bitfield(unsigned int maxbit)
 void _log_bitfield_overflow(const char *f, unsigned int bit, unsigned int len)
 {
 	condlog(0, "%s: bitfield overflow: %u >= %u", f, bit, len);
+}
+
+static int should_not_exit(void)
+{
+	return 0;
+}
+
+static int (*__should_exit)(void) = should_not_exit;
+
+int should_exit(void) {
+	return __should_exit();
+}
+
+void set_should_exit_fn(int(*fn)(void))
+{
+	__should_exit = fn;
 }

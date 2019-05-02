@@ -142,7 +142,7 @@ static inline enum daemon_status get_running_state(void)
 	return st;
 }
 
-int should_exit(void)
+int multipathd_should_exit(void)
 {
 	return get_running_state() == DAEMON_SHUTDOWN;
 }
@@ -3251,6 +3251,7 @@ main (int argc, char *argv[])
 
 	pthread_cond_init_mono(&config_cond);
 
+	set_should_exit_fn(multipathd_should_exit);
 	udev = udev_new();
 	libmp_udev_set_sync_support(0);
 
