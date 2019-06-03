@@ -704,7 +704,7 @@ cli_add_path (void * v, char ** reply, int * len, void * data)
 								 "block",
 								 param);
 		r = store_pathinfo(vecs->pathvec, conf,
-				   udevice, DI_ALL, &pp);
+				   udevice, DI_ALL | DI_BLACKLIST, &pp);
 		udev_device_unref(udevice);
 		if (!pp) {
 			put_multipath_config(conf);
