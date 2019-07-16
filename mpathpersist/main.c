@@ -15,8 +15,8 @@
 #include <pthread.h>
 #include <ctype.h>
 #include <string.h>
-#include "version.h"
 #include <errno.h>
+#include "version.h"
 
 static const char * pr_type_strs[] = {
 	"obsolete [0]",
