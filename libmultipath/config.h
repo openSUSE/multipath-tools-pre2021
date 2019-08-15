@@ -224,6 +224,7 @@ struct config {
 	vector elist_device;
 	vector elist_property;
 	vector elist_protocol;
+	char *enable_foreign;
 };
 
 extern struct udev * udev;
