@@ -125,7 +125,7 @@ int group_by_node_name(struct multipath * mp)
 
 		/* feed the first path */
 		if (store_path(pgp->paths, pp))
-			goto out2;
+			goto out1;
 
 		bitmap[i] = 1;
 
@@ -139,7 +139,7 @@ int group_by_node_name(struct multipath * mp)
 			if (!strncmp(pp->tgt_node_name, pp2->tgt_node_name,
 					NODE_NAME_SIZE)) {
 				if (store_path(pgp->paths, pp2))
-					goto out2;
+					goto out1;
 
 				bitmap[j] = 1;
 			}
@@ -201,7 +201,7 @@ int group_by_serial(struct multipath * mp)
 
 		/* feed the first path */
 		if (store_path(pgp->paths, pp))
-			goto out2;
+			goto out1;
 
 		bitmap[i] = 1;
 
@@ -214,7 +214,7 @@ int group_by_serial(struct multipath * mp)
 
 			if (0 == strcmp(pp->serial, pp2->serial)) {
 				if (store_path(pgp->paths, pp2))
-					goto out2;
+					goto out1;
 
 				bitmap[j] = 1;
 			}
@@ -258,7 +258,7 @@ int one_path_per_group(struct multipath *mp)
 			goto out1;
 
 		if (store_path(pgp->paths, pp))
-			goto out1;
+			goto out;
 	}
 	sort_pathgroups(mp);
 	free_pathvec(mp->paths, KEEP_PATHS);
@@ -379,7 +379,7 @@ int group_by_prio(struct multipath *mp)
 		vector_foreach_slot(pathvec, pp, i) {
 			if (pp->priority == prio) {
 				if (store_path(pgp->paths, pp))
-					goto out2;
+					goto out1;
 
 				vector_del_slot(pathvec, i);
 				i--;
