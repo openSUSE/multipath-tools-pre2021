@@ -516,6 +516,7 @@ detect_prio(struct config *conf, struct path * pp)
 	struct prio *p = &pp->prio;
 	char buff[512];
 	char *default_prio;
+	int tpgs;
 
 	switch(pp->bus) {
 	case SYSFS_BUS_NVME:
@@ -524,9 +525,10 @@ detect_prio(struct config *conf, struct path * pp)
 		default_prio = PRIO_ANA;
 		break;
 	case SYSFS_BUS_SCSI:
-		if (pp->tpgs == TPGS_NONE)
+		tpgs = get_tpgs(pp);
+		if (tpgs == TPGS_NONE)
 			return;
-		if ((pp->tpgs == TPGS_EXPLICIT || !check_rdac(pp)) &&
+		if ((tpgs == TPGS_EXPLICIT || !check_rdac(pp)) &&
 		    sysfs_get_asymmetric_access_state(pp, buff, 512) >= 0)
 			default_prio = PRIO_SYSFS;
 		else
