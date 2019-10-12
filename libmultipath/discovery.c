@@ -199,7 +199,7 @@ out:
 ssize_t									\
 sysfs_get_##fname (struct udev_device * udev, char * buff, size_t len)	\
 {									\
-	int l;							\
+	size_t l;							\
 	const char * attr;						\
 	const char * devname;						\
 									\
@@ -920,7 +920,10 @@ get_geometry(struct path *pp)
 static int
 parse_vpd_pg80(const unsigned char *in, char *out, size_t out_len)
 {
-	int len = get_unaligned_be16(&in[2]);
+	size_t len = get_unaligned_be16(&in[2]);
+
+	if (out_len == 0)
+		return 0;
 
 	/*
 	 * Strip leading and trailing whitespace
@@ -933,8 +936,8 @@ parse_vpd_pg80(const unsigned char *in, char *out, size_t out_len)
 	}
 
 	if (len >= out_len) {
-		condlog(2, "vpd pg80 overflow, %d/%d bytes required",
-			len + 1, (int)out_len);
+		condlog(2, "vpd pg80 overflow, %lu/%lu bytes required",
+			len + 1, out_len);
 		len = out_len - 1;
 	}
 	if (len > 0) {
@@ -1700,7 +1703,7 @@ get_prio (struct path * pp)
  * Returns a pointer to the position where "end" was moved to.
  */
 static char
-*skip_zeroes_backward(char* start, int *len, char *end)
+*skip_zeroes_backward(char* start, size_t *len, char *end)
 {
 	char *p = end;
 
@@ -1726,10 +1729,10 @@ static char
  * Otherwise, returns 0.
  */
 static int
-fix_broken_nvme_wwid(struct path *pp, const char *value, int size)
+fix_broken_nvme_wwid(struct path *pp, const char *value, size_t size)
 {
 	static const char _nvme[] = "nvme.";
-	int len, i;
+	size_t len, i;
 	char mangled[256];
 	char *p;
 

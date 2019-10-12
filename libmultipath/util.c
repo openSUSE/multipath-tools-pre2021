@@ -45,7 +45,7 @@ basenamecpy (const char *src, char *dst, size_t size)
 	p = basename(src);
 
 	for (e = p + strlen(p) - 1; e >= p && isspace(*e); --e) ;
-	if (e < p || e - p > size - 2)
+	if (e < p || (size_t)(e - p) > size - 2)
 		return 0;
 
 	strlcpy(dst, p, e - p + 2);
@@ -429,7 +429,7 @@ int safe_write(int fd, const void *buf, size_t count)
 	return 0;
 }
 
-void set_max_fds(int max_fds)
+void set_max_fds(rlim_t max_fds)
 {
 	struct rlimit fd_limit;
 

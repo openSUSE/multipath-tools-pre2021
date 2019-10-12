@@ -249,7 +249,7 @@ allocate_binding(int fd, char *wwid, int id, char *prefix)
 			strerror(errno));
 		return NULL;
 	}
-	if (write(fd, buf, strlen(buf)) != strlen(buf)){
+	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf)){
 		condlog(0, "Cannot write binding to bindings file : %s",
 			strerror(errno));
 		/* clear partial write */
