@@ -499,7 +499,7 @@ int update_multipath (struct vectors *vecs, char *mapname, int reset)
 			if (pp->state != PATH_DOWN) {
 				struct config *conf;
 				int oldstate = pp->state;
-				int checkint;
+				unsigned int checkint;
 
 				conf = get_multipath_config();
 				checkint = conf->checkint;
@@ -2001,7 +2001,7 @@ reinstate_path:
  * and '0' otherwise
  */
 int
-check_path (struct vectors * vecs, struct path * pp, int ticks)
+check_path (struct vectors * vecs, struct path * pp, unsigned int ticks)
 {
 	int newstate;
 	int new_path_up = 0;
@@ -2009,7 +2009,8 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	int add_active;
 	int disable_reinstate = 0;
 	int oldchkrstate = pp->chkrstate;
-	int retrigger_tries, checkint, max_checkint, verbosity;
+	int retrigger_tries, verbosity;
+	unsigned int checkint, max_checkint;
 	struct config *conf;
 	int ret;
 
@@ -2364,7 +2365,8 @@ checkerloop (void *ap)
 
 	while (1) {
 		struct timespec diff_time, start_time, end_time;
-		int num_paths = 0, ticks = 0, strict_timing, rc = 0;
+		int num_paths = 0, strict_timing, rc = 0;
+		unsigned int ticks = 0;
 
 		get_monotonic_time(&start_time);
 		if (start_time.tv_sec && last_time.tv_sec) {
