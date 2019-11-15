@@ -33,10 +33,6 @@
  */
 #include "checkers.h"
 
-#ifdef USE_SYSTEMD
-static int use_watchdog;
-#endif
-
 /*
  * libmultipath
  */
@@ -2318,6 +2314,7 @@ checkerloop (void *ap)
 	struct timespec last_time;
 	struct config *conf;
 	int foreign_tick = 0;
+	bool use_watchdog;
 
 	pthread_cleanup_push(rcu_unregister, NULL);
 	rcu_register_thread();
@@ -2328,6 +2325,11 @@ checkerloop (void *ap)
 	/* Tweak start time for initial path check */
 	get_monotonic_time(&last_time);
 	last_time.tv_sec -= 1;
+
+	/* use_watchdog is set from process environment and never changes */
+	conf = get_multipath_config();
+	use_watchdog = conf->use_watchdog;
+	put_multipath_config(conf);
 
 	while (1) {
 		struct timespec diff_time, start_time, end_time;
@@ -2812,7 +2814,6 @@ child (void * param)
 	struct multipath * mpp;
 	int i;
 #ifdef USE_SYSTEMD
-	unsigned long checkint;
 	int startup_done = 0;
 #endif
 	int rc;
@@ -2889,21 +2890,6 @@ child (void * param)
 	setscheduler();
 	set_oom_adj();
 
-#ifdef USE_SYSTEMD
-	envp = getenv("WATCHDOG_USEC");
-	if (envp && sscanf(envp, "%lu", &checkint) == 1) {
-		/* Value is in microseconds */
-		conf->max_checkint = checkint / 1000000;
-		/* Rescale checkint */
-		if (conf->checkint > conf->max_checkint)
-			conf->checkint = conf->max_checkint;
-		else
-			conf->checkint = conf->max_checkint / 4;
-		condlog(3, "enabling watchdog, interval %d max %d",
-			conf->checkint, conf->max_checkint);
-		use_watchdog = conf->checkint;
-	}
-#endif
 	/*
 	 * Startup done, invalidate configuration
 	 */
