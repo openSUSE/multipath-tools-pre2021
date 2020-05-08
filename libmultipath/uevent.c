@@ -108,7 +108,8 @@ uevq_cleanup(struct list_head *tmpq)
 static const char* uevent_get_env_var(const struct uevent *uev,
 				      const char *attr)
 {
-	int i, len;
+	int i;
+	size_t len;
 	const char *p = NULL;
 
 	if (attr == NULL)
@@ -853,7 +854,7 @@ int uevent_listen(struct udev *udev)
 		poll_timeout = timeout * 1000;
 		errno = 0;
 		fdcount = poll(&ev_poll, 1, poll_timeout);
-		if (fdcount && ev_poll.revents & POLLIN) {
+		if (fdcount > 0 && ev_poll.revents & POLLIN) {
 			timeout = uevent_burst(&start_time, events + 1) ? 1 : 0;
 			dev = udev_monitor_receive_device(monitor);
 			if (!dev) {

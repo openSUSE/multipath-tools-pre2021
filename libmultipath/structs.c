@@ -131,6 +131,9 @@ free_path (struct path * pp)
 		udev_device_unref(pp->udev);
 		pp->udev = NULL;
 	}
+	if (pp->vpd_data)
+		free(pp->vpd_data);
+
 	vector_free(pp->hwe);
 
 	FREE(pp);
@@ -350,7 +353,7 @@ store_adaptergroup(vector adapters, struct adapter_group * agp)
 }
 
 struct multipath *
-find_mp_by_minor (const struct _vector *mpvec, int minor)
+find_mp_by_minor (const struct _vector *mpvec, unsigned int minor)
 {
 	int i;
 	struct multipath * mpp;
@@ -388,7 +391,7 @@ struct multipath *
 find_mp_by_alias (const struct _vector *mpvec, const char * alias)
 {
 	int i;
-	int len;
+	size_t len;
 	struct multipath * mpp;
 
 	if (!mpvec)
@@ -474,6 +477,25 @@ int pathcount(const struct multipath *mpp, int state)
 	if (mpp->pg) {
 		vector_foreach_slot (mpp->pg, pgp, i)
 			count += pathcountgr(pgp, state);
+	}
+	return count;
+}
+
+int count_active_paths(const struct multipath *mpp)
+{
+	struct pathgroup *pgp;
+	struct path *pp;
+	int count = 0;
+	int i, j;
+
+	if (!mpp->pg)
+		return 0;
+
+	vector_foreach_slot (mpp->pg, pgp, i) {
+		vector_foreach_slot (pgp->paths, pp, j) {
+			if (pp->state == PATH_UP || pp->state == PATH_GHOST)
+				count++;
+		}
 	}
 	return count;
 }

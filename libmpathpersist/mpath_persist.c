@@ -47,7 +47,7 @@ mpath_lib_init (void)
 		condlog(0, "Failed to initialize multipath config.");
 		return NULL;
 	}
-
+	conf->force_sync = 1;
 	set_max_fds(conf->max_fds);
 
 	return conf;
@@ -854,7 +854,8 @@ int update_map_pr(struct multipath *mpp)
 {
 	int noisy=0;
 	struct prin_resp *resp;
-	int i, ret, isFound;
+	unsigned int i;
+	int ret, isFound;
 
 	if (!get_be64(mpp->reservation_key))
 	{

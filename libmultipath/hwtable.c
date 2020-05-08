@@ -117,6 +117,7 @@ static struct hwentry default_hw[] = {
 		.no_path_retry = 18,
 		.fast_io_fail  = 10,
 		.dev_loss      = MAX_DEV_LOSS_TMO,
+		.vpd_vendor_id = VPD_VP_HP3PAR,
 	},
 	{
 		/* RA8000 / ESA12000 */
@@ -1039,7 +1040,12 @@ static struct hwentry default_hw[] = {
 		/* FlashArray */
 		.vendor        = "PURE",
 		.product       = "FlashArray",
-		.pgpolicy      = MULTIBUS,
+		.pgpolicy      = GROUP_BY_PRIO,
+		.pgfailback    = -FAILBACK_IMMEDIATE,
+		.hwhandler     = "1 alua",
+		.prio_name     = PRIO_ALUA,
+		.fast_io_fail  = 10,
+		.max_sectors_kb = 4096,
 	},
 	/*
 	 * Huawei

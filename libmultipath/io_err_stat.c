@@ -54,7 +54,7 @@ struct io_err_stat_pathvec {
 
 struct dio_ctx {
 	struct timespec	io_starttime;
-	int		blksize;
+	unsigned int	blksize;
 	void		*buf;
 	struct iocb	io;
 };
@@ -84,7 +84,7 @@ io_context_t	ioctx;
 
 static void cancel_inflight_io(struct io_err_stat_path *pp);
 
-static void rcu_unregister(void *param)
+static void rcu_unregister(__attribute__((unused)) void *param)
 {
 	rcu_unregister_thread();
 }
@@ -128,7 +128,7 @@ static int setup_directio_ctx(struct io_err_stat_path *p)
 {
 	unsigned long pgsize = getpagesize();
 	char fpath[PATH_MAX];
-	int blksize = 0;
+	unsigned int blksize = 0;
 	int i;
 
 	if (snprintf(fpath, PATH_MAX, "/dev/%s", p->devname) >= PATH_MAX)
@@ -357,7 +357,7 @@ int io_err_stat_handle_pathfail(struct path *path)
 		if (path->state != PATH_DOWN) {
 			struct config *conf;
 			int oldstate = path->state;
-			int checkint;
+			unsigned int checkint;
 
 			conf = get_multipath_config();
 			checkint = conf->checkint;
@@ -383,7 +383,7 @@ int need_io_err_check(struct path *pp)
 
 	if (uatomic_read(&io_err_thread_running) == 0)
 		return 0;
-	if (pp->mpp->nr_active <= 0) {
+	if (count_active_paths(pp->mpp) <= 0) {
 		io_err_stat_log(2, "%s: recover path early", pp->dev);
 		goto recover;
 	}
@@ -481,7 +481,7 @@ static int poll_io_err_stat(struct vectors *vecs, struct io_err_stat_path *pp)
 		 */
 		path->tick = 1;
 
-	} else if (path->mpp && path->mpp->nr_active > 0) {
+	} else if (path->mpp && count_active_paths(path->mpp) > 0) {
 		io_err_stat_log(3, "%s: keep failing the dm path %s",
 				path->mpp->alias, path->dev);
 		path->io_err_pathfail_cnt = PATH_IO_ERR_WAITING_TO_CHECK;
@@ -689,7 +689,7 @@ static void cleanup_unlock(void *arg)
 	pthread_mutex_unlock((pthread_mutex_t*) arg);
 }
 
-static void cleanup_exited(void *arg)
+static void cleanup_exited(__attribute__((unused)) void *arg)
 {
 	uatomic_set(&io_err_thread_running, 0);
 }

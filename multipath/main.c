@@ -86,7 +86,7 @@ struct config *get_multipath_config(void)
 	return multipath_conf;
 }
 
-void put_multipath_config(void *arg)
+void put_multipath_config(__attribute__((unused)) void *arg)
 {
 	/* Noop for now */
 }
@@ -423,8 +423,7 @@ static int find_multipaths_check_timeout(const struct path *pp, long tmo,
 
 	clock_gettime(CLOCK_REALTIME, &now);
 
-	if (snprintf(path, sizeof(path), "%s/%s", shm_find_mp_dir, pp->dev_t)
-	    >= sizeof(path)) {
+	if (safe_sprintf(path, "%s/%s", shm_find_mp_dir, pp->dev_t)) {
 		condlog(1, "%s: path name overflow", __func__);
 		return FIND_MULTIPATHS_ERROR;
 	}
@@ -811,8 +810,10 @@ enum {
 	NOT_DELEGATED = 1,
 };
 
-int delegate_to_multipathd(enum mpath_cmds cmd, const char *dev,
-			   enum devtypes dev_type, const struct config *conf)
+int delegate_to_multipathd(enum mpath_cmds cmd,
+			   __attribute__((unused)) const char *dev,
+			   __attribute__((unused)) enum devtypes dev_type,
+			   const struct config *conf)
 {
 	int fd;
 	char command[1024], *p, *reply = NULL;
@@ -905,6 +906,7 @@ main (int argc, char *argv[])
 		exit(RTVL_FAIL);
 	multipath_conf = conf;
 	conf->retrigger_tries = 0;
+	conf->force_sync = 1;
 	while ((arg = getopt(argc, argv, ":adcChl::FfM:v:p:b:BrR:itTquUwW")) != EOF ) {
 		switch(arg) {
 		case 1: printf("optarg : %s\n",optarg);
@@ -1023,7 +1025,7 @@ main (int argc, char *argv[])
 		if (!dev)
 			goto out;
 
-		strncpy(dev, argv[optind], FILE_NAME_SIZE);
+		strlcpy(dev, argv[optind], FILE_NAME_SIZE);
 		if (dev_type != DEV_UEVENT)
 			dev_type = get_dev_type(dev);
 		if (dev_type == DEV_NONE) {

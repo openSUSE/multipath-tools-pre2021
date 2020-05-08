@@ -123,7 +123,8 @@ nvme_mp_get_pgs(const struct gen_multipath *gmp) {
 }
 
 static void
-nvme_mp_rel_pgs(const struct gen_multipath *gmp, const struct _vector *v)
+nvme_mp_rel_pgs(__attribute__((unused)) const struct gen_multipath *gmp,
+		__attribute__((unused)) const struct _vector *v)
 {
 	/* empty */
 }
@@ -207,7 +208,8 @@ nvme_pg_get_paths(const struct gen_pathgroup *gpg) {
 }
 
 static void
-nvme_pg_rel_paths(const struct gen_pathgroup *gpg, const struct _vector *v)
+nvme_pg_rel_paths(__attribute__((unused)) const struct gen_pathgroup *gpg,
+		  __attribute__((unused)) const struct _vector *v)
 {
 	/* empty */
 }
@@ -331,8 +333,9 @@ static int snprint_nvme_pg(const struct gen_pathgroup *gmp,
 	}
 }
 
-static int nvme_style(const struct gen_multipath* gm,
-		      char *buf, int len, int verbosity)
+static int nvme_style(__attribute__((unused)) const struct gen_multipath* gm,
+		      char *buf, int len,
+		      __attribute__((unused)) int verbosity)
 {
 	int n = snprintf(buf, len, "%%w [%%G]:%%d %%s");
 
@@ -588,8 +591,7 @@ static void test_ana_support(struct nvme_map *map, struct udev_device *ctl)
 		return;
 
 	dev_t = udev_device_get_sysattr_value(ctl, "dev");
-	if (snprintf(sys_path, sizeof(sys_path), "/dev/char/%s", dev_t)
-	    >= sizeof(sys_path))
+	if (safe_sprintf(sys_path, "/dev/char/%s", dev_t))
 		return;
 
 	fd = open(sys_path, O_RDONLY);
@@ -660,8 +662,7 @@ static void _find_controllers(struct context *ctx, struct nvme_map *map)
 		char *fn = di[i]->d_name;
 		struct udev_device *ctrl, *udev;
 
-		if (snprintf(pathbuf + n, sizeof(pathbuf) - n, "/%s", fn)
-		    >= sizeof(pathbuf) - n)
+		if (safe_snprintf(pathbuf + n, sizeof(pathbuf) - n, "/%s", fn))
 			continue;
 		if (realpath(pathbuf, realbuf) == NULL) {
 			condlog(3, "%s: %s: realpath: %s", __func__, THIS,
@@ -821,7 +822,8 @@ int add(struct context *ctx, struct udev_device *ud)
 	return rc;
 }
 
-int change(struct context *ctx, struct udev_device *ud)
+int change(__attribute__((unused)) struct context *ctx,
+	   __attribute__((unused)) struct udev_device *ud)
 {
 	condlog(5, "%s called for \"%s\"", __func__, THIS);
 	return FOREIGN_IGNORED;
@@ -903,7 +905,8 @@ const struct _vector *get_multipaths(const struct context *ctx)
 	return ctx->mpvec;
 }
 
-void release_multipaths(const struct context *ctx, const struct _vector *mpvec)
+void release_multipaths(__attribute__((unused)) const struct context *ctx,
+			__attribute__((unused)) const struct _vector *mpvec)
 {
 	condlog(5, "%s called for \"%s\"", __func__, THIS);
 	/* NOP */
@@ -927,7 +930,8 @@ const struct _vector * get_paths(const struct context *ctx)
 	return paths;
 }
 
-void release_paths(const struct context *ctx, const struct _vector *mpvec)
+void release_paths(__attribute__((unused)) const struct context *ctx,
+		   const struct _vector *mpvec)
 {
 	condlog(5, "%s called for \"%s\"", __func__, THIS);
 	vector_free_const(mpvec);

@@ -447,12 +447,26 @@ int select_hwhandler(struct config *conf, struct multipath *mp)
 	static const char tpgs_origin[]= "(setting: autodetected from TPGS)";
 	char *dh_state;
 	int i;
-	bool all_tpgs = true;
+	bool all_tpgs = true, one_tpgs = false;
 
 	dh_state = &handler[2];
 
-	vector_foreach_slot(mp->paths, pp, i)
-		all_tpgs = all_tpgs && (path_get_tpgs(pp) > 0);
+	/*
+	 * TPGS_UNDEF means that ALUA support couldn't determined either way
+	 * yet, probably because the path was always down.
+	 * If at least one path does have TPGS support, and no path has
+	 * TPGS_NONE, assume that TPGS would be supported by all paths if
+	 * all were up.
+	 */
+	vector_foreach_slot(mp->paths, pp, i) {
+		int tpgs = path_get_tpgs(pp);
+
+		all_tpgs = all_tpgs && tpgs != TPGS_NONE;
+		one_tpgs = one_tpgs ||
+			(tpgs != TPGS_NONE && tpgs != TPGS_UNDEF);
+	}
+	all_tpgs = all_tpgs && one_tpgs;
+
 	if (mp->retain_hwhandler != RETAIN_HWHANDLER_OFF) {
 		vector_foreach_slot(mp->paths, pp, i) {
 			if (get_dh_state(pp, dh_state, sizeof(handler) - 2) > 0
@@ -505,7 +519,7 @@ check_rdac(struct path * pp)
 	if (__do_set_from_hwe(checker_name, pp, checker_name) &&
 	    strcmp(checker_name, RDAC))
 		return 0;
-	len = get_vpd_sgio(pp->fd, 0xC9, buff, 44);
+	len = get_vpd_sgio(pp->fd, 0xC9, 0, buff, 44);
 	if (len <= 0)
 		return 0;
 	return !(memcmp(buff + 4, "vac1", 4));
@@ -1215,6 +1229,24 @@ int select_all_tg_pt (struct config *conf, struct multipath * mp)
 out:
 	condlog(3, "%s: all_tg_pt = %s %s", mp->alias,
 		(mp->all_tg_pt == ALL_TG_PT_ON)? "yes" : "no",
+		origin);
+	return 0;
+}
+
+int select_vpd_vendor_id (struct path *pp)
+{
+	const char *origin;
+
+	pp_set_hwe(vpd_vendor_id);
+	pp_set_default(vpd_vendor_id, 0);
+out:
+	if (pp->vpd_vendor_id < 0 || pp->vpd_vendor_id >= VPD_VP_ARRAY_SIZE) {
+		condlog(3, "%s: vpd_vendor_id = %d (invalid, setting to 0)",
+			pp->dev, pp->vpd_vendor_id);
+		pp->vpd_vendor_id = 0;
+	}
+	condlog(3, "%s: vpd_vendor_id = %d \"%s\" %s", pp->dev,
+		pp->vpd_vendor_id, vpd_vendor_pages[pp->vpd_vendor_id].name,
 		origin);
 	return 0;
 }

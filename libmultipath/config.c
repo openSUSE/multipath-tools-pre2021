@@ -369,9 +369,14 @@ merge_hwe (struct hwentry * dst, struct hwentry * src)
 	merge_num(max_sectors_kb);
 	merge_num(ghost_delay);
 	merge_num(all_tg_pt);
+	merge_num(vpd_vendor_id);
 	merge_num(san_path_err_threshold);
 	merge_num(san_path_err_forget_rate);
 	merge_num(san_path_err_recovery_time);
+	merge_num(marginal_path_err_sample_time);
+	merge_num(marginal_path_err_rate_threshold);
+	merge_num(marginal_path_err_recheck_gap_time);
+	merge_num(marginal_path_double_failed_time);
 
 	snprintf(id, sizeof(id), "%s/%s", dst->vendor, dst->product);
 	reconcile_features_with_options(id, &dst->features,
@@ -398,6 +403,7 @@ merge_mpe(struct mpentry *dst, struct mpentry *src)
 	if (dst->prkey_source == PRKEY_SOURCE_NONE &&
 	    src->prkey_source != PRKEY_SOURCE_NONE) {
 		dst->prkey_source = src->prkey_source;
+		dst->sa_flags = src->sa_flags;
 		memcpy(&dst->reservation_key, &src->reservation_key,
 		       sizeof(dst->reservation_key));
 	}
@@ -414,6 +420,9 @@ merge_mpe(struct mpentry *dst, struct mpentry *src)
 	merge_num(deferred_remove);
 	merge_num(delay_watch_checks);
 	merge_num(delay_wait_checks);
+	merge_num(san_path_err_threshold);
+	merge_num(san_path_err_forget_rate);
+	merge_num(san_path_err_recovery_time);
 	merge_num(marginal_path_err_sample_time);
 	merge_num(marginal_path_err_rate_threshold);
 	merge_num(marginal_path_err_recheck_gap_time);
@@ -510,6 +519,7 @@ store_hwe (vector hwtable, struct hwentry * dhwe)
 	hwe->detect_prio = dhwe->detect_prio;
 	hwe->detect_checker = dhwe->detect_checker;
 	hwe->ghost_delay = dhwe->ghost_delay;
+	hwe->vpd_vendor_id = dhwe->vpd_vendor_id;
 
 	if (dhwe->bl_product && !(hwe->bl_product = set_param_str(dhwe->bl_product)))
 		goto out;
@@ -645,7 +655,7 @@ free_config (struct config * conf)
 /* if multipath fails to process the config directory, it should continue,
  * with just a warning message */
 static void
-process_config_dir(struct config *conf, vector keywords, char *dir)
+process_config_dir(struct config *conf, char *dir)
 {
 	struct dirent **namelist;
 	struct scandir_result sr;
@@ -687,6 +697,27 @@ process_config_dir(struct config *conf, vector keywords, char *dir)
 	pthread_cleanup_pop(1);
 }
 
+static void set_max_checkint_from_watchdog(struct config *conf)
+{
+#ifdef USE_SYSTEMD
+	char *envp = getenv("WATCHDOG_USEC");
+	unsigned long checkint;
+
+	if (envp && sscanf(envp, "%lu", &checkint) == 1) {
+		/* Value is in microseconds */
+		checkint /= 1000000;
+		if (checkint < 1 || checkint > UINT_MAX) {
+			condlog(1, "invalid value for WatchdogSec: \"%s\"", envp);
+			return;
+		}
+		if (conf->max_checkint == 0 || conf->max_checkint > checkint)
+			conf->max_checkint = checkint;
+		condlog(3, "enabling watchdog, interval %ld", checkint);
+		conf->use_watchdog = true;
+	}
+#endif
+}
+
 struct config *
 load_config (char * file)
 {
@@ -707,7 +738,8 @@ load_config (char * file)
 	conf->multipath_dir = set_default(DEFAULT_MULTIPATHDIR);
 	conf->attribute_flags = 0;
 	conf->reassign_maps = DEFAULT_REASSIGN_MAPS;
-	conf->checkint = DEFAULT_CHECKINT;
+	conf->checkint = CHECKINT_UNDEF;
+	conf->use_watchdog = false;
 	conf->max_checkint = 0;
 	conf->force_sync = DEFAULT_FORCE_SYNC;
 	conf->partition_delim = (default_partition_delim != NULL ?
@@ -753,13 +785,25 @@ load_config (char * file)
 	if (conf->config_dir == NULL)
 		conf->config_dir = set_default(DEFAULT_CONFIG_DIR);
 	if (conf->config_dir && conf->config_dir[0] != '\0')
-		process_config_dir(conf, conf->keywords, conf->config_dir);
+		process_config_dir(conf, conf->config_dir);
 
 	/*
 	 * fill the voids left in the config file
 	 */
-	if (conf->max_checkint == 0)
-		conf->max_checkint = MAX_CHECKINT(conf->checkint);
+	set_max_checkint_from_watchdog(conf);
+	if (conf->max_checkint == 0) {
+		if (conf->checkint == CHECKINT_UNDEF)
+			conf->checkint = DEFAULT_CHECKINT;
+		conf->max_checkint = (conf->checkint < UINT_MAX / 4 ?
+				      conf->checkint * 4 : UINT_MAX);
+	} else if (conf->checkint == CHECKINT_UNDEF)
+		conf->checkint = (conf->max_checkint >= 4 ?
+				  conf->max_checkint / 4 : 1);
+	else if (conf->checkint > conf->max_checkint)
+		conf->checkint = conf->max_checkint;
+	condlog(3, "polling interval: %d, max: %d",
+		conf->checkint, conf->max_checkint);
+
 	if (conf->blist_devnode == NULL) {
 		conf->blist_devnode = vector_alloc();
 

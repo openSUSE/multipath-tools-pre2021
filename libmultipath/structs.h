@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "prio.h"
 #include "byteorder.h"
@@ -21,6 +22,7 @@
 #define HOST_NAME_LEN		16
 #define SLOT_NAME_SIZE		40
 #define PRKEY_SIZE		19
+#define VPD_DATA_SIZE		128
 
 #define SCSI_VENDOR_SIZE	9
 #define SCSI_PRODUCT_SIZE	17
@@ -221,6 +223,18 @@ enum all_tg_pt_states {
 	ALL_TG_PT_ON = YNU_YES,
 };
 
+enum vpd_vendor_ids {
+	VPD_VP_UNDEF,
+	VPD_VP_HP3PAR,
+	VPD_VP_ARRAY_SIZE, /* This must remain the last entry */
+};
+
+struct vpd_vendor_page {
+	int pg;
+	const char *name;
+};
+extern struct vpd_vendor_page vpd_vendor_pages[VPD_VP_ARRAY_SIZE];
+
 struct sg_id {
 	int host_no;
 	int channel;
@@ -255,6 +269,7 @@ struct path {
 	char rev[PATH_REV_SIZE];
 	char serial[SERIAL_SIZE];
 	char tgt_node_name[NODE_NAME_SIZE];
+	char *vpd_data;
 	unsigned long long size;
 	unsigned int checkint;
 	unsigned int tick;
@@ -272,7 +287,6 @@ struct path {
 	char * uid_attribute;
 	char * getuid;
 	struct prio prio;
-	char * prio_args;
 	struct checker checker;
 	struct multipath * mpp;
 	int fd;
@@ -288,6 +302,7 @@ struct path {
 	int io_err_pathfail_starttime;
 	int find_multipaths_timeout;
 	int marginal;
+	int vpd_vendor_id;
 	/* configlet pointers */
 	vector hwe;
 	struct gen_path generic_path;
@@ -309,7 +324,6 @@ struct multipath {
 	int pgfailback;
 	int failback_tick;
 	int rr_weight;
-	int nr_active;     /* current available(= not known as failed) paths */
 	int no_path_retry; /* number of retries after all paths are down */
 	int retry_tick;    /* remaining times for retries */
 	int disable_queueing;
@@ -319,6 +333,7 @@ struct multipath {
 	int fast_io_fail;
 	int retain_hwhandler;
 	int deferred_remove;
+	bool in_recovery;
 	int san_path_err_threshold;
 	int san_path_err_forget_rate;
 	int san_path_err_recovery_time;
@@ -440,7 +455,8 @@ int add_pathgroup(struct multipath*, struct pathgroup *);
 struct multipath * find_mp_by_alias (const struct _vector *mp, const char *alias);
 struct multipath * find_mp_by_wwid (const struct _vector *mp, const char *wwid);
 struct multipath * find_mp_by_str (const struct _vector *mp, const char *wwid);
-struct multipath * find_mp_by_minor (const struct _vector *mp, int minor);
+struct multipath * find_mp_by_minor (const struct _vector *mp,
+				     unsigned int minor);
 
 struct path * find_path_by_devt (const struct _vector *pathvec, const char *devt);
 struct path * find_path_by_dev (const struct _vector *pathvec, const char *dev);
@@ -448,6 +464,7 @@ struct path * first_path (const struct multipath *mpp);
 
 int pathcountgr (const struct pathgroup *, int);
 int pathcount (const struct multipath *, int);
+int count_active_paths(const struct multipath *);
 int pathcmp (const struct pathgroup *, const struct pathgroup *);
 int add_feature (char **, const char *);
 int remove_feature (char **, const char *);

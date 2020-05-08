@@ -59,7 +59,7 @@ void dm_udev_set_sync_support(int c)
 
 #endif
 
-static void
+__attribute__((format(printf, 4, 5))) static void
 dm_write_log (int level, const char *file, int line, const char *f, ...)
 {
 	va_list ap;
@@ -403,7 +403,7 @@ static uint16_t build_udev_flags(const struct multipath *mpp, int reload)
 	/* DM_UDEV_DISABLE_LIBRARY_FALLBACK is added in dm_addmap */
 	return	(mpp->skip_kpartx == SKIP_KPARTX_ON ?
 		 MPATH_UDEV_NO_KPARTX_FLAG : 0) |
-		((mpp->nr_active == 0 || mpp->ghost_delay_tick > 0)?
+		((count_active_paths(mpp) == 0 || mpp->ghost_delay_tick > 0) ?
 		 MPATH_UDEV_NO_PATHS_FLAG : 0) |
 		(reload && !mpp->force_udev_reload ?
 		 MPATH_UDEV_RELOAD_FLAG : 0);
@@ -812,7 +812,8 @@ dm_get_major_minor(const char *name, int *major, int *minor)
 }
 
 static int
-has_partmap(const char *name, void *data)
+has_partmap(const char *name __attribute__((unused)),
+	    void *data __attribute__((unused)))
 {
 	return 1;
 }
@@ -1308,7 +1309,7 @@ dm_remove_partmaps (const char * mapname, int need_sync, int deferred_remove)
 #ifdef LIBDM_API_DEFERRED
 
 static int
-cancel_remove_partmap (const char *name, void *unused)
+cancel_remove_partmap (const char *name, void *unused __attribute__((unused)))
 {
 	if (dm_get_opencount(name))
 		dm_cancel_remove_partmaps(name);
@@ -1560,7 +1561,8 @@ int dm_reassign(const char *mapname)
 	struct dm_task *dmt;
 	struct dm_info info;
 	char dev_t[32], dm_dep[32];
-	int r = 0, i;
+	int r = 0;
+	unsigned int i;
 
 	if (dm_dev_t(mapname, &dev_t[0], 32)) {
 		condlog(3, "%s: failed to get device number", mapname);

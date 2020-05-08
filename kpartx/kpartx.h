@@ -16,8 +16,17 @@
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
+#define safe_snprintf(var, size, format, args...)			\
+	({								\
+		size_t __size = size;					\
+		int __ret;						\
+									\
+		__ret = snprintf(var, __size, format, ##args);		\
+		__ret < 0 || (size_t)__ret >= __size;			\
+	})
+
 #define safe_sprintf(var, format, args...)	\
-	snprintf(var, sizeof(var), format, ##args) >= sizeof(var)
+		safe_snprintf(var, sizeof(var), format, ##args)
 
 #ifndef BLKSSZGET
 #define BLKSSZGET  _IO(0x12,104)	/* get block device sector size */
@@ -33,11 +42,12 @@ struct slice {
 	uint64_t start;
 	uint64_t size;
 	int container;
-	int major;
-	int minor;
+	unsigned int major;
+	unsigned int minor;
 };
 
-typedef int (ptreader)(int fd, struct slice all, struct slice *sp, int ns);
+typedef int (ptreader)(int fd, struct slice all, struct slice *sp,
+		       unsigned int ns);
 
 extern int force_gpt;
 
@@ -53,7 +63,7 @@ extern ptreader read_ps3_pt;
 
 char *getblock(int fd, unsigned int secnr);
 
-static inline int
+static inline unsigned int
 four2int(unsigned char *p) {
 	return p[0] + (p[1]<<8) + (p[2]<<16) + (p[3]<<24);
 }

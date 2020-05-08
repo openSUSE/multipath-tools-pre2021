@@ -40,9 +40,9 @@
 #include "kpartx.h"
 
 #if BYTE_ORDER == LITTLE_ENDIAN
-#  define __le16_to_cpu(x) (x)
-#  define __le32_to_cpu(x) (x)
-#  define __le64_to_cpu(x) (x)
+#  define __le16_to_cpu(x) (uint16_t)(x)
+#  define __le32_to_cpu(x) (uint32_t)(x)
+#  define __le64_to_cpu(x) (uint64_t)(x)
 #  define __cpu_to_le32(x) (x)
 #elif BYTE_ORDER == BIG_ENDIAN
 #  define __le16_to_cpu(x) bswap_16(x)
@@ -182,7 +182,7 @@ last_lba(int filedes)
 
 
 static ssize_t
-read_lastoddsector(int fd, uint64_t lba, void *buffer, size_t count)
+read_lastoddsector(int fd, void *buffer, size_t count)
 {
 	int rc;
 	struct blkdev_ioctl_param ioctl_param;
@@ -221,7 +221,7 @@ read_lba(int fd, uint64_t lba, void *buffer, size_t bytes)
 	   one sector, so we don't have to be fancy.
 	*/
 	if (!bytesread && !(lastlba & 1) && lba == lastlba) {
-		bytesread = read_lastoddsector(fd, lba, buffer, bytes);
+		bytesread = read_lastoddsector(fd, buffer, bytes);
 	}
 	return bytesread;
 }
@@ -601,11 +601,12 @@ fail:
  *
  */
 int
-read_gpt_pt (int fd, struct slice all, struct slice *sp, int ns)
+read_gpt_pt (int fd, __attribute__((unused)) struct slice all,
+	     struct slice *sp, unsigned int ns)
 {
 	gpt_header *gpt = NULL;
 	gpt_entry *ptes = NULL;
-	uint32_t i;
+	unsigned int i;
 	int n = 0;
 	int last_used_index=-1;
 	int sector_size_mul = get_sector_size(fd)/512;

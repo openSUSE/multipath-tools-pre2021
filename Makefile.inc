@@ -81,7 +81,8 @@ INSTALL_PROGRAM	= install
 # Test if the C compiler supports the option.
 # Evaluates to "option" if yes, and "fallback" otherwise.
 TEST_CC_OPTION = $(shell \
-	if echo 'int main(void){return 0;}' | $(CC) -o /dev/null -c "$(1)" -xc - >/dev/null 2>&1; \
+	if echo 'int main(void){return 0;}' | \
+		$(CC) -o /dev/null -c -Werror "$(1)" -xc - >/dev/null 2>&1; \
 	then \
 		echo "$(1)"; \
 	else \
@@ -90,14 +91,14 @@ TEST_CC_OPTION = $(shell \
 
 STACKPROT := $(call TEST_CC_OPTION,-fstack-protector-strong,-fstack-protector)
 ERROR_DISCARDED_QUALIFIERS := $(call TEST_CC_OPTION,-Werror=discarded-qualifiers,)
+WNOCLOBBERED := $(call TEST_CC_OPTION,-Wno-clobbered,)
 
-OPTFLAGS	= -O2 -g -pipe -Wall -Wextra -Wformat=2 -Werror=implicit-int \
+OPTFLAGS	= -O2 -g -pipe -Werror -Wall -Wextra -Wformat=2 -Werror=implicit-int \
 		  -Werror=implicit-function-declaration -Werror=format-security \
-		  -Wno-sign-compare -Wno-unused-parameter -Wno-clobbered \
+		  $(WNOCLOBBERED) \
 		  -Werror=cast-qual $(ERROR_DISCARDED_QUALIFIERS) \
-		  -Wp,-D_FORTIFY_SOURCE=2 $(STACKPROT) \
-		  --param=ssp-buffer-size=4
-
+		  $(STACKPROT) --param=ssp-buffer-size=4
+CPPFLAGS	:= -Wp,-D_FORTIFY_SOURCE=2 
 CFLAGS		:= $(OPTFLAGS) -DBIN_DIR=\"$(bindir)\" -DLIB_STRING=\"${LIB}\" -DRUN_DIR=\"${RUN}\" \
 		   -MMD -MP $(CFLAGS)
 BIN_CFLAGS	= -fPIE -DPIE
@@ -134,4 +135,4 @@ check_file = $(shell \
 
 %.o:	%.c
 	@echo building $@ because of $?
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<

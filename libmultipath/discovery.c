@@ -34,6 +34,11 @@
 #include "prioritizers/alua_rtpg.h"
 #include "foreign.h"
 
+struct vpd_vendor_page vpd_vendor_pages[VPD_VP_ARRAY_SIZE] = {
+	[VPD_VP_UNDEF]	= { 0x00, "undef" },
+	[VPD_VP_HP3PAR]	= { 0xc0, "hp3par" },
+};
+
 int
 alloc_path_with_pathinfo (struct config *conf, struct udev_device *udevice,
 			  const char *wwid, int flag, struct path **pp_ptr)
@@ -140,27 +145,61 @@ path_discover (vector pathvec, struct config * conf,
 	return pathinfo(pp, conf, flag);
 }
 
+static void cleanup_udev_enumerate_ptr(void *arg)
+{
+	struct udev_enumerate *ue;
+
+	if (!arg)
+		return;
+	ue = *((struct udev_enumerate**) arg);
+	if (ue)
+		(void)udev_enumerate_unref(ue);
+}
+
+static void cleanup_udev_device_ptr(void *arg)
+{
+	struct udev_device *ud;
+
+	if (!arg)
+		return;
+	ud = *((struct udev_device**) arg);
+	if (ud)
+		(void)udev_device_unref(ud);
+}
+
 int
 path_discovery (vector pathvec, int flag)
 {
-	struct udev_enumerate *udev_iter;
+	struct udev_enumerate *udev_iter = NULL;
 	struct udev_list_entry *entry;
-	struct udev_device *udevice;
+	struct udev_device *udevice = NULL;
 	struct config *conf;
-	const char *devpath;
-	int num_paths = 0, total_paths = 0;
+	int num_paths = 0, total_paths = 0, ret;
+
+	pthread_cleanup_push(cleanup_udev_enumerate_ptr, &udev_iter);
+	pthread_cleanup_push(cleanup_udev_device_ptr, &udevice);
+	conf = get_multipath_config();
+	pthread_cleanup_push(put_multipath_config, conf);
 
 	udev_iter = udev_enumerate_new(udev);
-	if (!udev_iter)
-		return -ENOMEM;
+	if (!udev_iter) {
+		ret = -ENOMEM;
+		goto out;
+	}
 
-	udev_enumerate_add_match_subsystem(udev_iter, "block");
-	udev_enumerate_add_match_is_initialized(udev_iter);
-	udev_enumerate_scan_devices(udev_iter);
+	if (udev_enumerate_add_match_subsystem(udev_iter, "block") < 0 ||
+	    udev_enumerate_add_match_is_initialized(udev_iter) < 0 ||
+	    udev_enumerate_scan_devices(udev_iter) < 0) {
+		condlog(1, "%s: error setting up udev_enumerate: %m", __func__);
+		ret = -1;
+		goto out;
+	}
 
 	udev_list_entry_foreach(entry,
 				udev_enumerate_get_list_entry(udev_iter)) {
 		const char *devtype;
+		const char *devpath;
+
 		devpath = udev_list_entry_get_name(entry);
 		condlog(4, "Discover device %s", devpath);
 		udevice = udev_device_new_from_syspath(udev, devpath);
@@ -171,25 +210,26 @@ path_discovery (vector pathvec, int flag)
 		devtype = udev_device_get_devtype(udevice);
 		if(devtype && !strncmp(devtype, "disk", 4)) {
 			total_paths++;
-			conf = get_multipath_config();
-			pthread_cleanup_push(put_multipath_config, conf);
 			if (path_discover(pathvec, conf,
 					  udevice, flag) == PATHINFO_OK)
 				num_paths++;
-			pthread_cleanup_pop(1);
 		}
-		udev_device_unref(udevice);
+		udevice = udev_device_unref(udevice);
 	}
-	udev_enumerate_unref(udev_iter);
+	ret = total_paths - num_paths;
 	condlog(4, "Discovered %d/%d paths", num_paths, total_paths);
-	return (total_paths - num_paths);
+out:
+	pthread_cleanup_pop(1);
+	pthread_cleanup_pop(1);
+	pthread_cleanup_pop(1);
+	return ret;
 }
 
 #define declare_sysfs_get_str(fname)					\
 ssize_t									\
 sysfs_get_##fname (struct udev_device * udev, char * buff, size_t len)	\
 {									\
-	int l;							\
+	size_t l;							\
 	const char * attr;						\
 	const char * devname;						\
 									\
@@ -589,9 +629,10 @@ sysfs_set_rport_tmo(struct multipath *mpp, struct path *pp)
 	    mpp->fast_io_fail != MP_FAST_IO_FAIL_ZERO &&
 	    mpp->fast_io_fail != MP_FAST_IO_FAIL_OFF) {
 		/* Check if we need to temporarily increase dev_loss_tmo */
-		if (mpp->fast_io_fail >= tmo) {
+		if ((unsigned int)mpp->fast_io_fail >= tmo) {
 			/* Increase dev_loss_tmo temporarily */
-			snprintf(value, 16, "%u", mpp->fast_io_fail + 1);
+			snprintf(value, sizeof(value), "%u",
+				 (unsigned int)mpp->fast_io_fail + 1);
 			ret = sysfs_attr_set_value(rport_dev, "dev_loss_tmo",
 						   value, strlen(value));
 			if (ret <= 0) {
@@ -718,14 +759,15 @@ sysfs_set_nexus_loss_tmo(struct multipath *mpp, struct path *pp)
 }
 
 int
-sysfs_set_scsi_tmo (struct multipath *mpp, int checkint)
+sysfs_set_scsi_tmo (struct multipath *mpp, unsigned int checkint)
 {
 	struct path *pp;
 	int i;
-	int dev_loss_tmo = mpp->dev_loss;
+	unsigned int dev_loss_tmo = mpp->dev_loss;
 
 	if (mpp->no_path_retry > 0) {
-		uint64_t no_path_retry_tmo = (uint64_t)mpp->no_path_retry * checkint;
+		uint64_t no_path_retry_tmo =
+			(uint64_t)mpp->no_path_retry * checkint;
 
 		if (no_path_retry_tmo > MAX_DEV_LOSS_TMO)
 			no_path_retry_tmo = MAX_DEV_LOSS_TMO;
@@ -739,7 +781,8 @@ sysfs_set_scsi_tmo (struct multipath *mpp, int checkint)
 			mpp->alias, dev_loss_tmo);
 	}
 	mpp->dev_loss = dev_loss_tmo;
-	if (mpp->dev_loss && mpp->fast_io_fail >= (int)mpp->dev_loss) {
+	if (mpp->dev_loss && mpp->fast_io_fail > 0 &&
+	    (unsigned int)mpp->fast_io_fail >= mpp->dev_loss) {
 		condlog(3, "%s: turning off fast_io_fail (%d is not smaller than dev_loss_tmo)",
 			mpp->alias, mpp->fast_io_fail);
 		mpp->fast_io_fail = MP_FAST_IO_FAIL_OFF;
@@ -833,6 +876,10 @@ get_serial (char * str, int maxlen, int fd)
 	return 1;
 }
 
+/*
+ * Side effect: sets pp->tpgs if it could be determined.
+ * If ALUA calls fail because paths are unreachable, pp->tpgs remains unchanged.
+ */
 static void
 detect_alua(struct path * pp)
 {
@@ -843,12 +890,28 @@ detect_alua(struct path * pp)
 	if (sysfs_get_timeout(pp, &timeout) <= 0)
 		timeout = DEF_TIMEOUT;
 
-	if ((tpgs = get_target_port_group_support(pp, timeout)) <= 0) {
+	tpgs = get_target_port_group_support(pp, timeout);
+	if (tpgs == -RTPG_INQUIRY_FAILED)
+		return;
+	else if (tpgs <= 0) {
 		pp->tpgs = TPGS_NONE;
 		return;
 	}
+
+	if (pp->fd == -1 || pp->offline)
+		return;
+
 	ret = get_target_port_group(pp, timeout);
 	if (ret < 0 || get_asymmetric_access_state(pp, ret, timeout) < 0) {
+		int state;
+
+		if (ret == -RTPG_INQUIRY_FAILED)
+			return;
+
+		state = path_offline(pp);
+		if (state == PATH_DOWN || state == PATH_PENDING)
+			return;
+
 		pp->tpgs = TPGS_NONE;
 		return;
 	}
@@ -870,6 +933,7 @@ static int
 sgio_get_vpd (unsigned char * buff, int maxlen, int fd, int pg)
 {
 	int len = DEFAULT_SGIO_LEN;
+	int rlen;
 
 	if (fd < 0) {
 		errno = EBADF;
@@ -877,12 +941,11 @@ sgio_get_vpd (unsigned char * buff, int maxlen, int fd, int pg)
 	}
 retry:
 	if (0 == do_inq(fd, 0, 1, pg, buff, len)) {
-		len = get_unaligned_be16(&buff[2]) + 4;
-		if (len >= maxlen)
-			return len;
-		if (len > DEFAULT_SGIO_LEN)
-			goto retry;
-		return len;
+		rlen = get_unaligned_be16(&buff[2]) + 4;
+		if (rlen <= len || len >= maxlen)
+			return rlen;
+		len = (rlen < maxlen)? rlen : maxlen;
+		goto retry;
 	}
 	return -1;
 }
@@ -907,7 +970,10 @@ get_geometry(struct path *pp)
 static int
 parse_vpd_pg80(const unsigned char *in, char *out, size_t out_len)
 {
-	int len = get_unaligned_be16(&in[2]);
+	size_t len = get_unaligned_be16(&in[2]);
+
+	if (out_len == 0)
+		return 0;
 
 	/*
 	 * Strip leading and trailing whitespace
@@ -920,8 +986,8 @@ parse_vpd_pg80(const unsigned char *in, char *out, size_t out_len)
 	}
 
 	if (len >= out_len) {
-		condlog(2, "vpd pg80 overflow, %d/%d bytes required",
-			len + 1, (int)out_len);
+		condlog(2, "vpd pg80 overflow, %lu/%lu bytes required",
+			len + 1, out_len);
 		len = out_len - 1;
 	}
 	if (len > 0) {
@@ -937,7 +1003,8 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 {
 	const unsigned char *d;
 	const unsigned char *vpd = NULL;
-	int len = -ENODATA, vpd_type, vpd_len, prio = -1, i, naa_prio;
+	size_t len, vpd_len, i;
+	int vpd_type, prio = -1, naa_prio;
 
 	d = in + 4;
 	while (d < in + in_len) {
@@ -1004,102 +1071,134 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 		}
 		d += d[3] + 4;
 	}
-	if (prio > 0) {
-		vpd_type = vpd[1] & 0xf;
-		vpd_len = vpd[3];
+
+	if (prio <= 0)
+		return -ENODATA;
+	/* Need space at least for one digit */
+	else if (out_len <= 1)
+		return 0;
+
+	len = 0;
+	vpd_type = vpd[1] & 0xf;
+	vpd_len = vpd[3];
+	vpd += 4;
+	if (vpd_type == 0x2 || vpd_type == 0x3) {
+		size_t i;
+
+		len = sprintf(out, "%d", vpd_type);
+		if (2 * vpd_len >= out_len - len) {
+			condlog(1, "%s: WWID overflow, type %d, %lu/%lu bytes required",
+				__func__, vpd_type,
+				2 * vpd_len + len + 1, out_len);
+			vpd_len = (out_len - len - 1) / 2;
+		}
+		for (i = 0; i < vpd_len; i++)
+			len += sprintf(out + len,
+				       "%02x", vpd[i]);
+	} else if (vpd_type == 0x8 && vpd_len < 4) {
+		condlog(1, "%s: VPD length %lu too small for designator type 8",
+			__func__, vpd_len);
+		return -EINVAL;
+	} else if (vpd_type == 0x8) {
+		if (!memcmp("eui.", vpd, 4))
+			out[0] =  '2';
+		else if (!memcmp("naa.", vpd, 4))
+			out[0] = '3';
+		else
+			out[0] = '8';
+
 		vpd += 4;
-		if (vpd_type == 0x2 || vpd_type == 0x3) {
-			int i;
+		len = vpd_len - 4;
+		while (len > 2 && vpd[len - 2] == '\0')
+			--len;
+		if (len > out_len - 1) {
+			condlog(1, "%s: WWID overflow, type 8/%c, %lu/%lu bytes required",
+				__func__, out[0], len + 1, out_len);
+			len = out_len - 1;
+		}
 
-			assert(out_len >= 2);
-			len = sprintf(out, "%d", vpd_type);
-			if (2 * vpd_len >= out_len - len) {
-				condlog(1, "%s: WWID overflow, type %d, %d/%lu bytes required",
-					__func__, vpd_type,
-					2 * vpd_len + len + 1, out_len);
-				vpd_len = (out_len - len - 1) / 2;
+		if (out[0] == '8')
+			for (i = 0; i < len; ++i)
+				out[1 + i] = vpd[i];
+		else
+			for (i = 0; i < len; ++i)
+				out[1 + i] = tolower(vpd[i]);
+
+		/* designator should be 0-terminated, but let's make sure */
+		out[len] = '\0';
+
+	} else if (vpd_type == 0x1) {
+		const unsigned char *p;
+		size_t p_len;
+
+		out[0] = '1';
+		len = 1;
+		while ((p = memchr(vpd, ' ', vpd_len))) {
+			p_len = p - vpd;
+			if (len + p_len > out_len - 1) {
+				condlog(1, "%s: WWID overflow, type 1, %lu/%lu bytes required",
+					__func__, len + p_len, out_len);
+				p_len = out_len - len - 1;
 			}
-			for (i = 0; i < vpd_len; i++)
-				len += sprintf(out + len,
-					       "%02x", vpd[i]);
-		} else if (vpd_type == 0x8) {
-			if (!memcmp("eui.", vpd, 4))
-				out[0] =  '2';
-			else if (!memcmp("naa.", vpd, 4))
-				out[0] = '3';
-			else
-				out[0] = '8';
-
-			vpd += 4;
-			len = vpd_len - 4;
-			while (len > 2 && vpd[len - 2] == '\0')
-				--len;
-			if (len > out_len - 1) {
-				condlog(1, "%s: WWID overflow, type 8/%c, %d/%lu bytes required",
-					__func__, out[0], len + 1, out_len);
-				len = out_len - 1;
-			}
-
-			if (out[0] == '8')
-				for (i = 0; i < len; ++i)
-					out[1 + i] = vpd[i];
-			else
-				for (i = 0; i < len; ++i)
-					out[1 + i] = tolower(vpd[i]);
-
-			/* designator should be 0-terminated, but let's make sure */
-			out[len] = '\0';
-
-		} else if (vpd_type == 0x1) {
-			const unsigned char *p;
-			int p_len;
-
-			out[0] = '1';
-			len = 1;
-			p = vpd;
-			while ((p = memchr(vpd, ' ', vpd_len))) {
-				p_len = p - vpd;
-				if (len + p_len > out_len - 1) {
-					condlog(1, "%s: WWID overflow, type 1, %d/%lu bytes required",
-						__func__, len + p_len, out_len);
-					p_len = out_len - len - 1;
-				}
-				memcpy(out + len, vpd, p_len);
-				len += p_len;
-				if (len >= out_len - 1) {
-					out[len] = '\0';
-					break;
-				}
-				out[len] = '_';
-				len ++;
-				if (len >= out_len - 1) {
-					out[len] = '\0';
-					break;
-				}
-				vpd = p;
-				vpd_len -= p_len;
-				while (vpd && *vpd == ' ') {
-					vpd++;
-					vpd_len --;
-				}
-			}
-			p_len = vpd_len;
-			if (p_len > 0 && len < out_len - 1) {
-				if (len + p_len > out_len - 1) {
-					condlog(1, "%s: WWID overflow, type 1, %d/%lu bytes required",
-						__func__, len + p_len + 1, out_len);
-					p_len = out_len - len - 1;
-				}
-				memcpy(out + len, vpd, p_len);
-				len += p_len;
+			memcpy(out + len, vpd, p_len);
+			len += p_len;
+			if (len >= out_len - 1) {
 				out[len] = '\0';
+				break;
 			}
-			if (len > 1 && out[len - 1] == '_') {
-				out[len - 1] = '\0';
-				len--;
+			out[len] = '_';
+			len ++;
+			if (len >= out_len - 1) {
+				out[len] = '\0';
+				break;
+			}
+			vpd = p;
+			vpd_len -= p_len;
+			while (vpd && *vpd == ' ') {
+				vpd++;
+				vpd_len --;
 			}
 		}
+		p_len = vpd_len;
+		if (p_len > 0 && len < out_len - 1) {
+			if (len + p_len > out_len - 1) {
+				condlog(1, "%s: WWID overflow, type 1, %lu/%lu bytes required",
+					__func__, len + p_len + 1, out_len);
+				p_len = out_len - len - 1;
+			}
+			memcpy(out + len, vpd, p_len);
+			len += p_len;
+			out[len] = '\0';
+		}
+		if (len > 1 && out[len - 1] == '_') {
+			out[len - 1] = '\0';
+			len--;
+		}
 	}
+	return len;
+}
+
+static int
+parse_vpd_c0_hp3par(const unsigned char *in, size_t in_len,
+		    char *out, size_t out_len)
+{
+	size_t len;
+
+	memset(out, 0x0, out_len);
+	if (in_len <= 4 || (in[4] > 3 && in_len < 44)) {
+		condlog(3, "HP/3PAR vendor specific VPD page length too short: %lu", in_len);
+		return -EINVAL;
+	}
+	if (in[4] <= 3) /* revision must be > 3 to have Vomlume Name */
+		return -ENODATA;
+	len = get_unaligned_be32(&in[40]);
+	if (len > out_len || len + 44 > in_len) {
+		condlog(3, "HP/3PAR vendor specific Volume name too long: %lu",
+			len);
+		return -EINVAL;
+	}
+	memcpy(out, &in[44], len);
+	out[out_len - 1] = '\0';
 	return len;
 }
 
@@ -1135,7 +1234,7 @@ get_vpd_sysfs (struct udev_device *parent, int pg, char * str, int maxlen)
 }
 
 int
-get_vpd_sgio (int fd, int pg, char * str, int maxlen)
+get_vpd_sgio (int fd, int pg, int vend_id, char * str, int maxlen)
 {
 	int len, buff_len;
 	unsigned char buff[4096];
@@ -1170,7 +1269,9 @@ get_vpd_sgio (int fd, int pg, char * str, int maxlen)
 			len = (buff_len <= maxlen)? buff_len : maxlen;
 			memcpy (str, buff, len);
 		}
-	} else
+	} else if (pg == 0xc0 && vend_id == VPD_VP_HP3PAR)
+		len = parse_vpd_c0_hp3par(buff, buff_len, str, maxlen);
+	else
 		len = -ENOSYS;
 
 	return len;
@@ -1536,13 +1637,33 @@ sysfs_pathinfo(struct path * pp, vector hwtable)
 }
 
 static void
-scsi_ioctl_pathinfo (struct path * pp, struct config *conf, int mask)
+scsi_ioctl_pathinfo (struct path * pp, int mask)
 {
 	struct udev_device *parent;
 	const char *attr_path = NULL;
+	int vpd_id;
 
 	if (!(mask & DI_SERIAL))
 		return;
+
+	select_vpd_vendor_id(pp);
+	vpd_id = pp->vpd_vendor_id;
+
+	if (vpd_id != VPD_VP_UNDEF) {
+		char vpd_data[VPD_DATA_SIZE] = {0};
+
+		if (get_vpd_sgio(pp->fd, vpd_vendor_pages[vpd_id].pg, vpd_id,
+		    vpd_data, sizeof(vpd_data)) < 0)
+			condlog(3, "%s: failed to get extra vpd data", pp->dev);
+		else {
+			vpd_data[VPD_DATA_SIZE - 1] = '\0';
+			if (pp->vpd_data)
+				free(pp->vpd_data);
+			pp->vpd_data = strdup(vpd_data);
+			if (!pp->vpd_data)
+				condlog(0, "%s: failed to allocate space for vpd data", pp->dev);
+		}
+	}
 
 	parent = pp->udev;
 	while (parent) {
@@ -1611,12 +1732,10 @@ get_state (struct path * pp, struct config *conf, int daemon, int oldstate)
 	if (pp->mpp && !c->mpcontext)
 		checker_mp_init(c, &pp->mpp->mpcontext);
 	checker_clear_message(c);
-	if (daemon) {
-		if (conf->force_sync == 0)
-			checker_set_async(c);
-		else
-			checker_set_sync(c);
-	}
+	if (conf->force_sync == 0)
+		checker_set_async(c);
+	else
+		checker_set_sync(c);
 	if (!conf->checker_timeout &&
 	    sysfs_get_timeout(pp, &(c->timeout)) <= 0)
 		c->timeout = DEF_TIMEOUT;
@@ -1631,11 +1750,10 @@ get_state (struct path * pp, struct config *conf, int daemon, int oldstate)
 }
 
 static int
-get_prio (struct path * pp)
+get_prio (struct path * pp, int timeout)
 {
 	struct prio * p;
 	struct config *conf;
-	int checker_timeout;
 	int old_prio;
 
 	if (!pp)
@@ -1654,11 +1772,8 @@ get_prio (struct path * pp)
 			return 1;
 		}
 	}
-	conf = get_multipath_config();
-	checker_timeout = conf->checker_timeout;
-	put_multipath_config(conf);
 	old_prio = pp->priority;
-	pp->priority = prio_getprio(p, pp, checker_timeout);
+	pp->priority = prio_getprio(p, pp, timeout);
 	if (pp->priority < 0) {
 		/* this changes pp->offline, but why not */
 		int state = path_offline(pp);
@@ -1687,7 +1802,7 @@ get_prio (struct path * pp)
  * Returns a pointer to the position where "end" was moved to.
  */
 static char
-*skip_zeroes_backward(char* start, int *len, char *end)
+*skip_zeroes_backward(char* start, size_t *len, char *end)
 {
 	char *p = end;
 
@@ -1713,10 +1828,10 @@ static char
  * Otherwise, returns 0.
  */
 static int
-fix_broken_nvme_wwid(struct path *pp, const char *value, int size)
+fix_broken_nvme_wwid(struct path *pp, const char *value, size_t size)
 {
 	static const char _nvme[] = "nvme.";
-	int len, i;
+	size_t len, i;
 	char mangled[256];
 	char *p;
 
@@ -1810,7 +1925,7 @@ static ssize_t uid_fallback(struct path *pp, int path_state,
 		if (len < 0 && path_state == PATH_UP) {
 			condlog(1, "%s: failed to get sysfs uid: %s",
 				pp->dev, strerror(-len));
-			len = get_vpd_sgio(pp->fd, 0x83, pp->wwid,
+			len = get_vpd_sgio(pp->fd, 0x83, 0, pp->wwid,
 					   WWID_SIZE);
 			*origin = "sgio";
 		}
@@ -2015,7 +2130,7 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 		get_geometry(pp);
 
 	if (path_state == PATH_UP && pp->bus == SYSFS_BUS_SCSI)
-		scsi_ioctl_pathinfo(pp, conf, mask);
+		scsi_ioctl_pathinfo(pp, mask);
 
 	if (pp->bus == SYSFS_BUS_CCISS && mask & DI_SERIAL)
 		cciss_ioctl_pathinfo(pp);
@@ -2065,11 +2180,13 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
 
 	 /*
 	  * Retrieve path priority, even for PATH_DOWN paths if it has never
-	  * been successfully obtained before.
+	  * been successfully obtained before. If path is down don't try
+	  * for too long.
 	  */
 	if ((mask & DI_PRIO) && path_state == PATH_UP && strlen(pp->wwid)) {
 		if (pp->state != PATH_DOWN || pp->priority == PRIO_UNDEF) {
-			get_prio(pp);
+			get_prio(pp, (pp->state != PATH_DOWN)?
+				     (conf->checker_timeout * 1000) : 10);
 		}
 	}
 

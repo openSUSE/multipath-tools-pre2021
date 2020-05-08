@@ -18,6 +18,7 @@ struct checker_class {
 	int (*init)(struct checker *);       /* to allocate the context */
 	int (*mp_init)(struct checker *);    /* to allocate the mpcontext */
 	void (*free)(struct checker *);      /* to free the context */
+	void (*reset)(void);		     /* to reset the global variables */
 	const char **msgtable;
 	short msgtable_size;
 };
@@ -66,6 +67,8 @@ void free_checker_class(struct checker_class *c)
 	}
 	condlog(3, "unloading %s checker", c->name);
 	list_del(&c->node);
+	if (c->reset)
+		c->reset();
 	if (c->handle) {
 		if (dlclose(c->handle) != 0) {
 			condlog(0, "Cannot unload checker %s: %s",
@@ -96,6 +99,16 @@ static struct checker_class *checker_class_lookup(const char *name)
 			return c;
 	}
 	return NULL;
+}
+
+void reset_checker_classes(void)
+{
+	struct checker_class *c;
+
+	list_for_each_entry(c, &checkers, node) {
+		if (c->reset)
+			c->reset();
+	}
 }
 
 static struct checker_class *add_checker_class(const char *multipath_dir,
@@ -142,7 +155,9 @@ static struct checker_class *add_checker_class(const char *multipath_dir,
 		goto out;
 
 	c->mp_init = (int (*)(struct checker *)) dlsym(c->handle, "libcheck_mp_init");
-	/* NULL mp_init is o.k. call dlerror() to clear out any error string */
+	c->reset = (void (*)(void)) dlsym(c->handle, "libcheck_reset");
+	/* These 2 functions can be NULL. call dlerror() to clear out any
+	 * error string */
 	dlerror();
 
 	c->free = (void (*)(struct checker *)) dlsym(c->handle, "libcheck_free");

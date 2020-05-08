@@ -33,10 +33,6 @@
  */
 #include "checkers.h"
 
-#ifdef USE_SYSTEMD
-static int use_watchdog;
-#endif
-
 /*
  * libmultipath
  */
@@ -215,7 +211,7 @@ static void do_sd_notify(enum daemon_status old_state,
 }
 #endif
 
-static void config_cleanup(void *arg)
+static void config_cleanup(__attribute__((unused)) void *arg)
 {
 	pthread_mutex_unlock(&config_lock);
 }
@@ -306,7 +302,7 @@ struct config *get_multipath_config(void)
 	return rcu_dereference(multipath_conf);
 }
 
-void put_multipath_config(void *arg)
+void put_multipath_config(__attribute__((unused)) void *arg)
 {
 	rcu_read_unlock();
 }
@@ -377,7 +373,7 @@ remove_map_and_stop_waiter(struct multipath *mpp, struct vectors *vecs)
 	 * so they don't need to be manually removed here */
 	condlog(3, "%s: removing map from internal tables", mpp->alias);
 	if (!poll_dmevents)
-		stop_waiter_thread(mpp, vecs);
+		stop_waiter_thread(mpp);
 	remove_map(mpp, vecs, PURGE_VEC);
 }
 
@@ -392,7 +388,7 @@ remove_maps_and_stop_waiters(struct vectors *vecs)
 
 	if (!poll_dmevents) {
 		vector_foreach_slot(vecs->mpvec, mpp, i)
-			stop_waiter_thread(mpp, vecs);
+			stop_waiter_thread(mpp);
 	}
 	else
 		unwatch_all_dmevents();
@@ -407,36 +403,6 @@ set_multipath_wwid (struct multipath * mpp)
 		return;
 
 	dm_get_uuid(mpp->alias, mpp->wwid, WWID_SIZE);
-}
-
-static void set_no_path_retry(struct multipath *mpp)
-{
-	char is_queueing = 0;
-
-	mpp->nr_active = pathcount(mpp, PATH_UP) + pathcount(mpp, PATH_GHOST);
-	if (mpp->features && strstr(mpp->features, "queue_if_no_path"))
-		is_queueing = 1;
-
-	switch (mpp->no_path_retry) {
-	case NO_PATH_RETRY_UNDEF:
-		break;
-	case NO_PATH_RETRY_FAIL:
-		if (is_queueing)
-			dm_queue_if_no_path(mpp->alias, 0);
-		break;
-	case NO_PATH_RETRY_QUEUE:
-		if (!is_queueing)
-			dm_queue_if_no_path(mpp->alias, 1);
-		break;
-	default:
-		if (mpp->nr_active > 0) {
-			mpp->retry_tick = 0;
-			if (!is_queueing)
-				dm_queue_if_no_path(mpp->alias, 1);
-		} else if (is_queueing && mpp->retry_tick == 0)
-			enter_recovery_mode(mpp);
-		break;
-	}
 }
 
 int __setup_multipath(struct vectors *vecs, struct multipath *mpp,
@@ -493,7 +459,7 @@ int update_multipath (struct vectors *vecs, char *mapname, int reset)
 			if (pp->state != PATH_DOWN) {
 				struct config *conf;
 				int oldstate = pp->state;
-				int checkint;
+				unsigned int checkint;
 
 				conf = get_multipath_config();
 				checkint = conf->checkint;
@@ -906,9 +872,8 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
 			}
 		}
 	}
-	lock_cleanup_pop(vecs->lock);
 	if (pp)
-		return ret;
+		goto out;
 
 	/*
 	 * get path vital state
@@ -920,13 +885,13 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
 	pthread_cleanup_pop(1);
 	if (!pp) {
 		if (ret == PATHINFO_SKIPPED)
-			return 0;
-		condlog(3, "%s: failed to get path info", uev->kernel);
-		return 1;
+			ret = 0;
+		else {
+			condlog(3, "%s: failed to get path info", uev->kernel);
+			ret = 1;
+		}
+		goto out;
 	}
-	pthread_cleanup_push(cleanup_lock, &vecs->lock);
-	lock(&vecs->lock);
-	pthread_testcancel();
 	ret = store_path(vecs->pathvec, pp);
 	if (!ret) {
 		conf = get_multipath_config();
@@ -940,6 +905,7 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
 		free_path(pp);
 		ret = 1;
 	}
+out:
 	lock_cleanup_pop(vecs->lock);
 	return ret;
 }
@@ -1503,7 +1469,7 @@ out:
 	return r;
 }
 
-static void rcu_unregister(void *param)
+static void rcu_unregister(__attribute__((unused)) void *param)
 {
 	rcu_unregister_thread();
 }
@@ -1646,7 +1612,7 @@ fail_path (struct path * pp, int del_active)
  * caller must have locked the path list before calling that function
  */
 static int
-reinstate_path (struct path * pp, int add_active)
+reinstate_path (struct path * pp)
 {
 	int ret = 0;
 
@@ -1658,8 +1624,7 @@ reinstate_path (struct path * pp, int add_active)
 		ret = 1;
 	} else {
 		condlog(2, "%s: reinstated", pp->dev_t);
-		if (add_active)
-			update_queue_mode_add_path(pp->mpp);
+		update_queue_mode_add_path(pp->mpp);
 	}
 	return ret;
 }
@@ -1891,7 +1856,7 @@ static int check_path_reinstate_state(struct path * pp) {
 
 	if (pp->disable_reinstate) {
 		/* If there are no other usable paths, reinstate the path */
-		if (pp->mpp->nr_active == 0) {
+		if (count_active_paths(pp->mpp) == 0) {
 			condlog(2, "%s : reinstating path early", pp->dev);
 			goto reinstate_path;
 		}
@@ -1949,8 +1914,9 @@ static int check_path_reinstate_state(struct path * pp) {
 	 * so that the cutomer can rectify the issue within this time. After
 	 * the completion of san_path_err_recovery_time it should
 	 * automatically reinstate the path
+	 * (note: we know that san_path_err_threshold > 0 here).
 	 */
-	if (pp->path_failures > pp->mpp->san_path_err_threshold) {
+	if (pp->path_failures > (unsigned int)pp->mpp->san_path_err_threshold) {
 		condlog(2, "%s : hit error threshold. Delaying path reinstatement", pp->dev);
 		pp->dis_reinstate_time = curr_time.tv_sec;
 		pp->disable_reinstate = 1;
@@ -1984,15 +1950,15 @@ should_skip_path(struct path *pp){
  * and '0' otherwise
  */
 int
-check_path (struct vectors * vecs, struct path * pp, int ticks)
+check_path (struct vectors * vecs, struct path * pp, unsigned int ticks)
 {
 	int newstate;
 	int new_path_up = 0;
 	int chkr_new_path_up = 0;
-	int add_active;
 	int disable_reinstate = 0;
 	int oldchkrstate = pp->chkrstate;
-	int retrigger_tries, checkint, max_checkint, verbosity;
+	int retrigger_tries, verbosity;
+	unsigned int checkint, max_checkint;
 	struct config *conf;
 	int marginal_pathgroups, marginal_changed = 0;
 	int ret;
@@ -2162,7 +2128,7 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 	 * paths if there are no other active paths in map.
 	 */
 	disable_reinstate = (newstate == PATH_GHOST &&
-			     pp->mpp->nr_active == 0 &&
+			     count_active_paths(pp->mpp) == 0 &&
 			     path_get_tpgs(pp) == TPGS_IMPLICIT) ? 1 : 0;
 
 	pp->chkrstate = newstate;
@@ -2213,12 +2179,7 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 		/*
 		 * reinstate this path
 		 */
-		if (oldstate != PATH_UP &&
-		    oldstate != PATH_GHOST)
-			add_active = 1;
-		else
-			add_active = 0;
-		if (!disable_reinstate && reinstate_path(pp, add_active)) {
+		if (!disable_reinstate && reinstate_path(pp)) {
 			condlog(3, "%s: reload map", pp->dev);
 			ev_add_path(pp, vecs, 1);
 			pp->tick = 1;
@@ -2241,7 +2202,7 @@ check_path (struct vectors * vecs, struct path * pp, int ticks)
 		    pp->dmstate == PSTATE_UNDEF) &&
 		    !disable_reinstate) {
 			/* Clear IO errors */
-			if (reinstate_path(pp, 0)) {
+			if (reinstate_path(pp)) {
 				condlog(3, "%s: reload map", pp->dev);
 				ev_add_path(pp, vecs, 1);
 				pp->tick = 1;
@@ -2319,6 +2280,7 @@ checkerloop (void *ap)
 	struct timespec last_time;
 	struct config *conf;
 	int foreign_tick = 0;
+	bool use_watchdog;
 
 	pthread_cleanup_push(rcu_unregister, NULL);
 	rcu_register_thread();
@@ -2330,9 +2292,15 @@ checkerloop (void *ap)
 	get_monotonic_time(&last_time);
 	last_time.tv_sec -= 1;
 
+	/* use_watchdog is set from process environment and never changes */
+	conf = get_multipath_config();
+	use_watchdog = conf->use_watchdog;
+	put_multipath_config(conf);
+
 	while (1) {
 		struct timespec diff_time, start_time, end_time;
-		int num_paths = 0, ticks = 0, strict_timing, rc = 0;
+		int num_paths = 0, strict_timing, rc = 0;
+		unsigned int ticks = 0;
 
 		get_monotonic_time(&start_time);
 		if (start_time.tv_sec && last_time.tv_sec) {
@@ -2607,6 +2575,7 @@ reconfigure (struct vectors * vecs)
 	vecs->pathvec = NULL;
 	delete_all_foreign();
 
+	reset_checker_classes();
 	/* Re-read any timezone changes */
 	tzset();
 
@@ -2618,6 +2587,7 @@ reconfigure (struct vectors * vecs)
 	uxsock_timeout = conf->uxsock_timeout;
 
 	old = rcu_dereference(multipath_conf);
+	conf->sequence_nr = old->sequence_nr + 1;
 	rcu_assign_pointer(multipath_conf, conf);
 	call_rcu(&old->rcu, rcu_free_config);
 
@@ -2685,25 +2655,25 @@ handle_signals(bool nonfatal)
 }
 
 static void
-sighup (int sig)
+sighup(__attribute__((unused)) int sig)
 {
 	reconfig_sig = 1;
 }
 
 static void
-sigend (int sig)
+sigend(__attribute__((unused)) int sig)
 {
 	exit_sig = 1;
 }
 
 static void
-sigusr1 (int sig)
+sigusr1(__attribute__((unused)) int sig)
 {
 	log_reset_sig = 1;
 }
 
 static void
-sigusr2 (int sig)
+sigusr2(__attribute__((unused)) int sig)
 {
 	condlog(3, "SIGUSR2 received");
 }
@@ -2792,7 +2762,7 @@ set_oom_adj (void)
 }
 
 static int
-child (void * param)
+child (__attribute__((unused)) void *param)
 {
 	pthread_t check_thr, uevent_thr, uxlsnr_thr, uevq_thr, dmevent_thr;
 	pthread_attr_t log_attr, misc_attr, uevent_attr;
@@ -2800,7 +2770,6 @@ child (void * param)
 	struct multipath * mpp;
 	int i;
 #ifdef USE_SYSTEMD
-	unsigned long checkint;
 	int startup_done = 0;
 #endif
 	int rc;
@@ -2877,21 +2846,6 @@ child (void * param)
 	setscheduler();
 	set_oom_adj();
 
-#ifdef USE_SYSTEMD
-	envp = getenv("WATCHDOG_USEC");
-	if (envp && sscanf(envp, "%lu", &checkint) == 1) {
-		/* Value is in microseconds */
-		conf->max_checkint = checkint / 1000000;
-		/* Rescale checkint */
-		if (conf->checkint > conf->max_checkint)
-			conf->checkint = conf->max_checkint;
-		else
-			conf->checkint = conf->max_checkint / 4;
-		condlog(3, "enabling watchdog, interval %d max %d",
-			conf->checkint, conf->max_checkint);
-		use_watchdog = conf->checkint;
-	}
-#endif
 	/*
 	 * Startup done, invalidate configuration
 	 */
@@ -3247,7 +3201,8 @@ main (int argc, char *argv[])
 void *  mpath_pr_event_handler_fn (void * pathp )
 {
 	struct multipath * mpp;
-	int i, ret, isFound;
+	unsigned int i;
+	int ret, isFound;
 	struct path * pp = (struct path *)pathp;
 	struct prout_param_descriptor *param;
 	struct prin_resp *resp;

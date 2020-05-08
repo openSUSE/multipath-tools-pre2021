@@ -87,6 +87,7 @@ struct hwentry {
 	int max_sectors_kb;
 	int ghost_delay;
 	int all_tg_pt;
+	int vpd_vendor_id;
 	char * bl_product;
 };
 
@@ -137,8 +138,9 @@ struct config {
 	int pgpolicy;
 	int minio;
 	int minio_rq;
-	int checkint;
-	int max_checkint;
+	unsigned int checkint;
+	unsigned int max_checkint;
+	bool use_watchdog;
 	int pgfailback;
 	int remove;
 	int rr_weight;
@@ -188,6 +190,7 @@ struct config {
 	int find_multipaths_timeout;
 	int marginal_pathgroups;
 	unsigned int version[3];
+	unsigned int sequence_nr;
 
 	char * multipath_dir;
 	char * selector;

@@ -50,7 +50,7 @@ struct config *get_multipath_config(void)
 	return multipath_conf;
 }
 
-void put_multipath_config(void * arg)
+void put_multipath_config(__attribute__((unused)) void * arg)
 {
 	/* Noop for now */
 }
@@ -499,6 +499,7 @@ static int handle_args(int argc, char * argv[], int nline)
 		if (ret != MPATH_PR_SUCCESS )
 		{
 			fprintf (stderr, "Persistent Reserve IN command failed\n");
+			free(resp);
 			goto out_fd;
 		}
 

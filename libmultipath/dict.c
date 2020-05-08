@@ -31,16 +31,58 @@ static int
 set_int(vector strvec, void *ptr)
 {
 	int *int_ptr = (int *)ptr;
-	char * buff;
+	char *buff, *eptr;
+	long res;
+	int rc;
 
 	buff = set_value(strvec);
 	if (!buff)
 		return 1;
 
-	*int_ptr = atoi(buff);
+	res = strtol(buff, &eptr, 10);
+	if (eptr > buff)
+		while (isspace(*eptr))
+			eptr++;
+	if (*buff == '\0' || *eptr != '\0' || res > INT_MAX || res < INT_MIN) {
+		condlog(1, "%s: invalid value for %s: \"%s\"",
+			__func__, (char*)VECTOR_SLOT(strvec, 0), buff);
+		rc = 1;
+	} else {
+		rc = 0;
+		*int_ptr = res;
+	}
 
 	FREE(buff);
-	return 0;
+	return rc;
+}
+
+static int
+set_uint(vector strvec, void *ptr)
+{
+	unsigned int *uint_ptr = (unsigned int *)ptr;
+	char *buff, *eptr;
+	long res;
+	int rc;
+
+	buff = set_value(strvec);
+	if (!buff)
+		return 1;
+
+	res = strtol(buff, &eptr, 10);
+	if (eptr > buff)
+		while (isspace(*eptr))
+			eptr++;
+	if (*buff == '\0' || *eptr != '\0' || res < 0 || res > UINT_MAX) {
+		condlog(1, "%s: invalid value for %s: \"%s\"",
+			__func__, (char*)VECTOR_SLOT(strvec, 0), buff);
+		rc = 1;
+	} else {
+		rc = 0;
+		*uint_ptr = res;
+	}
+
+	FREE(buff);
+	return rc;
 }
 
 static int
@@ -272,7 +314,7 @@ snprint_mp_ ## option (struct config *conf, char * buff, int len,	\
 
 static int checkint_handler(struct config *conf, vector strvec)
 {
-	int rc = set_int(strvec, &conf->checkint);
+	int rc = set_uint(strvec, &conf->checkint);
 
 	if (rc)
 		return rc;
@@ -283,7 +325,7 @@ static int checkint_handler(struct config *conf, vector strvec)
 
 declare_def_snprint(checkint, print_int)
 
-declare_def_handler(max_checkint, set_int)
+declare_def_handler(max_checkint, set_uint)
 declare_def_snprint(max_checkint, print_int)
 
 declare_def_handler(verbosity, set_int)
@@ -1057,7 +1099,7 @@ declare_mp_handler(pgfailback, set_pgfailback)
 declare_mp_snprint(pgfailback, print_pgfailback)
 
 static int
-set_no_path_retry(vector strvec, void *ptr)
+no_path_retry_helper(vector strvec, void *ptr)
 {
 	int *int_ptr = (int *)ptr;
 	char * buff;
@@ -1092,13 +1134,13 @@ print_no_path_retry(char * buff, int len, long v)
 	}
 }
 
-declare_def_handler(no_path_retry, set_no_path_retry)
+declare_def_handler(no_path_retry, no_path_retry_helper)
 declare_def_snprint(no_path_retry, print_no_path_retry)
-declare_ovr_handler(no_path_retry, set_no_path_retry)
+declare_ovr_handler(no_path_retry, no_path_retry_helper)
 declare_ovr_snprint(no_path_retry, print_no_path_retry)
-declare_hw_handler(no_path_retry, set_no_path_retry)
+declare_hw_handler(no_path_retry, no_path_retry_helper)
 declare_hw_snprint(no_path_retry, print_no_path_retry)
-declare_mp_handler(no_path_retry, set_no_path_retry)
+declare_mp_handler(no_path_retry, no_path_retry_helper)
 declare_mp_snprint(no_path_retry, print_no_path_retry)
 
 static int
@@ -1363,6 +1405,43 @@ def_uxsock_timeout_handler(struct config *conf, vector strvec)
 		conf->uxsock_timeout = DEFAULT_REPLY_TIMEOUT;
 
 	free(buff);
+	return 0;
+}
+
+static int
+hw_vpd_vendor_handler(struct config *conf, vector strvec)
+{
+	int i;
+	char *buff;
+
+	struct hwentry * hwe = VECTOR_LAST_SLOT(conf->hwtable);
+	if (!hwe)
+		return 1;
+
+	buff = set_value(strvec);
+	if (!buff)
+		return 1;
+	for (i = 0; i < VPD_VP_ARRAY_SIZE; i++) {
+		if (strcmp(buff, vpd_vendor_pages[i].name) == 0) {
+			hwe->vpd_vendor_id = i;
+			goto out;
+		}
+	}
+	hwe->vpd_vendor_id = 0;
+out:
+	FREE(buff);
+	return 0;
+}
+
+static int
+snprint_hw_vpd_vendor(struct config *conf, char * buff, int len,
+		      const void * data)
+{
+	const struct hwentry * hwe = (const struct hwentry *)data;
+
+	if (hwe->vpd_vendor_id > 0 && hwe->vpd_vendor_id < VPD_VP_ARRAY_SIZE)
+		return snprintf(buff, len, "%s",
+				vpd_vendor_pages[hwe->vpd_vendor_id].name);
 	return 0;
 }
 
@@ -1806,6 +1885,7 @@ init_keywords(vector keywords)
 	install_keyword("max_sectors_kb", &hw_max_sectors_kb_handler, &snprint_hw_max_sectors_kb);
 	install_keyword("ghost_delay", &hw_ghost_delay_handler, &snprint_hw_ghost_delay);
 	install_keyword("all_tg_pt", &hw_all_tg_pt_handler, &snprint_hw_all_tg_pt);
+	install_keyword("vpd_vendor", &hw_vpd_vendor_handler, &snprint_hw_vpd_vendor);
 	install_sublevel_end();
 
 	install_keyword_root("overrides", &overrides_handler);

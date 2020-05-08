@@ -29,6 +29,7 @@
 #include "uevent.h"
 #include "debug.h"
 #include "discovery.h"
+#include "util.h"
 
 #define MAX(x,y) (((x) > (y)) ? (x) : (y))
 #define MIN(x,y) (((x) > (y)) ? (y) : (x))
@@ -36,7 +37,7 @@
 #define NOPAD    s = c
 #define PAD(x) \
 do { \
-	while ((int)(c - s) < (x) && (c < (line + len - 1))) \
+	while (c < (s + x) && (c < (line + len - 1))) \
 		*c++ = ' '; \
 	s = c; \
 } while (0)
@@ -181,9 +182,10 @@ snprint_queueing (char * buff, size_t len, const struct multipath * mpp)
 		return snprintf(buff, len, "-");
 	else if (mpp->no_path_retry > 0) {
 		if (mpp->retry_tick > 0)
+
 			return snprintf(buff, len, "%i sec",
 					mpp->retry_tick);
-		else if (mpp->retry_tick == 0 && mpp->nr_active > 0)
+		else if (mpp->retry_tick == 0 && count_active_paths(mpp) > 0)
 			return snprintf(buff, len, "%i chk",
 					mpp->no_path_retry);
 		else
@@ -195,7 +197,7 @@ snprint_queueing (char * buff, size_t len, const struct multipath * mpp)
 static int
 snprint_nb_paths (char * buff, size_t len, const struct multipath * mpp)
 {
-	return snprint_int(buff, len, mpp->nr_active);
+	return snprint_int(buff, len, count_active_paths(mpp));
 }
 
 static int
@@ -334,7 +336,8 @@ snprint_multipath_rev (char * buff, size_t len, const struct multipath * mpp)
 }
 
 static int
-snprint_multipath_foreign (char * buff, size_t len, const struct multipath * pp)
+snprint_multipath_foreign (char * buff, size_t len,
+			   __attribute__((unused)) const struct multipath * pp)
 {
 	return snprintf(buff, len, "%s", "--");
 }
@@ -356,6 +359,21 @@ snprint_action (char * buff, size_t len, const struct multipath * mpp)
 	default:
 		return 0;
 	}
+}
+
+static int
+snprint_multipath_vpd_data(char * buff, size_t len,
+			   const struct multipath * mpp)
+{
+	struct pathgroup * pgp;
+	struct path * pp;
+	int i, j;
+
+	vector_foreach_slot(mpp->pg, pgp, i)
+		vector_foreach_slot(pgp->paths, pp, j)
+			if (pp->vpd_data)
+				return snprintf(buff, len, "%s", pp->vpd_data);
+	return snprintf(buff, len, "[undef]");
 }
 
 /*
@@ -627,7 +645,8 @@ snprint_path_checker (char * buff, size_t len, const struct path * pp)
 }
 
 static int
-snprint_path_foreign (char * buff, size_t len, const struct path * pp)
+snprint_path_foreign (char * buff, size_t len,
+		      __attribute__((unused)) const struct path * pp)
 {
 	return snprintf(buff, len, "%s", "--");
 }
@@ -688,6 +707,14 @@ snprint_path_marginal(char * buff, size_t len, const struct path * pp)
 	return snprintf(buff, len, "normal");
 }
 
+static int
+snprint_path_vpd_data(char * buff, size_t len, const struct path * pp)
+{
+	if (pp->vpd_data)
+		return snprintf(buff, len, "%s", pp->vpd_data);
+	return snprintf(buff, len, "[undef]");
+}
+
 struct multipath_data mpd[] = {
 	{'n', "name",          0, snprint_name},
 	{'w', "uuid",          0, snprint_multipath_uuid},
@@ -712,6 +739,7 @@ struct multipath_data mpd[] = {
 	{'p', "prod",          0, snprint_multipath_prod},
 	{'e', "rev",           0, snprint_multipath_rev},
 	{'G', "foreign",       0, snprint_multipath_foreign},
+	{'g', "vpd page data", 0, snprint_multipath_vpd_data},
 	{0, NULL, 0 , NULL}
 };
 
@@ -737,6 +765,7 @@ struct path_data pd[] = {
 	{'r', "target WWPN",   0, snprint_tgt_wwpn},
 	{'a', "host adapter",  0, snprint_host_adapter},
 	{'G', "foreign",       0, snprint_path_foreign},
+	{'g', "vpd page data", 0, snprint_path_vpd_data},
 	{'0', "failures",      0, snprint_path_failures},
 	{'P', "protocol",      0, snprint_path_protocol},
 	{0, NULL, 0 , NULL}
@@ -781,7 +810,7 @@ get_path_layout(vector pathvec, int header)
 }
 
 static void
-reset_width(int *width, enum layout_reset reset, const char *header)
+reset_width(unsigned int *width, enum layout_reset reset, const char *header)
 {
 	switch (reset) {
 	case LAYOUT_RESET_HEADER:
@@ -1337,8 +1366,8 @@ snprint_multipath_fields_json (char * buff, int len,
 }
 
 int
-snprint_multipath_map_json (char * buff, int len,
-		const struct multipath * mpp, int last){
+snprint_multipath_map_json (char * buff, int len, const struct multipath * mpp)
+{
 	int fwd = 0;
 
 	fwd +=  snprint_json_header(buff, len);
@@ -2004,7 +2033,6 @@ int snprint_devices(struct config *conf, char * buff, int len,
 	struct dirent *blkdev;
 	struct stat statbuf;
 	char devpath[PATH_MAX];
-	char *devptr;
 	int threshold = MAX_LINE_LEN;
 	int fwd = 0;
 	int r;
@@ -2020,15 +2048,14 @@ int snprint_devices(struct config *conf, char * buff, int len,
 	}
 	fwd += snprintf(buff + fwd, len - fwd, "available block devices:\n");
 
-	strcpy(devpath,"/sys/block/");
 	while ((blkdev = readdir(blkdir)) != NULL) {
 		if ((strcmp(blkdev->d_name,".") == 0) ||
 		    (strcmp(blkdev->d_name,"..") == 0))
 			continue;
 
-		devptr = devpath + 11;
-		*devptr = '\0';
-		strncat(devptr, blkdev->d_name, PATH_MAX-12);
+		if (safe_sprintf(devpath, "/sys/block/%s", blkdev->d_name))
+			continue;
+
 		if (stat(devpath, &statbuf) < 0)
 			continue;
 
@@ -2040,11 +2067,12 @@ int snprint_devices(struct config *conf, char * buff, int len,
 			return len;
 		}
 
-		fwd += snprintf(buff + fwd, len - fwd, "    %s", devptr);
-		pp = find_path_by_dev(vecs->pathvec, devptr);
+		fwd += snprintf(buff + fwd, len - fwd, "    %s",
+				blkdev->d_name);
+		pp = find_path_by_dev(vecs->pathvec, blkdev->d_name);
 		if (!pp) {
 			r = filter_devnode(conf->blist_devnode,
-					   conf->elist_devnode, devptr);
+					   conf->elist_devnode, blkdev->d_name);
 			if (r > 0)
 				fwd += snprintf(buff + fwd, len - fwd,
 						" devnode blacklisted, unmonitored");

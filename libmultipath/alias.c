@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "debug.h"
+#include "util.h"
 #include "uxsock.h"
 #include "alias.h"
 #include "file.h"
@@ -37,7 +38,7 @@
  */
 
 int
-valid_alias(char *alias)
+valid_alias(const char *alias)
 {
 	if (strchr(alias, '/') != NULL)
 		return 0;
@@ -46,30 +47,37 @@ valid_alias(char *alias)
 
 
 static int
-format_devname(char *name, int id, int len, char *prefix)
+format_devname(char *name, int id, int len, const char *prefix)
 {
 	int pos;
 	int prefix_len = strlen(prefix);
 
-	memset(name,0, len);
+	if (len <= prefix_len + 1 || id <= 0)
+		return -1;
+
+	memset(name, 0, len);
 	strcpy(name, prefix);
-	for (pos = len - 1; pos >= prefix_len; pos--) {
+	name[len - 1] = '\0';
+	for (pos = len - 2; pos >= prefix_len; pos--) {
 		id--;
 		name[pos] = 'a' + id % 26;
 		if (id < 26)
 			break;
 		id /= 26;
 	}
+	if (pos < prefix_len)
+		return -1;
+
 	memmove(name + prefix_len, name + pos, len - pos);
-	name[prefix_len + len - pos] = '\0';
-	return (prefix_len + len - pos);
+	return (prefix_len + len - pos - 1);
 }
 
 static int
-scan_devname(char *alias, char *prefix)
+scan_devname(const char *alias, const char *prefix)
 {
-	char *c;
+	const char *c;
 	int i, n = 0;
+	static const int last_26 = INT_MAX / 26;
 
 	if (!prefix || strncmp(alias, prefix, strlen(prefix)))
 		return -1;
@@ -86,9 +94,9 @@ scan_devname(char *alias, char *prefix)
 		if (*c < 'a' || *c > 'z')
 			return -1;
 		i = *c - 'a';
-		n = ( n * 26 ) + i;
-		if (n < 0)
+		if (n > last_26 || (n == last_26 && i >= INT_MAX % 26))
 			return -1;
+		n = n * 26 + i;
 		c++;
 		n++;
 	}
@@ -96,8 +104,16 @@ scan_devname(char *alias, char *prefix)
 	return n;
 }
 
+/*
+ * Returns: 0   if matching entry in WWIDs file found
+ *         -1   if an error occurs
+ *         >0   a free ID that could be used for the WWID at hand
+ * *map_alias is set to a freshly allocated string with the matching alias if
+ * the function returns 0, or to NULL otherwise.
+ */
 static int
-lookup_binding(FILE *f, char *map_wwid, char **map_alias, char *prefix)
+lookup_binding(FILE *f, const char *map_wwid, char **map_alias,
+	       const char *prefix)
 {
 	char buf[LINE_MAX];
 	unsigned int line_nr = 0;
@@ -109,7 +125,8 @@ lookup_binding(FILE *f, char *map_wwid, char **map_alias, char *prefix)
 
 	rewind(f);
 	while (fgets(buf, LINE_MAX, f)) {
-		char *c, *alias, *wwid;
+		const char *alias, *wwid;
+		char *c;
 		int curr_id;
 
 		line_nr++;
@@ -120,8 +137,14 @@ lookup_binding(FILE *f, char *map_wwid, char **map_alias, char *prefix)
 		if (!alias) /* blank line */
 			continue;
 		curr_id = scan_devname(alias, prefix);
-		if (curr_id == id)
-			id++;
+		if (curr_id == id) {
+			if (id < INT_MAX)
+				id++;
+			else {
+				id = -1;
+				break;
+			}
+		}
 		if (curr_id > biggest_id)
 			biggest_id = curr_id;
 		if (curr_id > id && curr_id < smallest_bigger_id)
@@ -137,24 +160,30 @@ lookup_binding(FILE *f, char *map_wwid, char **map_alias, char *prefix)
 			condlog(3, "Found matching wwid [%s] in bindings file."
 				" Setting alias to %s", wwid, alias);
 			*map_alias = strdup(alias);
-			if (*map_alias == NULL)
+			if (*map_alias == NULL) {
 				condlog(0, "Cannot copy alias from bindings "
-					"file : %s", strerror(errno));
+					"file: out of memory");
+				return -1;
+			}
 			return 0;
 		}
 	}
-	condlog(3, "No matching wwid [%s] in bindings file.", map_wwid);
+	if (id >= smallest_bigger_id) {
+		if (biggest_id < INT_MAX)
+			id = biggest_id + 1;
+		else
+			id = -1;
+	}
 	if (id < 0) {
 		condlog(0, "no more available user_friendly_names");
-		return 0;
-	}
-	if (id < smallest_bigger_id)
-		return id;
-	return biggest_id + 1;
+		return -1;
+	} else
+		condlog(3, "No matching wwid [%s] in bindings file.", map_wwid);
+	return id;
 }
 
 static int
-rlookup_binding(FILE *f, char *buff, char *map_alias, char *prefix)
+rlookup_binding(FILE *f, char *buff, const char *map_alias)
 {
 	char line[LINE_MAX];
 	unsigned int line_nr = 0;
@@ -162,7 +191,8 @@ rlookup_binding(FILE *f, char *buff, char *map_alias, char *prefix)
 	buff[0] = '\0';
 
 	while (fgets(line, LINE_MAX, f)) {
-		char *c, *alias, *wwid;
+		char *c;
+		const char *alias, *wwid;
 
 		line_nr++;
 		c = strpbrk(line, "#\n\r");
@@ -186,8 +216,7 @@ rlookup_binding(FILE *f, char *buff, char *map_alias, char *prefix)
 		if (strcmp(alias, map_alias) == 0){
 			condlog(3, "Found matching alias [%s] in bindings file."
 				"\nSetting wwid to %s", alias, wwid);
-			strncpy(buff, wwid, WWID_SIZE);
-			buff[WWID_SIZE - 1] = '\0';
+			strlcpy(buff, wwid, WWID_SIZE);
 			return 0;
 		}
 	}
@@ -197,21 +226,28 @@ rlookup_binding(FILE *f, char *buff, char *map_alias, char *prefix)
 }
 
 static char *
-allocate_binding(int fd, char *wwid, int id, char *prefix)
+allocate_binding(int fd, const char *wwid, int id, const char *prefix)
 {
 	char buf[LINE_MAX];
 	off_t offset;
 	char *alias, *c;
 	int i;
 
-	if (id < 0) {
-		condlog(0, "Bindings file full. Cannot allocate new binding");
+	if (id <= 0) {
+		condlog(0, "%s: cannot allocate new binding for id %d",
+			__func__, id);
 		return NULL;
 	}
 
 	i = format_devname(buf, id, LINE_MAX, prefix);
+	if (i == -1)
+		return NULL;
+
 	c = buf + i;
-	snprintf(c,LINE_MAX - i, " %s\n", wwid);
+	if (snprintf(c, LINE_MAX - i, " %s\n", wwid) >= LINE_MAX - i) {
+		condlog(1, "%s: line too long for %s\n", __func__, wwid);
+		return NULL;
+	}
 	buf[LINE_MAX - 1] = '\0';
 
 	offset = lseek(fd, 0, SEEK_END);
@@ -220,7 +256,7 @@ allocate_binding(int fd, char *wwid, int id, char *prefix)
 			strerror(errno));
 		return NULL;
 	}
-	if (write(fd, buf, strlen(buf)) != strlen(buf)){
+	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf)){
 		condlog(0, "Cannot write binding to bindings file : %s",
 			strerror(errno));
 		/* clear partial write */
@@ -232,19 +268,18 @@ allocate_binding(int fd, char *wwid, int id, char *prefix)
 	c = strchr(buf, ' ');
 	if (c)
 		*c = '\0';
+
+	condlog(3, "Created new binding [%s] for WWID [%s]", buf, wwid);
 	alias = strdup(buf);
 	if (alias == NULL)
-		condlog(0, "cannot copy new alias from bindings file : %s",
-			strerror(errno));
-	else
-		condlog(3, "Created new binding [%s] for WWID [%s]", alias,
-			wwid);
+		condlog(0, "cannot copy new alias from bindings file: out of memory");
+
 	return alias;
 }
 
 char *
-use_existing_alias (char *wwid, char *file, char *alias_old,
-		char *prefix, int bindings_read_only)
+use_existing_alias (const char *wwid, const char *file, const char *alias_old,
+		    const char *prefix, int bindings_read_only)
 {
 	char *alias = NULL;
 	int id = 0;
@@ -262,10 +297,10 @@ use_existing_alias (char *wwid, char *file, char *alias_old,
 		close(fd);
 		return NULL;
 	}
-	/* lookup the binding. if it exsists, the wwid will be in buff
+	/* lookup the binding. if it exists, the wwid will be in buff
 	 * either way, id contains the id for the alias
 	 */
-	rlookup_binding(f, buff, alias_old, prefix);
+	rlookup_binding(f, buff, alias_old);
 
 	if (strlen(buff) > 0) {
 		/* if buff is our wwid, it's already
@@ -306,12 +341,14 @@ use_existing_alias (char *wwid, char *file, char *alias_old,
 	}
 
 out:
+	pthread_cleanup_push(free, alias);
 	fclose(f);
+	pthread_cleanup_pop(0);
 	return alias;
 }
 
 char *
-get_user_friendly_alias(char *wwid, char *file, char *prefix,
+get_user_friendly_alias(const char *wwid, const char *file, const char *prefix,
 			int bindings_read_only)
 {
 	char *alias;
@@ -342,23 +379,24 @@ get_user_friendly_alias(char *wwid, char *file, char *prefix,
 		return NULL;
 	}
 
+	pthread_cleanup_push(free, alias);
+
 	if (fflush(f) != 0) {
 		condlog(0, "cannot fflush bindings file stream : %s",
 			strerror(errno));
 		free(alias);
-		fclose(f);
-		return NULL;
-	}
-
-	if (!alias && can_write && !bindings_read_only && id)
+		alias = NULL;
+	} else if (can_write && !bindings_read_only && !alias)
 		alias = allocate_binding(fd, wwid, id, prefix);
 
 	fclose(f);
+
+	pthread_cleanup_pop(0);
 	return alias;
 }
 
 int
-get_user_friendly_wwid(char *alias, char *buff, char *file)
+get_user_friendly_wwid(const char *alias, char *buff, const char *file)
 {
 	int fd, unused;
 	FILE *f;
@@ -380,7 +418,7 @@ get_user_friendly_wwid(char *alias, char *buff, char *file)
 		return -1;
 	}
 
-	rlookup_binding(f, buff, alias, NULL);
+	rlookup_binding(f, buff, alias);
 	if (!strlen(buff)) {
 		fclose(f);
 		return -1;

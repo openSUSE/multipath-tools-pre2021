@@ -501,9 +501,10 @@ Check the path state for LSI/Engenio/NetApp RDAC class as NetApp SANtricity E/EF
 Series, and OEM arrays from IBM DELL SGI STK and SUN.
 .TP
 .I directio
-(Deprecated) Read the first sector with direct I/O. This checker is being
-deprecated, it could cause spurious path failures under high load.
-Please use \fItur\fR instead.
+(Deprecated) Read the first sector with direct I/O. If you have a large number
+of paths, or many AIO users on a system, you may need to use sysctl to
+increase fs.aio-max-nr. This checker is being deprecated, it could cause
+spurious path failures under high load. Please use \fItur\fR instead.
 .TP
 .I cciss_tur
 (Hardware-dependent)
@@ -1478,6 +1479,14 @@ the \fIproduct\fR attribute set to the value of \fIproduct_blacklist\fR.
 .B alias_prefix
 The user_friendly_names prefix to use for this
 device type, instead of the default "mpath".
+.TP
+.B vpd_vendor
+The vendor specific vpd page information, using the vpd page abbreviation.
+The vpd page abbreviation can be found by running \fIsg_vpd -e\fR. multipathd
+will use this information to gather device specific information that can be
+displayed with the \fI%g\fR wilcard for the \fImultipathd show maps format\fR
+and \fImultipathd show paths format\fR commands. Currently only the
+\fBhp3par\fR vpd page is supported.
 .TP
 .B hardware_handler
 The hardware handler to use for this device type.
