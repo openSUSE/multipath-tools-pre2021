@@ -1,7 +1,7 @@
 include ../Makefile.inc
 
 CFLAGS += $(BIN_CFLAGS) -I$(multipathdir) -I$(mpathcmddir)
-LIBDEPS += -L$(multipathdir) -lmultipath -lcmocka
+LIBDEPS += -L$(multipathdir) -L$(mpathcmddir) -lmultipath -lmpathcmd -lcmocka
 
 TESTS := uevent parser util dmevents hwtable blacklist unaligned vpd
 
