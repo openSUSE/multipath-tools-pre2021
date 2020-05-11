@@ -92,15 +92,18 @@ TEST_CC_OPTION = $(shell \
 STACKPROT := $(call TEST_CC_OPTION,-fstack-protector-strong,-fstack-protector)
 ERROR_DISCARDED_QUALIFIERS := $(call TEST_CC_OPTION,-Werror=discarded-qualifiers,)
 
-OPTFLAGS	= -O2 -g -pipe -Werror -Wall -Wextra -Wformat=2 -Werror=implicit-int \
+OPTFLAGS	:= -O2 -g $(STACKPROT) --param=ssp-buffer-size=4
+WARNFLAGS	:= -Werror -Wall -Wextra -Wformat=2 -Werror=implicit-int \
 		  -Werror=implicit-function-declaration -Werror=format-security \
 		  -Wno-unused-parameter -Wno-clobbered \
-		  -Werror=cast-qual $(ERROR_DISCARDED_QUALIFIERS) \
-		  -Wp,-D_FORTIFY_SOURCE=2 $(STACKPROT) \
-		  --param=ssp-buffer-size=4
+		  -Werror=cast-qual $(ERROR_DISCARDED_QUALIFIERS)
 
 CFLAGS		:= $(OPTFLAGS) -DBIN_DIR=\"$(bindir)\" -DLIB_STRING=\"${LIB}\" -DRUN_DIR=\"${RUN}\" \
 		   -MMD -MP $(CFLAGS)
+CPPFLAGS	:= -Wp,-D_FORTIFY_SOURCE=2
+CFLAGS		:= $(CFLAGS) $(OPTFLAGS) $(WARNFLAGS) -pipe \
+		   -DBIN_DIR=\"$(bindir)\" -DLIB_STRING=\"${LIB}\" -DRUN_DIR=\"${RUN}\" \
+		   -MMD -MP
 BIN_CFLAGS	= -fPIE -DPIE
 LIB_CFLAGS	= -fPIC
 SHARED_FLAGS	= -shared
