@@ -956,7 +956,7 @@ parse_vpd_pg80(const unsigned char *in, char *out, size_t out_len)
 	}
 
 	if (len >= out_len) {
-		condlog(2, "vpd pg80 overflow, %lu/%lu bytes required",
+		condlog(2, "vpd pg80 overflow, %zu/%zu bytes required",
 			len + 1, out_len);
 		len = out_len - 1;
 	}
@@ -1057,7 +1057,7 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 
 		len = sprintf(out, "%d", vpd_type);
 		if (2 * vpd_len >= out_len - len) {
-			condlog(1, "%s: WWID overflow, type %d, %lu/%lu bytes required",
+			condlog(1, "%s: WWID overflow, type %d, %zu/%zu bytes required",
 				__func__, vpd_type,
 				2 * vpd_len + len + 1, out_len);
 			vpd_len = (out_len - len - 1) / 2;
@@ -1066,7 +1066,7 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 			len += sprintf(out + len,
 				       "%02x", vpd[i]);
 	} else if (vpd_type == 0x8 && vpd_len < 4) {
-		condlog(1, "%s: VPD length %lu too small for designator type 8",
+		condlog(1, "%s: VPD length %zu too small for designator type 8",
 			__func__, vpd_len);
 		return -EINVAL;
 	} else if (vpd_type == 0x8) {
@@ -1082,7 +1082,7 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 		while (len > 2 && vpd[len - 2] == '\0')
 			--len;
 		if (len > out_len - 1) {
-			condlog(1, "%s: WWID overflow, type 8/%c, %lu/%lu bytes required",
+			condlog(1, "%s: WWID overflow, type 8/%c, %zu/%zu bytes required",
 				__func__, out[0], len + 1, out_len);
 			len = out_len - 1;
 		}
@@ -1106,7 +1106,7 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 		while ((p = memchr(vpd, ' ', vpd_len))) {
 			p_len = p - vpd;
 			if (len + p_len > out_len - 1) {
-				condlog(1, "%s: WWID overflow, type 1, %lu/%lu bytes required",
+				condlog(1, "%s: WWID overflow, type 1, %zu/%zu bytes required",
 					__func__, len + p_len, out_len);
 				p_len = out_len - len - 1;
 			}
@@ -1132,7 +1132,7 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
 		p_len = vpd_len;
 		if (p_len > 0 && len < out_len - 1) {
 			if (len + p_len > out_len - 1) {
-				condlog(1, "%s: WWID overflow, type 1, %lu/%lu bytes required",
+				condlog(1, "%s: WWID overflow, type 1, %zu/%zu bytes required",
 					__func__, len + p_len + 1, out_len);
 				p_len = out_len - len - 1;
 			}
