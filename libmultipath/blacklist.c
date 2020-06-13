@@ -102,7 +102,7 @@ int set_ble_device(vector blist, char * vendor, char * product, int origin)
 }
 
 int
-_blacklist_exceptions (vector elist, const char * str)
+_blacklist_exceptions (const struct _vector *elist, const char * str)
 {
 	int i;
 	struct blentry * ele;
@@ -115,7 +115,7 @@ _blacklist_exceptions (vector elist, const char * str)
 }
 
 int
-_blacklist (vector blist, const char * str)
+_blacklist (const struct _vector *blist, const char * str)
 {
 	int i;
 	struct blentry * ble;
@@ -166,8 +166,8 @@ _blacklist_device (const struct _vector *blist, const char * vendor,
 }
 
 static int
-find_blacklist_device (const struct _vector *blist, const char * vendor,
-		       const char * product)
+find_blacklist_device (const struct _vector *blist, const char *vendor,
+		       const char *product)
 {
 	int i;
 	struct blentry_device * ble;
@@ -248,8 +248,9 @@ setup_default_blist (struct config * conf)
 		condlog(lvl, "%s: %s %s", dev, (M), (S))
 
 static void
-log_filter (const char *dev, char *vendor, char *product, char *wwid,
-	    const char *env, const char *protocol, int r, int lvl)
+log_filter (const char *dev, const char *vendor, const char *product,
+	    const char *wwid, const char *env, const char *protocol,
+	    int r, int lvl)
 {
 	/*
 	 * Try to sort from most likely to least.
@@ -294,8 +295,8 @@ log_filter (const char *dev, char *vendor, char *product, char *wwid,
 }
 
 int
-filter_device (vector blist, vector elist, char * vendor, char * product,
-	       char * dev)
+filter_device (const struct _vector *blist, const struct _vector *elist,
+	       const char *vendor, const char * product, const char *dev)
 {
 	int r = MATCH_NOTHING;
 
@@ -311,7 +312,8 @@ filter_device (vector blist, vector elist, char * vendor, char * product,
 }
 
 int
-filter_devnode (vector blist, vector elist, char * dev)
+filter_devnode (const struct _vector *blist, const struct _vector *elist,
+		const char *dev)
 {
 	int r = MATCH_NOTHING;
 
@@ -327,7 +329,8 @@ filter_devnode (vector blist, vector elist, char * dev)
 }
 
 int
-filter_wwid (vector blist, vector elist, char * wwid, char * dev)
+filter_wwid (const struct _vector *blist, const struct _vector *elist,
+	     const char *wwid, const char *dev)
 {
 	int r = MATCH_NOTHING;
 
@@ -343,7 +346,8 @@ filter_wwid (vector blist, vector elist, char * wwid, char * dev)
 }
 
 int
-filter_protocol(vector blist, vector elist, struct path * pp)
+filter_protocol(const struct _vector *blist, const struct _vector *elist,
+		const struct path *pp)
 {
 	char buf[PROTOCOL_BUF_SIZE];
 	int r = MATCH_NOTHING;
@@ -362,7 +366,7 @@ filter_protocol(vector blist, vector elist, struct path * pp)
 }
 
 int
-filter_path (struct config * conf, struct path * pp)
+filter_path (const struct config *conf, const struct path *pp)
 {
 	int r;
 
@@ -384,8 +388,8 @@ filter_path (struct config * conf, struct path * pp)
 }
 
 int
-filter_property(struct config *conf, struct udev_device *udev, int lvl,
-		const char *uid_attribute)
+filter_property(const struct config *conf, struct udev_device *udev,
+		int lvl, const char *uid_attribute)
 {
 	const char *devname = udev_device_get_sysname(udev);
 	struct udev_list_entry *list_entry;
