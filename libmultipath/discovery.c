@@ -34,6 +34,8 @@
 #include "prioritizers/alua_rtpg.h"
 #include "foreign.h"
 #include "exit.h"
+#include "configure.h"
+#include "print.h"
 
 int
 alloc_path_with_pathinfo (struct config *conf, struct udev_device *udevice,
@@ -734,6 +736,7 @@ sysfs_set_scsi_tmo (struct multipath *mpp, unsigned int checkint)
 	struct path *pp;
 	int i;
 	unsigned int dev_loss_tmo = mpp->dev_loss;
+	struct path *err_path = NULL;
 
 	if (mpp->no_path_retry > 0) {
 		uint64_t no_path_retry_tmo =
@@ -764,12 +767,34 @@ sysfs_set_scsi_tmo (struct multipath *mpp, unsigned int checkint)
 		return 0;
 
 	vector_foreach_slot(mpp->paths, pp, i) {
-		if (pp->sg_id.proto_id == SCSI_PROTOCOL_FCP)
+		if (pp->bus != SYSFS_BUS_SCSI) {
+			if (!err_path)
+				err_path = pp;
+			continue;
+		}
+
+		switch (pp->sg_id.proto_id) {
+		case SCSI_PROTOCOL_FCP:
 			sysfs_set_rport_tmo(mpp, pp);
-		if (pp->sg_id.proto_id == SCSI_PROTOCOL_ISCSI)
+			continue;
+		case SCSI_PROTOCOL_ISCSI:
 			sysfs_set_session_tmo(mpp, pp);
-		if (pp->sg_id.proto_id == SCSI_PROTOCOL_SAS)
+			continue;
+		case SCSI_PROTOCOL_SAS:
 			sysfs_set_nexus_loss_tmo(mpp, pp);
+			continue;
+		default:
+			if (!err_path)
+				err_path = pp;
+		}
+	}
+
+	if (err_path) {
+		char proto_buf[32];
+
+		snprint_path_protocol(proto_buf, sizeof(proto_buf), err_path);
+		condlog(2, "%s: setting dev_loss_tmo is unsupported for protocol %s",
+			mpp->alias, proto_buf);
 	}
 	return 0;
 }
