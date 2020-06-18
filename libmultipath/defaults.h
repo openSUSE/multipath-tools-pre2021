@@ -53,6 +53,7 @@
 #define MAX_CHECKINT(a)		(a << 2)
 
 #define MAX_DEV_LOSS_TMO	0x7FFFFFFF
+#define DEV_LOSS_TMO_UNSET	0U
 #define DEFAULT_PIDFILE		"/" RUN_DIR "/multipathd.pid"
 #define DEFAULT_SOCKET		"/org/kernel/linux/storage/multipathd"
 #define DEFAULT_CONFIGFILE	"/etc/multipath.conf"
