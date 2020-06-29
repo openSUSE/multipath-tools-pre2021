@@ -52,13 +52,8 @@ LABEL="mpath_action"
 # something that should be reacted upon since it would be useless extra work.
 # It's exactly mpath's job to provide *seamless* device access to any of the
 # paths that are available underneath.
-# Exception: On cold-plug, if the map had already been set up before,
-# do process upper layers, because rule processing may not necessarily have
-# completed during initrd processing.
-ACTION=="add", ENV{.MPATH_DEVICE_READY_OLD}=="1", GOTO="process_reload"
 ENV{DM_SUBSYSTEM_UDEV_FLAG0}=="1", \
 	ENV{DM_ACTIVATION}="0", ENV{MPATH_UNCHANGED}="1"
-LABEL="process_reload"
 
 # For path failed or reinstated events, unset DM_ACTIVATION.
 # This is similar to the DM_SUBSYSTEM_UDEV_FLAG0 case above.
