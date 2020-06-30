@@ -677,7 +677,8 @@ sysfs_set_max_sectors_kb(struct multipath *mpp, int is_reload)
 }
 
 static void
-select_reload_action(struct multipath *mpp, const char *reason)
+select_reload_action(struct multipath *mpp, const struct multipath *cmpp,
+		     const char *reason)
 {
 	struct udev_device *mpp_ud;
 	const char *env;
@@ -691,8 +692,9 @@ select_reload_action(struct multipath *mpp, const char *reason)
 	 * run for this map. Thus force udev reload.
 	 */
 
-	mpp_ud = get_udev_for_mpp(mpp);
+	mpp_ud = get_udev_for_mpp(cmpp);
 	env = udev_device_get_property_value(mpp_ud, "MPATH_DEVICE_READY");
+	condlog(3, "%s: %s: \"%s\"\n", __func__, mpp->alias, env);
 	if (!env || strcmp(env, "1"))
 		mpp->force_udev_reload = 1;
 	udev_device_unref(mpp_ud);
@@ -776,7 +778,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 	if (mpp->no_path_retry != NO_PATH_RETRY_UNDEF &&
 	    !!strstr(mpp->features, "queue_if_no_path") !=
 	    !!strstr(cmpp->features, "queue_if_no_path")) {
-		select_reload_action(cmpp, "no_path_retry change");
+		select_reload_action(mpp, cmpp, "no_path_retry change");
 		return;
 	}
 	if ((mpp->retain_hwhandler != RETAIN_HWHANDLER_ON ||
@@ -784,7 +786,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 	    (strlen(cmpp->hwhandler) != strlen(mpp->hwhandler) ||
 	     strncmp(cmpp->hwhandler, mpp->hwhandler,
 		    strlen(mpp->hwhandler)))) {
-		select_reload_action(cmpp, "hwhandler change");
+		select_reload_action(mpp, cmpp, "hwhandler change");
 		return;
 	}
 
@@ -792,7 +794,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 	    !!strstr(mpp->features, "retain_attached_hw_handler") !=
 	    !!strstr(cmpp->features, "retain_attached_hw_handler") &&
 	    get_linux_version_code() < KERNEL_VERSION(4, 3, 0)) {
-		select_reload_action(cmpp, "retain_hwhandler change");
+		select_reload_action(mpp, cmpp, "retain_hwhandler change");
 		return;
 	}
 
@@ -804,7 +806,7 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 		remove_feature(&cmpp_feat, "queue_if_no_path");
 		remove_feature(&cmpp_feat, "retain_attached_hw_handler");
 		if (strncmp(mpp_feat, cmpp_feat, PARAMS_SIZE)) {
-			select_reload_action(cmpp, "features change");
+			select_reload_action(mpp, cmpp, "features change");
 			FREE(cmpp_feat);
 			FREE(mpp_feat);
 			return;
@@ -815,19 +817,19 @@ select_action (struct multipath * mpp, vector curmp, int force_reload)
 
 	if (!cmpp->selector || strncmp(cmpp->selector, mpp->selector,
 		    strlen(mpp->selector))) {
-		select_reload_action(cmpp, "selector change");
+		select_reload_action(mpp, cmpp, "selector change");
 		return;
 	}
 	if (cmpp->minio != mpp->minio) {
-		select_reload_action(cmpp, "minio change");
+		select_reload_action(mpp, cmpp, "minio change");
 		return;
 	}
 	if (!cmpp->pg || VECTOR_SIZE(cmpp->pg) != VECTOR_SIZE(mpp->pg)) {
-		select_reload_action(cmpp, "path group number change");
+		select_reload_action(mpp, cmpp, "path group number change");
 		return;
 	}
 	if (pgcmp(mpp, cmpp)) {
-		select_reload_action(cmpp, "path group topology change");
+		select_reload_action(mpp, cmpp, "path group topology change");
 		return;
 	}
 	if (cmpp->nextpg != mpp->bestpg) {
