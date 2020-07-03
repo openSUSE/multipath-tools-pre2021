@@ -857,6 +857,12 @@ detect_alua(struct path * pp)
 	int tpgs;
 	unsigned int timeout;
 
+
+	if (pp->bus != SYSFS_BUS_SCSI) {
+		pp->tpgs = TPGS_NONE;
+		return;
+	}
+
 	if (sysfs_get_timeout(pp, &timeout) <= 0)
 		timeout = DEF_TIMEOUT;
 
