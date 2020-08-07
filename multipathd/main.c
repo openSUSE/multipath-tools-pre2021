@@ -68,6 +68,7 @@ static int use_watchdog;
 #include "log.h"
 #include "uxsock.h"
 #include "exit.h"
+#include "alias.h"
 
 #include "mpath_cmd.h"
 #include "mpath_persist.h"
@@ -2678,6 +2679,8 @@ reconfigure (struct vectors * vecs)
 		conf->verbosity = verbosity;
 	if (bindings_read_only)
 		conf->bindings_read_only = bindings_read_only;
+	check_alias_settings(conf);
+
 	uxsock_timeout = conf->uxsock_timeout;
 
 	old = rcu_dereference(multipath_conf);

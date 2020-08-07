@@ -63,6 +63,7 @@
 #include "propsel.h"
 #include "time-util.h"
 #include "file.h"
+#include "alias.h"
 
 int logsink;
 struct udev *udev;
@@ -981,6 +982,8 @@ main (int argc, char *argv[])
 		fprintf(stderr, "need to be root\n");
 		exit(RTVL_FAIL);
 	}
+
+	check_alias_settings(conf);
 
 	if (optind < argc) {
 		dev = MALLOC(FILE_NAME_SIZE);
