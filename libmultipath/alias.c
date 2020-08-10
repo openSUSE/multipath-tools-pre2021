@@ -36,6 +36,17 @@
  * See the file COPYING included with this distribution for more details.
  */
 
+#define BINDINGS_FILE_HEADER		\
+"# Multipath bindings, Version : 1.0\n" \
+"# NOTE: this file is automatically maintained by the multipath program.\n" \
+"# You should not need to edit this file in normal circumstances.\n" \
+"#\n" \
+"# Format:\n" \
+"# alias wwid\n" \
+"#\n"
+
+static const char bindings_file_header[] = BINDINGS_FILE_HEADER;
+
 int
 valid_alias(char *alias)
 {
@@ -281,7 +292,7 @@ use_existing_alias (char *wwid, char *file, char *alias_old,
 	char buff[WWID_SIZE];
 	FILE *f;
 
-	fd = open_file(file, &can_write, BINDINGS_FILE_HEADER);
+	fd = open_file(file, &can_write, bindings_file_header);
 	if (fd < 0)
 		return NULL;
 
@@ -353,7 +364,7 @@ get_user_friendly_alias(char *wwid, char *file, char *prefix,
 		return NULL;
 	}
 
-	fd = open_file(file, &can_write, BINDINGS_FILE_HEADER);
+	fd = open_file(file, &can_write, bindings_file_header);
 	if (fd < 0)
 		return NULL;
 
@@ -397,7 +408,7 @@ get_user_friendly_wwid(char *alias, char *buff, char *file)
 		return -1;
 	}
 
-	fd = open_file(file, &unused, BINDINGS_FILE_HEADER);
+	fd = open_file(file, &unused, bindings_file_header);
 	if (fd < 0)
 		return -1;
 
