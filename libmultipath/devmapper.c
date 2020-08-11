@@ -995,6 +995,7 @@ int dm_flush_maps (int retries)
 	if (!(names = dm_task_get_names (dmt)))
 		goto out;
 
+	r = 0;
 	if (!names->dev)
 		goto out;
 
