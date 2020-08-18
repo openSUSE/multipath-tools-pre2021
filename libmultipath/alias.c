@@ -138,14 +138,14 @@ lookup_binding(FILE *f, char *map_wwid, char **map_alias, char *prefix)
 
 	rewind(f);
 	while (fgets(buf, LINE_MAX, f)) {
-		char *c, *alias, *wwid;
+		char *c, *alias, *wwid, *saveptr;
 		int curr_id;
 
 		line_nr++;
 		c = strpbrk(buf, "#\n\r");
 		if (c)
 			*c = '\0';
-		alias = strtok(buf, " \t");
+		alias = strtok_r(buf, " \t", &saveptr);
 		if (!alias) /* blank line */
 			continue;
 		curr_id = scan_devname(alias, prefix);
@@ -161,7 +161,7 @@ lookup_binding(FILE *f, char *map_wwid, char **map_alias, char *prefix)
 			biggest_id = curr_id;
 		if (curr_id > id && curr_id < smallest_bigger_id)
 			smallest_bigger_id = curr_id;
-		wwid = strtok(NULL, " \t");
+		wwid = strtok_r(NULL, " \t", &saveptr);
 		if (!wwid){
 			condlog(3,
 				"Ignoring malformed line %u in bindings file",
@@ -203,16 +203,16 @@ rlookup_binding(FILE *f, char *buff, char *map_alias, char *prefix)
 	buff[0] = '\0';
 
 	while (fgets(line, LINE_MAX, f)) {
-		char *c, *alias, *wwid;
+		char *c, *alias, *wwid, *saveptr;
 
 		line_nr++;
 		c = strpbrk(line, "#\n\r");
 		if (c)
 			*c = '\0';
-		alias = strtok(line, " \t");
+		alias = strtok_r(line, " \t", &saveptr);
 		if (!alias) /* blank line */
 			continue;
-		wwid = strtok(NULL, " \t");
+		wwid = strtok_r(NULL, " \t", &saveptr);
 		if (!wwid){
 			condlog(3,
 				"Ignoring malformed line %u in bindings file",
@@ -573,23 +573,23 @@ static int _check_bindings_file(const struct config *conf, FILE *file,
 
 	pthread_cleanup_push(free, line);
 	while ((n = getline(&line, &line_len, file)) >= 0) {
-		char *c, *alias, *wwid;
+		char *c, *alias, *wwid, *saveptr;
 		const char *mpe_wwid;
 
 		linenr++;
 		c = strpbrk(line, "#\n\r");
 		if (c)
 			*c = '\0';
-		alias = strtok(line, " \t");
+		alias = strtok_r(line, " \t", &saveptr);
 		if (!alias) /* blank line */
 			continue;
-		wwid = strtok(NULL, " \t");
+		wwid = strtok_r(NULL, " \t", &saveptr);
 		if (!wwid) {
 			condlog(1, "invalid line %d in bindings file, missing WWID",
 				linenr);
 			continue;
 		}
-		c = strtok(NULL, " \t");
+		c = strtok_r(NULL, " \t", &saveptr);
 		if (c)
 			/* This is non-fatal */
 			condlog(1, "invalid line %d in bindings file, extra args \"%s\"",
