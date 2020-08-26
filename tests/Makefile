@@ -9,6 +9,7 @@ TESTS := uevent parser util dmevents hwtable blacklist unaligned vpd
 .PRECIOUS: $(TESTS:%=%-test)
 
 all:	$(TESTS:%=%.out)
+valgrind:	$(TESTS:%=%.vgr)
 
 # test-specific linker flags
 # XYZ-test-TESTDEPS: test libraries containing __wrap_xyz functions
@@ -36,10 +37,21 @@ lib/libchecktur.so:
 	@echo == running $< ==
 	@LD_LIBRARY_PATH=$(multipathdir):$(mpathcmddir) ./$< >$@
 
+%.vgr:  %-test lib/libchecktur.so
+	@echo == running valgrind for $< ==
+	@LD_LIBRARY_PATH=$(multipathdir):$(mpathcmddir) \
+		valgrind --leak-check=full --error-exitcode=128 ./$< >$@ 2>&1
+
 OBJS = $(TESTS:%=%.o) test-lib.o
 
-clean: dep_clean
-	$(RM) $(TESTS:%=%-test) $(TESTS:%=%.out) $(OBJS) *.o.wrap
+test_clean:
+	$(RM) $(TESTS:%=%.out) $(TESTS:%=%.vgr)
+
+valgrind_clean:
+	$(RM) $(TESTS:%=%.vgr)
+
+clean: test_clean valgrind_clean dep_clean
+	$(RM) $(TESTS:%=%-test) $(OBJS) *.o.wrap
 	$(RM) -rf lib
 
 .SECONDARY: $(OBJS)
