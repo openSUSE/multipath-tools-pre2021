@@ -24,6 +24,7 @@ libcheck%.so: %.o
 	$(CC) $(LDFLAGS) $(SHARED_FLAGS) -o $@ $^
 
 install:
+	$(INSTALL_PROGRAM) -d $(DESTDIR)$(libdir)
 	$(INSTALL_PROGRAM) -m 755 $(LIBS) $(DESTDIR)$(libdir)
 
 uninstall:
