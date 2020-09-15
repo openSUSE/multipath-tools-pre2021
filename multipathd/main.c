@@ -206,6 +206,8 @@ sd_notify_status(enum daemon_status state)
 static void do_sd_notify(enum daemon_status old_state,
 			 enum daemon_status new_state)
 {
+	static bool startup_done = false;
+
 	/*
 	 * Checkerloop switches back and forth between idle and running state.
 	 * No need to tell systemd each time.
@@ -215,6 +217,11 @@ static void do_sd_notify(enum daemon_status old_state,
 	    (old_state == DAEMON_IDLE || old_state == DAEMON_RUNNING))
 		return;
 	sd_notify(0, sd_notify_status(new_state));
+
+	if (new_state == DAEMON_IDLE && !startup_done) {
+		sd_notify(0, "READY=1");
+		startup_done = true;
+	}
 }
 #endif
 
@@ -2812,9 +2819,6 @@ child (void * param)
 	struct vectors * vecs;
 	struct multipath * mpp;
 	int i;
-#ifdef USE_SYSTEMD
-	int startup_done = 0;
-#endif
 	int rc;
 	int pid_fd = -1;
 	struct config *conf;
@@ -2974,12 +2978,6 @@ child (void * param)
 			}
 			lock_cleanup_pop(vecs->lock);
 			post_config_state(DAEMON_IDLE);
-#ifdef USE_SYSTEMD
-			if (!startup_done && !should_exit()) {
-				sd_notify(0, "READY=1");
-				startup_done = 1;
-			}
-#endif
 		}
 	}
 
