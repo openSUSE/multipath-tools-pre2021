@@ -48,6 +48,7 @@ int should_exit(void);
 	pthread_cleanup_push(((void (*)(void *))&f), (arg))
 
 void close_fd(void *arg);
+void cleanup_free_ptr(void *arg);
 
 struct scandir_result {
 	struct dirent **di;
