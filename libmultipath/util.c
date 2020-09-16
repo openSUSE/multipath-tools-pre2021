@@ -515,6 +515,13 @@ void close_fd(void *arg)
 }
 
 static int (*__should_exit)(void);
+void cleanup_free_ptr(void *arg)
+{
+	void **p = arg;
+
+	if (p && *p)
+		free(*p);
+}
 
 int should_exit(void) {
 	if (__should_exit)
