@@ -172,24 +172,24 @@ extract_hwe_from_path(struct multipath * mpp)
 	if (mpp->hwe || !mpp->paths)
 		return;
 
-	condlog(3, "%s: searching paths for valid hwe", mpp->alias);
+	condlog(4, "%s: searching paths for valid hwe", mpp->alias);
 	/* doing this in two passes seems like paranoia to me */
 	vector_foreach_slot(mpp->paths, pp, i) {
-		if (pp->state != PATH_UP)
-			continue;
-		if (pp->hwe) {
-			mpp->hwe = pp->hwe;
-			return;
-		}
+		if (pp->state == PATH_UP && pp->hwe)
+			goto done;
 	}
 	vector_foreach_slot(mpp->paths, pp, i) {
-		if (pp->state == PATH_UP)
-			continue;
-		if (pp->hwe) {
-			mpp->hwe = pp->hwe;
-			return;
-		}
+		if (pp->state != PATH_UP && pp->hwe)
+			goto done;
 	}
+done:
+	if (i < VECTOR_SIZE(mpp->paths))
+		(void)set_mpp_hwe(mpp, pp);
+
+	if (mpp->hwe)
+		condlog(3, "%s: got hwe from path %s", mpp->alias, pp->dev);
+	else
+		condlog(2, "%s: no hwe found", mpp->alias);
 }
 
 int
@@ -369,8 +369,14 @@ struct multipath *add_map_with_path(struct vectors *vecs, struct path *pp,
 
 	conf = get_multipath_config();
 	mpp->mpe = find_mpe(conf->mptable, pp->wwid);
-	mpp->hwe = pp->hwe;
 	put_multipath_config(conf);
+
+	/*
+	 * We need to call this before select_alias(),
+	 * because that accesses hwe properties.
+	 */
+	if (pp->hwe && !set_mpp_hwe(mpp, pp))
+		goto out;
 
 	strcpy(mpp->wwid, pp->wwid);
 	find_existing_alias(mpp, vecs);
@@ -421,12 +427,6 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
 			vector_del_slot(mpp->paths, i);
 			i--;
 
-			/* Make sure mpp->hwe doesn't point to freed memory.
-			 * We call extract_hwe_from_path() below to restore
-			 * mpp->hwe
-			 */
-			if (mpp->hwe == pp->hwe)
-				mpp->hwe = NULL;
 			if ((j = find_slot(vecs->pathvec,
 					   (void *)pp)) != -1)
 				vector_del_slot(vecs->pathvec, j);
@@ -436,7 +436,6 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
 				mpp->alias, pp->dev, pp->dev_t);
 		}
 	}
-	extract_hwe_from_path(mpp);
 	return count;
 }
 

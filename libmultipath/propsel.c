@@ -65,7 +65,7 @@ do {									\
 	__do_set_from_vec(struct hwentry, var, (src)->hwe, dest)
 
 #define do_set_from_hwe(var, src, dest, msg)				\
-	if (__do_set_from_hwe(var, src, dest)) {			\
+	if (src->hwe && __do_set_from_hwe(var, src, dest)) {		\
 		origin = msg;						\
 		goto out;						\
 	}
