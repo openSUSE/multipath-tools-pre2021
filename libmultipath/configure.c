@@ -516,14 +516,13 @@ get_udev_for_mpp(const struct multipath *mpp)
 }
 
 static void
-trigger_udev_change(const struct multipath *mpp)
+trigger_udev_event(const struct multipath *mpp, const char *action)
 {
-	static const char change[] = "change";
 	struct udev_device *udd = get_udev_for_mpp(mpp);
 	if (!udd)
 		return;
-	condlog(3, "triggering %s uevent for %s", change, mpp->alias);
-	sysfs_attr_set_value(udd, "uevent", change, sizeof(change)-1);
+	condlog(3, "triggering %s uevent for %s", action, mpp->alias);
+	sysfs_attr_set_value(udd, "uevent", action, strlen(action));
 	udev_device_unref(udd);
 }
 
@@ -1281,9 +1280,12 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
 			 * udev has already finished setting up this device
 			 * (udev in initrd may have been shut down while
 			 * processing this device or its children).
-			 * Trigger a change event, just in case.
+			 * Trigger an "add" event, just in case.
+			 * (must be "add", because otherwise the device mapper
+			 * udev rules may ignore it, see 10-dm.rules)
 			 */
-			trigger_udev_change(find_mp_by_wwid(curmp, mpp->wwid));
+			trigger_udev_event(find_mp_by_wwid(curmp, mpp->wwid),
+					   "add");
 
 		conf = get_multipath_config();
 		allow_queueing = conf->allow_queueing;
