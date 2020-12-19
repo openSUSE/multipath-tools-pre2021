@@ -1274,6 +1274,7 @@ cli_reinstate(void * v, char ** reply, int * len, void * data)
 	struct vectors * vecs = (struct vectors *)data;
 	char * param = get_keyparam(v, PATH);
 	struct path * pp;
+	int r;
 
 	param = convert_dev(param, 1);
 	pp = find_path_by_dev(vecs->pathvec, param);
@@ -1287,8 +1288,14 @@ cli_reinstate(void * v, char ** reply, int * len, void * data)
 	condlog(2, "%s: reinstate path %s (operator)",
 		pp->mpp->alias, pp->dev_t);
 
-	checker_enable(&pp->checker);
-	return dm_reinstate_path(pp->mpp->alias, pp->dev_t);
+	r = dm_reinstate_path(pp->mpp->alias, pp->dev_t);
+	/*
+	 * Check path only if reinstat path successfull
+	 */
+	if (!r)
+		checker_enable(&pp->checker);
+	
+	return r;
 }
 
 int
