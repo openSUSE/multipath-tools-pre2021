@@ -119,7 +119,7 @@ int libcheck_check(struct checker * c)
 	ret = PATH_UP;
 out:
 	/*
-	 * caller told us he doesn't want to keep the context :
+	 * caller told us it doesn't want to keep the context :
 	 * free it
 	 */
 	if (!c->context)
